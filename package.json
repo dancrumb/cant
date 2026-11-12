@@ -1,0 +1,9 @@
+{
+  "name": "@dancrumb/cant",
+  "version": "0.1.0",
+  "description": "Skeleton Node.js package",
+  "main": "src/index.js",
+  "files": ["src"],
+  "license": "MIT",
+  "publishConfig": { "access": "public" }
+}
