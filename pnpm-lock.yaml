@@ -64,7 +64,11 @@ importers:
         specifier: workspace:^
         version: link:../shared
 
-  packages/shared: {}
+  packages/shared:
+    dependencies:
+      tokenizr:
+        specifier: ^2.2.1
+        version: 2.2.1
 
   packages/vscode:
     dependencies:
@@ -905,6 +909,9 @@ packages:
   tinyglobby@0.2.17:
     resolution: {integrity: sha512-wXR/dYpcqKmfWpEdZjiKJOwCNFndD0DMnrW/cYjVGttEkBfVgcLFHoNrlj47mjOVic9yyNu65alsgF4NQyTa2g==}
     engines: {node: '>=12.0.0'}
+
+  tokenizr@2.2.1:
+    resolution: {integrity: sha512-+159QZqH4Ij4p0P791Wu/THwWf7ZRk4CrlC5MNtDfnY0ptnKenjWo5eM8vncwgDrQ0WNC+a97iaHQhOIjomJtQ==}
 
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
@@ -1779,6 +1786,8 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.7)
       picomatch: 4.0.7
+
+  tokenizr@2.2.1: {}
 
   trough@2.2.0: {}
 

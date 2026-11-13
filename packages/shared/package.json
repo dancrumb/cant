@@ -27,5 +27,8 @@
     "clean": "rm -rf dist",
     "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint ."
+  },
+  "dependencies": {
+    "tokenizr": "^2.2.1"
   }
 }

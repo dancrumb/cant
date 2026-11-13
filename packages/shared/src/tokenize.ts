@@ -1,3 +1,5 @@
+import { Tokenizr } from 'tokenizr';
+
 export type TokenKind = 'keyword' | 'identifier' | 'string' | 'punctuation';
 
 export interface Token {
@@ -9,44 +11,35 @@ export interface Token {
 
 const KEYWORDS = new Set(['import', 'action', 'trigger', 'on']);
 
-const WHITESPACE = /\s+/y;
-const IDENTIFIER = /[A-Za-z_][A-Za-z0-9_]*/y;
-// A string ends at its closing quote or, if that is missing, at the end of the line.
-const STRING = /"[^"\n]*"?/y;
-
-const matchAt = (pattern: RegExp, source: string, offset: number): string | undefined => {
-  pattern.lastIndex = offset;
-  return pattern.exec(source)?.[0];
-};
+// Rules are tried in order, and the first one that matches wins.
+const lexer = new Tokenizr()
+  .rule(/\s+/, (ctx) => {
+    ctx.ignore();
+  })
+  .rule(/[A-Za-z_][A-Za-z0-9_]*/, (ctx, match) => {
+    ctx.accept(KEYWORDS.has(match[0]) ? 'keyword' : 'identifier');
+  })
+  // A string ends at its closing quote or, if that is missing, at the end of the line.
+  .rule(/"[^"\n]*"?/, (ctx) => {
+    ctx.accept('string');
+  })
+  // Anything else is a single character of punctuation, so tokenizing never fails.
+  .rule(/./, (ctx) => {
+    ctx.accept('punctuation');
+  });
 
 /**
  * Split Cant source into tokens. Whitespace is skipped, and no token spans a line break.
  */
 export function tokenize(source: string): Token[] {
-  const tokens: Token[] = [];
-  let offset = 0;
-
-  while (offset < source.length) {
-    const whitespace = matchAt(WHITESPACE, source, offset);
-    if (whitespace !== undefined) {
-      offset += whitespace.length;
-      continue;
-    }
-
-    const identifier = matchAt(IDENTIFIER, source, offset);
-    const text = identifier ?? matchAt(STRING, source, offset);
-    const length = text?.length ?? 1;
-
-    let kind: TokenKind = 'punctuation';
-    if (identifier !== undefined) {
-      kind = KEYWORDS.has(identifier) ? 'keyword' : 'identifier';
-    } else if (text !== undefined) {
-      kind = 'string';
-    }
-
-    tokens.push({ kind, start: offset, length });
-    offset += length;
-  }
-
-  return tokens;
+  return lexer
+    .reset()
+    .input(source)
+    .tokens()
+    .filter((token) => token.type !== 'EOF')
+    .map((token) => ({
+      kind: token.type as TokenKind,
+      start: token.pos,
+      length: token.text.length,
+    }));
 }
