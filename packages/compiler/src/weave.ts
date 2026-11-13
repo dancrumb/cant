@@ -7,6 +7,10 @@ import { visit } from 'unist-util-visit';
 
 export { cant } from '@dancrumb/cant-shared';
 
+// Only code blocks in this language are part of the program. Others, such as
+// `cant-example`, illustrate a point and are left out of the code output.
+const CANT_LANGUAGE = 'cant';
+
 interface WeaveOptions {
   output?: string;
 }
@@ -26,7 +30,7 @@ const weave = (file: string, options: WeaveOptions): void => {
 
     const value = 'value' in node ? `: ${JSON.stringify(node.value)}` : '';
     console.log(`${'  '.repeat(depth)}${node.type}${value}`);
-    if (node.type === 'code' && 'value' in node) {
+    if (node.type === 'code' && node.lang === CANT_LANGUAGE) {
       code.push(node.value);
     }
   });
