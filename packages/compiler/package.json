@@ -1,0 +1,33 @@
+{
+  "name": "@dancrumb/cant-compiler",
+  "version": "0.1.0",
+  "description": "The cant compiler",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*",
+    "!dist/**/*.tsbuildinfo"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@dancrumb/cant-shared": "workspace:^"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --noEmit",
+    "clean": "rm -rf dist",
+    "lint": "eslint ."
+  }
+}

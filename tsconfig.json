@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/compiler" },
+    { "path": "packages/interpreter" },
+    { "path": "packages/lsp" }
+  ]
+}
