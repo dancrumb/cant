@@ -10,6 +10,9 @@
       "default": "./dist/weave.js"
     }
   },
+  "bin": {
+    "weave": "./dist/weave.js"
+  },
   "files": [
     "dist",
     "!dist/**/*.test.*",
