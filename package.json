@@ -13,7 +13,8 @@
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
     "test": "turbo run test",
-    "lint": "turbo run lint"
+    "lint": "turbo run lint",
+    "release": "./scripts/release.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

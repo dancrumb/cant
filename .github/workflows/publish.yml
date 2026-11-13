@@ -1,0 +1,44 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Check that every package version matches the tag
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          mismatched=$(pnpm ls --filter './packages/*' --depth -1 --json |
+            jq --raw-output --arg v "$version" '.[] | select(.version != $v) | "\(.name)@\(.version)"')
+          if [ -n "$mismatched" ]; then
+            echo "These packages do not match tag $GITHUB_REF_NAME:" >&2
+            echo "$mismatched" >&2
+            exit 1
+          fi
+
+      - run: pnpm build
+      - run: pnpm lint
+      - run: pnpm test
+
+      - run: pnpm publish --recursive --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

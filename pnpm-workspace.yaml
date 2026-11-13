@@ -2,3 +2,13 @@ packages:
   - packages/*
 allowBuilds:
   esbuild: true
+versioning:
+  # Release all four packages together at one shared version.
+  fixed:
+    - - '@dancrumb/cant-compiler'
+      - '@dancrumb/cant-interpreter'
+      - '@dancrumb/cant-lsp'
+      - '@dancrumb/cant-shared'
+  # Commit a CHANGELOG.md in each package.
+  changelog:
+    storage: repository
