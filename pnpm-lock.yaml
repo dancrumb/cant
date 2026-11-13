@@ -66,6 +66,28 @@ importers:
 
   packages/shared: {}
 
+  packages/vscode:
+    dependencies:
+      '@dancrumb/cant-shared':
+        specifier: workspace:^
+        version: link:../shared
+      remark-parse:
+        specifier: ^11.0.0
+        version: 11.0.0
+      unified:
+        specifier: ^11.0.5
+        version: 11.0.5
+      unist-util-visit:
+        specifier: ^5.2.0
+        version: 5.2.0
+    devDependencies:
+      '@types/vscode':
+        specifier: ~1.100.0
+        version: 1.100.0
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
+
 packages:
 
   '@cacheable/memory@2.2.0':
@@ -351,6 +373,9 @@ packages:
 
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
+
+  '@types/vscode@1.100.0':
+    resolution: {integrity: sha512-4uNyvzHoraXEeCamR3+fzcBlh7Afs4Ifjs4epINyUX/jvdk0uzLnwiDY35UKDKnkCHP5Nu3dljl2H8lR6s+rQw==}
 
   '@typescript-eslint/eslint-plugin@8.72.2':
     resolution: {integrity: sha512-222PKFXKihmFpi/pS5njoBgdAqsPhj2/GBmFbrNw8Tq8gEG9Sv+kSlKFy4u2q+mJv9ZzJgM2Gkv/bUzRZwZw5g==}
@@ -1149,6 +1174,8 @@ snapshots:
       undici-types: 7.24.6
 
   '@types/unist@3.0.3': {}
+
+  '@types/vscode@1.100.0': {}
 
   '@typescript-eslint/eslint-plugin@8.72.2(@typescript-eslint/parser@8.72.2(@typescript/typescript6@6.0.2)(eslint@10.14.0))(@typescript/typescript6@6.0.2)(eslint@10.14.0)':
     dependencies:

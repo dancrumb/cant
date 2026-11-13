@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Cant extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "preLaunchTask": "Build",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder:root}/packages/vscode",
+        "${workspaceFolder:root}/packages/compiler/examples"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@
     { "name": "compiler", "path": "../packages/compiler" },
     { "name": "interpreter", "path": "../packages/interpreter" },
     { "name": "lsp", "path": "../packages/lsp" },
-    { "name": "shared", "path": "../packages/shared" }
+    { "name": "shared", "path": "../packages/shared" },
+    { "name": "vscode", "path": "../packages/vscode" }
   ]
 }

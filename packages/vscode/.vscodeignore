@@ -1,0 +1,4 @@
+**
+!dist/extension.cjs
+!language-configuration.json
+!package.json

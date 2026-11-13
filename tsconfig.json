@@ -4,6 +4,7 @@
     { "path": "packages/shared" },
     { "path": "packages/compiler" },
     { "path": "packages/interpreter" },
-    { "path": "packages/lsp" }
+    { "path": "packages/lsp" },
+    { "path": "packages/vscode" }
   ]
 }

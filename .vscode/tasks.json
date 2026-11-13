@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "pnpm build",
+      "options": { "cwd": "${workspaceFolder:root}" },
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}
