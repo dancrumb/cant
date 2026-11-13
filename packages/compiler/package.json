@@ -6,8 +6,8 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/weave.d.ts",
+      "default": "./dist/weave.js"
     }
   },
   "files": [
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@dancrumb/cant-shared": "workspace:^",
+    "commander": "^15.1.0",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.2.0"
