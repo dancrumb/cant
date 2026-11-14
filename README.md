@@ -19,3 +19,7 @@ pnpm typecheck
 pnpm lint
 pnpm clean
 ```
+
+## Architecture decisions
+
+Significant design decisions are recorded in [`docs/adr`](docs/adr/README.md).
