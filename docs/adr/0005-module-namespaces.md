@@ -36,7 +36,7 @@ nameSpace::symbolName
 
 This refers to the symbol `symbolName` in the namespace `nameSpace`
 
-If no namespace is provided, then the _current_ namespace is used. "Current" here means the namespace in which the symbol is defined.
+If no namespace is provided, then the _current_ namespace is used. "Current" here means the namespace in effect where the reference appears: the one started by the most recent `namespace` line above it, or `__main__` if there is none.
 
 
 
