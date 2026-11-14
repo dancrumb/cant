@@ -1,6 +1,6 @@
 # 0006. Imports
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 
 ## Context

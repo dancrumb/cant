@@ -1,6 +1,6 @@
 # 0005. Module Namespaces
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 
 ## Context
