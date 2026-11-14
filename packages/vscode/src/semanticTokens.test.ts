@@ -61,3 +61,13 @@ test('tokenizes indented and unclosed code blocks', () => {
 test('reports no tokens for an empty code block', () => {
   assert.deepEqual(describeTokens('```cant\n```', 'markdown'), []);
 });
+
+test('reports operators', () => {
+  assert.deepEqual(describeTokens('x := a and b', 'cant'), [
+    'variable:x',
+    'operator::=',
+    'variable:a',
+    'operator:and',
+    'variable:b',
+  ]);
+});

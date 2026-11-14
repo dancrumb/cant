@@ -4,7 +4,8 @@ import { tokenize } from './tokenize.ts';
 
 const describeTokens = (source: string): string[] =>
   tokenize(source).map(
-    (token) => `${token.kind}:${source.slice(token.start, token.start + token.length)}`,
+    (token) =>
+      `${token.kind}:${source.slice(token.position.start.offset, token.position.end.offset)}`,
   );
 
 test('tokenizes keywords, identifiers and punctuation', () => {
@@ -45,9 +46,78 @@ test('ends an unterminated string at the end of the line', () => {
   ]);
 });
 
-test('reports offsets into the source', () => {
-  assert.deepEqual(tokenize('  import IO'), [
-    { kind: 'keyword', start: 2, length: 6 },
-    { kind: 'identifier', start: 9, length: 2 },
+test('reports positions in the source', () => {
+  assert.deepEqual(tokenize('  import IO\nx'), [
+    {
+      kind: 'keyword',
+      position: {
+        start: { line: 1, column: 3, offset: 2 },
+        end: { line: 1, column: 9, offset: 8 },
+      },
+    },
+    {
+      kind: 'identifier',
+      position: {
+        start: { line: 1, column: 10, offset: 9 },
+        end: { line: 1, column: 12, offset: 11 },
+      },
+    },
+    {
+      kind: 'identifier',
+      position: {
+        start: { line: 2, column: 1, offset: 12 },
+        end: { line: 2, column: 2, offset: 13 },
+      },
+    },
+  ]);
+});
+
+test('tokenizes symbol operators, preferring the longest match', () => {
+  assert.deepEqual(describeTokens(':= < > <= => + == * - \\ ! .'), [
+    'operator::=',
+    'operator:<',
+    'operator:>',
+    'operator:<=',
+    'operator:=>',
+    'operator:+',
+    'operator:==',
+    'operator:*',
+    'operator:-',
+    'operator:\\',
+    'operator:!',
+    'operator:.',
+  ]);
+  assert.deepEqual(describeTokens('x:=a.b<=c'), [
+    'identifier:x',
+    'operator::=',
+    'identifier:a',
+    'operator:.',
+    'identifier:b',
+    'operator:<=',
+    'identifier:c',
+  ]);
+});
+
+test('tokenizes and and or as operators only when they are whole words', () => {
+  assert.deepEqual(describeTokens('a and b or !c; android order'), [
+    'identifier:a',
+    'operator:and',
+    'identifier:b',
+    'operator:or',
+    'operator:!',
+    'identifier:c',
+    'punctuation:;',
+    'identifier:android',
+    'identifier:order',
+  ]);
+});
+
+test('leaves a lone colon or equals sign as punctuation', () => {
+  assert.deepEqual(describeTokens('a: b = c'), [
+    'identifier:a',
+    'punctuation::',
+    'identifier:b',
+    'punctuation:=',
+    'identifier:c',
   ]);
 });
