@@ -1,6 +1,6 @@
 # 0015. Files
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 
 ## Context
@@ -10,28 +10,59 @@
 Other ADRs depend on the answer:
 
 - [ADR 0011](0011-converting-values-to-text.md) needs to know how a `FILE` is converted to text.
-- [ADR 0013](0013-enums.md) allows enums of any base type, but an enum value has to be a literal known at compile time, and there is no way yet to write a `FILE` literal.
-- [ADR 0010](0010-security.md) controls who can see and change data, which files will need too.
+- [ADR 0013](0013-enums.md) allows enums of any base type, but an enum value has to be a literal known at compile time.
+- [ADR 0010](0010-security.md) controls who can see and change data, which files need too.
 
 [ADR 0017](0017-faceted-types.md) makes `FILE` a faceted type. A `FILE` value can be used as a URL that points to the file, as a stream that reads it, or as a blob that holds its contents. As a faceted type, a `FILE` is converted to text and compared by its identifier facet, which is its URL. That URL can be a `data:` URL that holds the file's contents.
 
-TODO: Describe the forces at play, such as how programs receive files, where files are stored, and how large they can be.
+Files come from outside a program, such as an upload, and their contents can be large, so a program should be able to pass a file around without handling its contents until it needs them.
 
 ## Decision
 
-TODO
+### Facets
 
-## Open questions
+A `FILE` has exactly three facets ([ADR 0017](0017-faceted-types.md)):
 
-These need answers before this ADR is accepted:
+| Facet | Meaning |
+| --- | --- |
+| URL | A URL that points to the file. This is the identifier facet, and it can be a `data:` URL. |
+| Stream | A stream that reads the file's contents |
+| Blob | A blob that holds the file's contents |
 
-- **Facets.** `FILE` has URL, stream and blob facets ([ADR 0017](0017-faceted-types.md)). Does it have others, such as a name, a media type or a size, or are those carried some other way?
-- **Creating files.** How does a program get a `FILE`? For example, from an upload, from an action's parameter, or by creating one from `TEXT` or other data.
-- **Reading files.** A program reads a `FILE` through its stream or blob facet. Can either be read as `TEXT`, and how is the text's encoding decided?
-- **Storage.** Where are files stored, how long do they last, and how are they deleted?
-- **Literals and enums.** Is there a way to write a `FILE` literal? If not, enums whose value type is `FILE` ([ADR 0013](0013-enums.md)) cannot be written and should be ruled out.
-- **Security.** How do the rules in [ADR 0010](0010-security.md) apply to files, such as who can upload, read or delete one?
+All three follow JavaScript semantics, and none of their types can be named in a program (ADR 0017).
+
+### Where files come from
+
+A program cannot create a `FILE` from nothing. A `FILE` arises in two ways:
+
+- **Built-in keywords.** Some built-in Cant keywords, to be defined later, return a `FILE`.
+- **Triggers.** Some kinds of trigger ([ADR 0009](0009-triggers.md)), such as those that deal with uploads, provide a `FILE` to the action they invoke.
+
+Once a program has a `FILE`, it can pass it to actions and return it from them like any other value.
+
+### No literals
+
+There is no `FILE` literal. A program cannot write a `FILE` value in its source.
+
+Because an enum's values must be literals ([ADR 0013](0013-enums.md)), there are no enums whose value type is `FILE`.
+
+### Storage
+
+The interpreter stores files. Where a file is kept, how long it lasts and when it is deleted are up to the interpreter, not the program.
+
+### Reading and writing
+
+Explicit file input and output, such as reading a `FILE`'s contents as `TEXT` or writing a new file, will be decided when the `cant::IO` module is designed.
+
+### Security
+
+For now, access to files is controlled by triggers. A program can only receive a `FILE` through a trigger or a built-in keyword, so the trigger that starts an action decides whether that action has a file to work with ([ADR 0010](0010-security.md)).
 
 ## Consequences
 
-TODO
+- A `FILE` can be passed around cheaply, by its URL, and the interpreter only reads its contents when code asks for the stream or blob facet.
+- Because programs cannot create files themselves or decide where they are stored, the interpreter can manage storage in one place. The cost is that programs have no control over where files live or how long they last.
+- A `FILE` has no facet for its name. Its blob facet follows JavaScript's `Blob`, which has a size and a media type, but how a program reads those depends on how facets are accessed, which is left to a future ADR ([ADR 0017](0017-faceted-types.md)).
+- With no `FILE` literal, files cannot appear in enums or as default values.
+- Relying on triggers for file security keeps the rules simple for now, but does not let a program restrict who can read a file once it has one. That may need revisiting alongside [ADR 0010](0010-security.md).
+- Until the built-in keywords and `cant::IO` are defined, programs can only receive files from triggers and pass them on.
