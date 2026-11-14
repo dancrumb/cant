@@ -51,6 +51,7 @@ These need answers before this ADR is accepted:
 - **Optional returns.** What can a caller do with the result of an action that returns `T?`? Does it have to check for `NOTHING` before using the result as a `T`?
 - **One `?` or two.** The `?` goes after the name for parameters but after the type for return types. Should both use the same position, and can a parameter's type itself be optional (`name: TEXT?`)?
 - **Where `NOTHING` is allowed.** Can only a type marked `?` hold `NOTHING`, or can any value be `NOTHING`?
+- **Interpolating `NOTHING`.** `NOTHING` cannot be converted to text ([ADR 0011](0011-converting-values-to-text.md)). Is interpolating a value that might be `NOTHING`, such as the result of an action that returns `T?`, a compile-time error, or a runtime error only when the value is `NOTHING`? Runtime errors themselves are left to a future ADR on error handling.
 
 ## Consequences
 
