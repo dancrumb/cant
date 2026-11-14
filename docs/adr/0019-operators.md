@@ -30,7 +30,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | `.` | `value.member` | A member of a value, such as a field. Also names an enum member (`InvoiceStatus.paid`) | [ADR 0013](0013-enums.md); objects to come |
 | `( … )` | `action(arguments)` | Calls an action | [ADR 0007](0007-actions.md) |
 | `orElse` | `a orElse b` | The value inside the optional `a`, or `b` if `a` is empty | [ADR 0016](0016-handling-optional-values.md) |
-| `isEmpty` | `isEmpty a` | Whether `a` is an optional that holds `NOTHING` | [ADR 0016](0016-handling-optional-values.md) |
+| `isEmpty` | `isEmpty a` | Whether the optional `a` holds `NOTHING`. `a` must be an optional | [ADR 0016](0016-handling-optional-values.md), amended here |
 | `!` | `!a` | Boolean not | Used in [ADR 0016](0016-handling-optional-values.md) |
 | `-` | `-a` | Negation | TODO |
 | `*` | `a * b` | Multiplication | TODO |
@@ -87,6 +87,7 @@ So if the right-hand side is an action call, the action is not called unless its
 ### Settled rules for particular operands
 
 - **`NOTHING`.** Comparing a value against `NOTHING`, with `==`, `!=` or any other comparison operator, is a syntax error ([ADR 0016](0016-handling-optional-values.md)).
+- **`isEmpty` needs an optional.** Applying `isEmpty` to a value that is not optional is a compile-time error, just as applying `orElse` to one is ([ADR 0016](0016-handling-optional-values.md)). This amends ADR 0016, which made `isEmpty` on a value that is not optional `false`. Both operators now reject a value that cannot be empty, since checking it, or falling back from it, could never do anything.
 - **Optionals.** Any operator that uses an optional's value as a `T`, such as `+` or `==`, is a compile-time error on an unchecked optional ([ADR 0014](0014-optionals.md)). `isEmpty` and `orElse` are the exceptions.
 - **Enums.** At runtime, an enum value is its member's value ([ADR 0013](0013-enums.md)), so operators act on that value.
 - **Faceted values.** Two faceted values are equal if they have the same specific type and their identifiers match ([ADR 0017](0017-faceted-types.md)).

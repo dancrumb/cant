@@ -1,6 +1,7 @@
 # 0016. Handling optional values
 
 - **Status:** Accepted
+- **Amended by:** [0019](0019-operators.md) (`isEmpty` requires an optional)
 - **Date:** 2026-11-14
 
 ## Context
