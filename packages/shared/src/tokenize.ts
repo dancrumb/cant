@@ -12,13 +12,13 @@ export interface Token {
   position: Position;
 }
 
-const KEYWORDS = new Set(['import', 'action', 'trigger', 'on']);
+const KEYWORDS = new Set(['import', 'action', 'trigger', 'on', 'namespace']);
 
 /** Operators spelled as words; they are matched as whole words only. */
 const WORD_OPERATORS = new Set(['and', 'or']);
 
 /** Operators spelled with symbols. Multi-character operators come first so they win over their prefixes. */
-const SYMBOL_OPERATORS = /:=|<=|=>|==|[<>+*\-\\!.]/;
+const SYMBOL_OPERATORS = /::|:=|<=|=>|==|[<>+*\-\\!.]/;
 
 const wordKind = (word: string): TokenKind => {
   if (KEYWORDS.has(word)) return 'keyword';

@@ -112,6 +112,22 @@ test('tokenizes and and or as operators only when they are whole words', () => {
   ]);
 });
 
+test('tokenizes the namespace keyword and the :: scope operator', () => {
+  assert.deepEqual(describeTokens('namespace __main__\nnameSpace::symbolName'), [
+    'keyword:namespace',
+    'identifier:__main__',
+    'identifier:nameSpace',
+    'operator:::',
+    'identifier:symbolName',
+  ]);
+  assert.deepEqual(describeTokens('a:::=b'), [
+    'identifier:a',
+    'operator:::',
+    'operator::=',
+    'identifier:b',
+  ]);
+});
+
 test('leaves a lone colon or equals sign as punctuation', () => {
   assert.deepEqual(describeTokens('a: b = c'), [
     'identifier:a',
