@@ -29,7 +29,12 @@ action Greet(name: String, greeting?: String := "Hello, "): String
         return greeting + name
 ```
 
-Blocks are delimited by indentation, not braces. This replaces the `{ ... }` form that the parser accepts today.
+Blocks are delimited by indentation, not braces. This replaces the earlier `{ ... }` form, which is no longer valid.
+
+- A block starts on the line after the one that introduces it, such as an action's signature, `body`, `if` or `for`, and is indented further than that line.
+- Every statement in a block has the same indentation. A line indented less ends the block; a line indented more, other than the start of a nested block, is an error.
+- Spaces and tabs each count as one column of indentation.
+- The parser tracks indentation itself, so the tokenizer does not emit indent and dedent tokens.
 
 ### Signatures
 
@@ -88,15 +93,9 @@ Comment  = "//", ? any characters up to the end of the line ? ;
 
 A comment starts with `//` and runs to the end of the line. There are no block comments. A `//` inside a string is part of the string, not a comment. Wherever this grammar and later ones write `?comment?`, they mean a `Comment`.
 
-## Open questions
-
-These need answers before this ADR is accepted:
-
-- **Brace blocks.** Moving to indentation-delimited blocks means changing the existing parser, the hello world example and the tokenizer, which will need to emit indent and dedent tokens.
-
 ## Consequences
 
 - Actions can take typed parameters with defaults, and return nullable values.
 - Bodies get structured control flow (`if`, `for`, `while`).
-- Indentation-delimited blocks make the tokenizer indentation-aware, which is more complex than brace matching.
+- Indentation-delimited blocks make the parser track indentation, which is more complex than brace matching. Editors need to fold and indent by indentation too.
 - The existing `action Name():TYPE { ... }` syntax becomes invalid.

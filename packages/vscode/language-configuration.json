@@ -15,5 +15,14 @@
     ["[", "]"],
     ["(", ")"],
     ["\"", "\""]
+  ],
+  "folding": {
+    "offSide": true
+  },
+  "onEnterRules": [
+    {
+      "beforeText": "^\\s*(?:action\\b.*|body|auth|arguments|(?:if|else|for|while)\\b.*)\\s*$",
+      "action": { "indent": "indent" }
+    }
   ]
 }

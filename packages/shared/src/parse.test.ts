@@ -166,6 +166,13 @@ test('rejects statements that are not indented consistently', () => {
   assert.throws(() => parse('action A():VOID\n  body\n    f()\n   g()'), ParseError);
 });
 
+test('rejects blocks delimited by braces', () => {
+  assert.throws(() => parse('action A():VOID { f() }'), ParseError);
+  assert.throws(() => parse('action A():VOID {\n  f()\n}'), ParseError);
+  assert.throws(() => parse('action A():VOID\n  body {\n    f()\n  }'), ParseError);
+  assert.throws(() => parse('action A():VOID\n  body\n    if a {\n      f()\n    }'), ParseError);
+});
+
 test('parses calls with several arguments and chained calls', () => {
   assert.deepEqual(parseBody('f("a", b)(c)'), [
     statement({

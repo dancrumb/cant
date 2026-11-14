@@ -1,6 +1,6 @@
 # 0010. Security
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 
 ## Context
