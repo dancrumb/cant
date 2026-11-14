@@ -1,6 +1,6 @@
 # 0013. Enums
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-14
 
 ## Context
@@ -15,22 +15,48 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 
 ### Enum declarations
 
-An `enum` declaration is a top-level construct, like an action or a trigger. It names the enum and lists its values in an indented block, one per line:
+An `enum` declaration is a top-level construct, like an action or a trigger. It names the enum and lists its members in an indented block, one per line:
 
 ```ebnf
-EnumDeclaration  = EnumKeyword, Identifier, ?indent?, {ConstantStringLiteral | Comment}, ?dedent? ;
+EnumDeclaration  = EnumKeyword, Identifier, ?indent?, {EnumMember | Comment}, ?dedent? ;
+EnumMember       = Identifier, [":=", ConstantValue] ;
 ```
 
 ```cant
-enum InvoiceStatus
-    "draft"
-    "sent"
-    "paid"
+enum Status
+    Idle
+    InProgress := "In Progress"
+    Complete
 ```
 
-- Each value is a string with no interpolations ([ADR 0008](0008-strings.md)), because its value must be known at compile time.
-- An enum has at least one value, and its values are distinct.
-- The name is a type. It can be used wherever a `TypeRef` can, by name (`InvoiceStatus`) or, from another namespace, by qualified name (`billing::InvoiceStatus`, see [ADR 0005](0005-module-namespaces.md)).
+Each member has a name and a value:
+
+- The name is an identifier. A program uses it to refer to the member, as in `Status.InProgress` (see [Enum values](#enum-values)).
+- The value is given after `:=`, the assignment operator ([ADR 0007](0007-actions.md)), or, if there is no `:=`, it is the member's name as `TEXT`. In `Status`, the values are `"Idle"`, `"In Progress"` and `"Complete"`.
+- An assigned value must be known at compile time, so it is a literal, and a string cannot contain interpolations ([ADR 0008](0008-strings.md)). This lets a value be text that is not a valid identifier, such as `"In Progress"`.
+
+#### Value types
+
+An enum's values can be of any base type ([ADR 0012](0012-base-types.md)) except `VOID`, which has no values. An enum is homogeneous: all of its values have the same base type, which is the enum's *value type*.
+
+```cant
+enum Priority
+    Low := 1
+    Medium := 2
+    High := 3
+
+enum Mixed
+    A := 1
+    B := "two"  // error: Mixed has NUMBER and TEXT values
+```
+
+A member with no `:=` has a `TEXT` value, so in an enum whose value type is not `TEXT`, every member must use `:=`.
+
+`ConstantValue` is a literal of a base type. Only string literals (`ConstantStringLiteral`) are defined so far. Literals for the other base types are left to the ADRs that define their values.
+
+An enum has at least one member. Its members' names must be distinct, and so must their values, so `enum E` with members `A` and `B := "A"` is an error.
+
+The enum's name is a type. It can be used wherever a `TypeRef` can, by name (`InvoiceStatus`) or, from another namespace, by qualified name (`billing::InvoiceStatus`, see [ADR 0005](0005-module-namespaces.md)).
 
 ```cant
 action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
@@ -38,12 +64,97 @@ action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
         // ...
 ```
 
+### Type compatibility
+
+An enum `A` is type-compatible with another enum `B` if every value in `A` is also a value in `B`. A value of `A` can then be used wherever `B` is expected. Compatibility depends on the members' values, not their names. Enums with different value types share no values, so they are never compatible. The names of the enums and the order of their members do not matter, and the rule applies to named and inline enums alike.
+
+```cant
+enum InvoiceStatus
+    draft
+    sent
+    paid
+
+enum QuoteStatus
+    draft
+    sent
+
+enum PaymentStatus
+    paid
+    refunded
+
+action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
+    body
+        // ...
+
+action CopyQuote(quoteId: TEXT, status: QuoteStatus): VOID
+    body
+        SetStatus(quoteId, status)  // valid: every QuoteStatus value is an InvoiceStatus value
+
+action CopyPayment(paymentId: TEXT, status: PaymentStatus): VOID
+    body
+        SetStatus(paymentId, status)  // error: "refunded" is not an InvoiceStatus value
+```
+
+Compatibility goes in one direction only. `QuoteStatus` is compatible with `InvoiceStatus`, but `InvoiceStatus` is not compatible with `QuoteStatus`, because `"paid"` is not a `QuoteStatus` value. Two enums with the same values are compatible with each other in both directions.
+
+Where an enum is expected, a value is valid as long as it is type-compatible with that enum: an enum value whose enum is compatible, or a value of the enum's value type that is one of its values ([Converting values to enums](#converting-values-to-enums)). An enum value is always checked as an enum, by this rule. It is not treated as a value of its value type to get around it, so passing a `PaymentStatus` value where `InvoiceStatus` is expected is a compile-time error, even if the particular value is `"paid"`.
+
+This is checked at compile time. At runtime, enum values are strings, as described under [Enum values](#enum-values).
+
+### Enum values
+
+A program refers to one value of a named enum by writing the enum's name, a `.`, and the member's name: `InvoiceStatus.paid` or `Status.InProgress`. From another namespace, the enum's name is qualified as usual: `billing::InvoiceStatus.paid`.
+
+```cant
+SetStatus(invoiceId, InvoiceStatus.paid)
+```
+
+When types are checked at runtime, a member is equivalent to its value. `InvoiceStatus.paid` is equivalent to `"paid"`, `Status.InProgress` is equivalent to `"In Progress"`, and `Priority.High` is equivalent to `3`. The runtime does not record which enum a value came from, so `InvoiceStatus.draft` and `QuoteStatus.draft` are the same value at runtime.
+
+An enum value can be used where its value type is expected, so a `Priority` value can be used where a `NUMBER` is. It can also be used where `TEXT` is expected, whatever its value type. How a value is converted to text is decided by [ADR 0011](0011-converting-values-to-text.md).
+
+```cant
+action Describe(label: TEXT): VOID
+    body
+        // ...
+
+Describe(InvoiceStatus.paid)  // valid
+```
+
+### Converting values to enums
+
+A value of an enum's value type can be used in two places where the enum is expected, as long as it is one of the enum's values. For most of the examples here the value type is `TEXT`, but the same applies to a `NUMBER` enum such as `Priority`. Values are matched against the members' values, not their names, so `"In Progress"` is a `Status`, but `"InProgress"` is not:
+
+- **Parameters.** A value can be passed to a parameter whose type is an enum. Inside the action, the parameter has the enum's type.
+- **Return values.** An action whose return type is an enum can return a value of its value type. The returned value has the enum's type.
+
+In both places the parameter or return type names the enum, so the value takes that enum's type. This applies to named and inline enums.
+
+The check is made by the compiler where it can be, such as for a string literal, and at runtime as well:
+
+```cant
+SetStatus(invoiceId, "paid")      // valid: "paid" is a value of InvoiceStatus
+SetStatus(invoiceId, "refunded")  // compile-time error: "refunded" is not a value of InvoiceStatus
+SetTone("warm")                   // valid: "warm" is a value of enum("warm", "dry")
+SetPriority(taskId, 3)            // valid: 3 is a value of Priority
+
+action DefaultStatus(): InvoiceStatus
+    body
+        return "draft"  // valid: "draft" is a value of InvoiceStatus
+
+action ParseStatus(code: TEXT): InvoiceStatus
+    body
+        return code     // checked at runtime: an error if code is not a value of InvoiceStatus
+```
+
+If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. What kind of error that is, and how a caller can handle it, is left to a future ADR on error handling.
+
 ### Inline enums
 
 An inline enum is still a valid `TypeRef`, as [ADR 0007](0007-actions.md) defines it:
 
 ```ebnf
-Enum  = EnumKeyword, "(", ConstantStringLiteral, {",", ConstantStringLiteral}, ")" ;
+Enum  = EnumKeyword, "(", ConstantValue, {",", ConstantValue}, ")" ;
 ```
 
 ```cant
@@ -52,24 +163,26 @@ action SetTone(tone: enum("warm", "dry")): VOID
         // ...
 ```
 
+An inline enum lists values only. Its values follow the same rules as a named enum's: they can be of any base type except `VOID`, and they must all have the same type, so `enum(1, "two")` is an error. Its members have no names, so `:=` is not used, and a program passes one of its values directly ([Converting values to enums](#converting-values-to-enums)).
+
+Like a named enum, an inline enum cannot have duplicate values, so `enum("a", "a")` is an error.
+
 An inline enum suits a set of values used in only one place. A set used in more than one place should be declared once and referred to by name.
 
 ### Keywords
 
 `enum` starts a top-level declaration, so it is reserved everywhere. The tokenizer already treats it as a keyword. After `enum`, a name means a declaration and `(` means an inline enum, so the two cannot be confused.
 
-## Open questions
-
-These need answers before this ADR is accepted:
-
-- **Compatibility.** Are two enums with the same values the same type? For example, can a value of `InvoiceStatus` be passed where `enum("draft", "sent", "paid")` is expected, or can a value of one named enum be passed where another named enum with the same values is expected?
-- **Duplicate values in inline enums.** Does the rule that values are distinct also apply to inline enums, such as `enum("a", "a")`?
-- **Using values.** How does a program refer to one value of an enum? Is it written as a plain string (`"paid"`), or qualified by the enum's name?
-- **Values other than strings.** Is a string the only kind of enum value?
-
 ## Consequences
 
 - A set of values can be declared once, named, and reused, so changing it means changing one place.
+- Because compatibility depends on values rather than names, an enum that is a subset of another, such as a narrower set of statuses, can be used wherever the wider one is expected without any conversion. The cost is that two unrelated enums that happen to share values, such as invoice and quote statuses, can be mixed up without an error.
+- Adding a value to an enum can make it stop being compatible with enums it used to fit into, so the change can break code far from the declaration.
+- Enum values are plain strings at runtime, so they need no special representation and can be stored, compared and sent as text.
+- Enums can hold numbers, booleans and other base types as well as text, so codes and levels such as priorities can be enums. Because each enum is homogeneous, an enum value always has one known value type.
+- Because a value of an enum's value type can be passed or returned where the enum is expected, callers can write `"paid"` instead of `InvoiceStatus.paid`, and outside data, such as user input, can be turned into an enum without a separate conversion step. A literal does not show which enum it belongs to, but a misspelled one is still caught at compile time.
+- `TEXT` values that cannot be checked at compile time are checked at runtime, so the runtime has to know each enum's values, and a call can fail at runtime because of a bad value.
 - Inline enums stay available for one-off sets, so simple cases don't need a separate declaration.
 - Two ways to write the same thing means the language has to define how they relate, and style guidance on when to use each.
+- Members have names for code and values for data, so a value can be any text, such as a label shown to people or a code from another system, while code still refers to it by a valid identifier. Renaming a member changes code but not stored data, as long as its value is assigned with `:=`.
 - The parser has to accept `enum` at the top level as well as in a type, and the syntax tree needs a node for enum declarations.

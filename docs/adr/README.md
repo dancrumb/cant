@@ -20,5 +20,5 @@ Records are not edited once they are accepted. If a decision changes, write a ne
 | [0010](0010-security.md) | Security | Accepted |
 | [0011](0011-converting-values-to-text.md) | Converting values to text | Proposed |
 | [0012](0012-base-types.md) | Base types | Accepted |
-| [0013](0013-enums.md) | Enums | Proposed |
+| [0013](0013-enums.md) | Enums | Accepted |
 | [0014](0014-optionals.md) | Optionals | Proposed |

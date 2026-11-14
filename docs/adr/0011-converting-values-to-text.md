@@ -7,7 +7,7 @@
 
 Strings ([ADR 0008](0008-strings.md)) can contain interpolations, written `${ … }`. When a string is evaluated, each interpolated expression is evaluated and its result is inserted into the text. If the result is not a string, it has to be converted to text first, and nothing yet says how.
 
-TODO: Describe the values that need converting, such as `NOTHING`, numbers, booleans, lists and objects, and any other forces at play.
+TODO: Describe the values that need converting, such as `NOTHING`, numbers, booleans, enum values ([ADR 0013](0013-enums.md)), lists and objects, and any other forces at play.
 
 ## Decision
 
