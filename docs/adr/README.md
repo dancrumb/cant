@@ -24,3 +24,4 @@ Records are not edited once they are accepted. If a decision changes, write a ne
 | [0014](0014-optionals.md) | Optionals | Accepted |
 | [0015](0015-files.md) | Files | Proposed |
 | [0016](0016-handling-optional-values.md) | Handling optional values | Proposed |
+| [0017](0017-faceted-types.md) | Faceted types | Accepted |
