@@ -15,7 +15,7 @@ We need a security model that says:
 - which **permissions** a group or role grants;
 - how a trigger's **authorization** rules use all of the above.
 
-Subjects, groups and roles are kinds of **entity**. Entities will be fully described in a later ADR; this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `fields`) only to give examples context.
+Subjects and groups are kinds of **entity**. Roles are not entities: they are declared on group entities, and represent roles in the application's security model. Entities will be fully described in a later ADR; this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `fields`) only to give examples context.
 
 ## Decision
 
@@ -73,7 +73,7 @@ For a subject entity, the identity is what an authenticated request is matched a
 
 #### `role`
 
-`role` declares a role that a member can have within a group of this entity's kind. An entity can declare any number of roles, and only a group entity can declare roles. Role names are scoped to their group kind, so two group kinds can both have an `admin` role.
+`role` declares a role in the application's security model: one that a member can have within a group of this entity's kind. The role itself is not an entity; it is a name that `permissions` declarations and `auth` rules refer to. An entity can declare any number of roles, but only if it also has a `group` line. A `role` in an entity with no `group` is an error, since there would be no group for a member to hold the role in. Role names are scoped to their group kind, so two group kinds can both have an `admin` role.
 
 How subjects become members of groups, and how roles are assigned, is part of the entity model and is left to the entities ADR.
 
