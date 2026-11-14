@@ -39,7 +39,7 @@ const IMPORT_KEYWORDS = /(?:into|as)(?![A-Za-z0-9_])/;
 const WORD_OPERATORS = new Set(['and', 'or']);
 
 /** Operators spelled with symbols. Multi-character operators come first so they win over their prefixes. */
-const SYMBOL_OPERATORS = /::|:=|<=|=>|==|[<>+*\-\\!.]/;
+const SYMBOL_OPERATORS = /::|:=|<=|>=|==|!=|[<>+*\-\\!.]/;
 
 /**
  * One piece of a string's text (docs/adr/0008-strings.md): an ordinary character, an escape, or

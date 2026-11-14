@@ -73,14 +73,15 @@ test('reports positions in the source', () => {
 });
 
 test('tokenizes symbol operators, preferring the longest match', () => {
-  assert.deepEqual(describeTokens(':= < > <= => + == * - \\ ! .'), [
+  assert.deepEqual(describeTokens(':= < > <= >= + == != * - \\ ! .'), [
     'operator::=',
     'operator:<',
     'operator:>',
     'operator:<=',
-    'operator:=>',
+    'operator:>=',
     'operator:+',
     'operator:==',
+    'operator:!=',
     'operator:*',
     'operator:-',
     'operator:\\',
