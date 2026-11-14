@@ -5,7 +5,7 @@ import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 
 /** The semantic token types this extension reports, in legend order. */
-export const TOKEN_TYPES = ['keyword', 'string', 'variable'] as const;
+export const TOKEN_TYPES = ['keyword', 'string', 'variable', 'operator'] as const;
 
 export type TokenType = (typeof TOKEN_TYPES)[number];
 
@@ -26,14 +26,15 @@ const TOKEN_TYPE_BY_KIND: Partial<Record<TokenKind, TokenType>> = {
   keyword: 'keyword',
   string: 'string',
   identifier: 'variable',
+  operator: 'operator',
 };
 
 const cantTokens = (source: string, sourceOffset: number): SemanticToken[] =>
   tokenize(source).flatMap((token) => {
     const type = TOKEN_TYPE_BY_KIND[token.kind];
-    return type === undefined
-      ? []
-      : [{ type, start: sourceOffset + token.start, length: token.length }];
+    const { start, end } = token.position;
+    if (type === undefined || start.offset === undefined || end.offset === undefined) return [];
+    return [{ type, start: sourceOffset + start.offset, length: end.offset - start.offset }];
   });
 
 interface Region {
