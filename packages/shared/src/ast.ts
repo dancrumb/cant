@@ -34,7 +34,20 @@ export interface CallExpression extends Node {
   arguments: Expression[];
 }
 
-export type Expression = Identifier | StringLiteral | MemberExpression | CallExpression;
+/** `nameSpace::symbolName`: a symbol in a named namespace. */
+export interface QualifiedIdentifier extends Node {
+  type: 'qualifiedIdentifier';
+  position: Position;
+  namespace: Identifier;
+  name: Identifier;
+}
+
+export type Expression =
+  | Identifier
+  | QualifiedIdentifier
+  | StringLiteral
+  | MemberExpression
+  | CallExpression;
 
 export interface ExpressionStatement extends Node {
   type: 'expressionStatement';
@@ -44,11 +57,34 @@ export interface ExpressionStatement extends Node {
 
 export type Statement = ExpressionStatement;
 
-/** `import IO` */
+/**
+ * A symbolic module identifier, `[<scope>::]<name>`. A missing scope means `cant`; the parser
+ * leaves it out rather than filling it in.
+ */
+export interface ModuleName extends Node {
+  type: 'moduleName';
+  position: Position;
+  scope?: Identifier;
+  name: Identifier;
+}
+
+/** `import IO`, `import "./lib.cant" into lib`, `import "./config.json" as "json"` */
 export interface ImportDeclaration extends Node {
   type: 'import';
   position: Position;
-  module: Identifier;
+  /** A symbolic identifier, or a string holding a URL relative to the importing module. */
+  module: ModuleName | StringLiteral;
+  /** The namespace from `into`; without it, symbols go into the current namespace. */
+  namespace?: Identifier;
+  /** The module type from `as`; without it, the module is Cant source. */
+  moduleType?: StringLiteral;
+}
+
+/** `namespace Greetings` */
+export interface NamespaceDeclaration extends Node {
+  type: 'namespace';
+  position: Position;
+  name: Identifier;
 }
 
 /** `action SayHello():VOID { ... }` */
@@ -68,7 +104,11 @@ export interface TriggerDeclaration extends Node {
   event: Identifier;
 }
 
-export type Declaration = ImportDeclaration | ActionDeclaration | TriggerDeclaration;
+export type Declaration =
+  | ImportDeclaration
+  | NamespaceDeclaration
+  | ActionDeclaration
+  | TriggerDeclaration;
 
 export interface Program extends Parent {
   type: 'program';

@@ -41,10 +41,33 @@ Declaration
   = Import
   / Action
   / Trigger
+  / Namespace
 
+// `namespace Greetings`; see docs/adr/0005-module-namespaces.md
+Namespace
+  = NamespaceKeyword __ name:Identifier {
+      return u('namespace', { name, position: toPosition(location()) });
+    }
+
+// `import IO into io as "cant"`; see docs/adr/0006-imports.md
+// `into` and `as` are only special here, so they stay usable as identifiers elsewhere.
 Import
-  = ImportKeyword __ module:Identifier {
-      return u('import', { module, position: toPosition(location()) });
+  = ImportKeyword __ module:ModuleIdentifier
+    namespace:(__ IntoKeyword __ @Identifier)?
+    moduleType:(__ AsKeyword __ @StringLiteral)? {
+      return u('import', {
+        module,
+        ...(namespace && { namespace }),
+        ...(moduleType && { moduleType }),
+        position: toPosition(location()),
+      });
+    }
+
+// A URL identifier is a string; a symbolic identifier is `[<scope>::]<name>`.
+ModuleIdentifier
+  = StringLiteral
+  / scope:(@Identifier "::")? name:Identifier {
+      return u('moduleName', { ...(scope && { scope }), name, position: toPosition(location()) });
     }
 
 Action
@@ -87,7 +110,14 @@ ArgumentList
 
 Primary
   = StringLiteral
+  / QualifiedIdentifier
   / Identifier
+
+// `nameSpace::symbolName`
+QualifiedIdentifier
+  = namespace:Identifier "::" name:Identifier {
+      return u('qualifiedIdentifier', { namespace, name, position: toPosition(location()) });
+    }
 
 // ----- Lexical -----
 
@@ -109,11 +139,17 @@ Keyword
   / ActionKeyword
   / TriggerKeyword
   / OnKeyword
+  / NamespaceKeyword
 
-ImportKeyword  = "import"  !IdentifierPart
-ActionKeyword  = "action"  !IdentifierPart
-TriggerKeyword = "trigger" !IdentifierPart
-OnKeyword      = "on"      !IdentifierPart
+ImportKeyword     = "import"    !IdentifierPart
+ActionKeyword     = "action"    !IdentifierPart
+TriggerKeyword    = "trigger"   !IdentifierPart
+OnKeyword         = "on"        !IdentifierPart
+NamespaceKeyword  = "namespace" !IdentifierPart
+
+// Contextual keywords: reserved only inside `import`, so not listed in Keyword.
+IntoKeyword       = "into"      !IdentifierPart
+AsKeyword         = "as"        !IdentifierPart
 
 // Optional and required whitespace.
 _  "whitespace" = [ \t\r\n]*

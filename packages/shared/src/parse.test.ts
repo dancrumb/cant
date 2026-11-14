@@ -14,6 +14,7 @@ const withoutPositions = (value: unknown): unknown => {
 };
 
 const identifier = (value: string) => ({ type: 'identifier', value });
+const moduleName = (name: string) => ({ type: 'moduleName', name: identifier(name) });
 
 test('parses the hello world example', () => {
   const source = [
@@ -29,7 +30,7 @@ test('parses the hello world example', () => {
   assert.deepEqual(withoutPositions(parse(source)), {
     type: 'program',
     children: [
-      { type: 'import', module: identifier('IO') },
+      { type: 'import', module: moduleName('IO') },
       {
         type: 'action',
         name: identifier('SayHello'),
@@ -112,7 +113,7 @@ test('spans a member expression from its object to its property', () => {
 
 test('accepts identifiers that start with a keyword', () => {
   assert.deepEqual(withoutPositions(parse('import onStart').children), [
-    { type: 'import', module: identifier('onStart') },
+    { type: 'import', module: moduleName('onStart') },
   ]);
 });
 
@@ -129,4 +130,59 @@ test('rejects a keyword used as an identifier, reporting where', () => {
 
 test('rejects an unterminated string', () => {
   assert.throws(() => parse('action A():VOID { f("oops); }'), ParseError);
+});
+
+test('parses symbolic imports with and without a scope', () => {
+  assert.deepEqual(withoutPositions(parse('import IO\nimport acme::Http').children), [
+    { type: 'import', module: moduleName('IO') },
+    {
+      type: 'import',
+      module: { type: 'moduleName', scope: identifier('acme'), name: identifier('Http') },
+    },
+  ]);
+});
+
+test('parses URL imports with into and as', () => {
+  assert.deepEqual(
+    withoutPositions(parse('import "./config.json" into config as "json"').children),
+    [
+      {
+        type: 'import',
+        module: { type: 'string', value: './config.json' },
+        namespace: identifier('config'),
+        moduleType: { type: 'string', value: 'json' },
+      },
+    ],
+  );
+  assert.deepEqual(withoutPositions(parse('import IO as "cant"').children), [
+    { type: 'import', module: moduleName('IO'), moduleType: { type: 'string', value: 'cant' } },
+  ]);
+});
+
+test('lets into and as be identifiers outside imports', () => {
+  assert.deepEqual(withoutPositions(parse('import into into as').children), [
+    { type: 'import', module: moduleName('into'), namespace: identifier('as') },
+  ]);
+});
+
+test('parses namespace declarations', () => {
+  assert.deepEqual(withoutPositions(parse('namespace Greetings\nnamespace __main__').children), [
+    { type: 'namespace', name: identifier('Greetings') },
+    { type: 'namespace', name: identifier('__main__') },
+  ]);
+  assert.throws(() => parse('namespace namespace'), ParseError);
+});
+
+test('parses namespace-qualified references in expressions', () => {
+  const [action] = parse('action A():VOID { io::write("hi"); }').children;
+  assert.equal(action?.type, 'action');
+  assert.deepEqual(withoutPositions(action.children[0]?.expression), {
+    type: 'call',
+    callee: {
+      type: 'qualifiedIdentifier',
+      namespace: identifier('io'),
+      name: identifier('write'),
+    },
+    arguments: [{ type: 'string', value: 'hi' }],
+  });
 });
