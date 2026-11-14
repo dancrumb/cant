@@ -109,7 +109,7 @@ action Welcome(email: TEXT): VOID
 
 ### `orElse`
 
-`a orElse b` gives the value inside the optional `a`, or `b` if `a` holds `NOTHING`. `b` must match the type of the optional: for a `T?`, `b` is a `T`, and the result is a `T`.
+`a orElse b` gives the value inside the optional `a`, or `b` if `a` holds `NOTHING`. `b` must match the type of the optional: for a `T?`, `b` is either a `T` or another `T?`, and the result has the type of `b`. When `b` is a `T`, as in most uses, the result is a `T`.
 
 `a` must be an optional. Using `orElse` on a value that is not optional is a compile-time error, since there is nothing to fall back from.
 
@@ -130,23 +130,23 @@ same := FindNickname(user) orElse "" == name  // (FindNickname(user) orElse "") 
 
 Operators that build up a single operand, such as `::`, `.` and calls, bind more tightly than `orElse`, so `FindUser(email) orElse guest` applies `orElse` to the result of the call.
 
-`orElse` also binds more tightly than `isEmpty`, so `isEmpty a orElse b` is read as `isEmpty (a orElse b)`. The other reading, `(isEmpty a) orElse b`, would apply `orElse` to a `BOOLEAN` and could never use `b`. `isEmpty (a orElse b)` is useful when `b` is itself optional, as at the end of a chain: it is `true` only when every optional in the chain holds `NOTHING`. The full order of operators is left to the ADR that defines expressions.
+`orElse` also binds more tightly than `isEmpty`, so `isEmpty a orElse b` is read as `isEmpty (a orElse b)`. The other reading, `(isEmpty a) orElse b`, would apply `orElse` to a `BOOLEAN` and could never use `b`. `isEmpty (a orElse b)` is useful when `b` is itself optional, as at the end of a series of optionals: it is `true` only when every optional in the series holds `NOTHING`. The full order of operators is left to the ADR that defines expressions.
 
 `orElse` can be applied to an unchecked optional. It does not use the optional's value as a `T` unless that value is present, so it needs no `isEmpty` check first.
 
-#### Chaining
+#### Several optionals in a row
 
-`orElse` can be chained, to try several optionals in turn before falling back to a value:
+`orElse` can be used in a series of optionals, to try each in turn before falling back to a value:
 
 ```cant
 name := FindNickname(user) orElse FindFirstName(user) orElse "friend"
 ```
 
-The result is the value of the first optional that holds one, or the final value if none do. `b` can itself be an optional `T?`, which is what makes chaining possible, and the type of `a orElse b` is the type of `b`. So a chain that ends in a `T` produces a `T`, and a chain that ends in a `T?` produces a `T?`, which must still be checked before it is used as a `T`.
+The result is the value of the first optional that holds one, or the final value if none do. This works because `b` can itself be a `T?`, and the type of `a orElse b` is the type of `b`. So a series that ends in a `T` produces a `T`, and a series that ends in a `T?` produces a `T?`, which must still be checked before it is used as a `T`.
 
 ### Property chaining
 
-Reading a field or calling an action through an optional value, such as `user?.email`, is not supported yet.
+Property chaining, which reads a field or calls an action through an optional value, such as `user?.email` or `a?.b?.c`, is not supported yet. This is different from using `orElse` in a series of optionals.
 
 ## Consequences
 
