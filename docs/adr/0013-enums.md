@@ -1,6 +1,7 @@
 # 0013. Enums
 
 - **Status:** Accepted
+- **Amended by:** [0015](0015-files.md) (no `FILE` enums)
 - **Date:** 2026-11-14
 
 ## Context
@@ -37,7 +38,7 @@ Each member has a name and a value:
 
 #### Value types
 
-An enum's values can be of any base type ([ADR 0012](0012-base-types.md)) except `VOID`, which has no values. An enum is homogeneous: all of its values have the same base type, which is the enum's *value type*.
+An enum's values can be of any base type ([ADR 0012](0012-base-types.md)) that has literals, since every value must be a literal. That rules out `VOID`, which has no values, and `FILE`, which has no literal ([ADR 0015](0015-files.md)). An enum is homogeneous: all of its values have the same base type, which is the enum's *value type*.
 
 ```cant
 enum Priority
@@ -52,7 +53,7 @@ enum Mixed
 
 A member with no `:=` has a `TEXT` value, so in an enum whose value type is not `TEXT`, every member must use `:=`.
 
-`ConstantValue` is a literal of a base type. Only string literals (`ConstantStringLiteral`) are defined so far. Literals for the other base types are left to the ADRs that define their values.
+`ConstantValue` is a literal of a base type. Only string literals (`ConstantStringLiteral`) are defined so far. Literals for `NUMBER`, `BOOLEAN` and `DATE_TIME` are left to the ADRs that define their values, so until those exist, only `TEXT` enums can be written. The `NUMBER` examples here assume number literals such as `1`.
 
 An enum has at least one member. Its members' names must be distinct, and so must their values, so `enum E` with members `A` and `B := "A"` is an error.
 
@@ -99,7 +100,7 @@ Compatibility goes in one direction only. `QuoteStatus` is compatible with `Invo
 
 Where an enum is expected, a value is valid as long as it is type-compatible with that enum: an enum value whose enum is compatible, or a value of the enum's value type that is one of its values ([Converting values to enums](#converting-values-to-enums)). An enum value is always checked as an enum, by this rule. It is not treated as a value of its value type to get around it, so passing a `PaymentStatus` value where `InvoiceStatus` is expected is a compile-time error, even if the particular value is `"paid"`.
 
-This is checked at compile time. At runtime, enum values are strings, as described under [Enum values](#enum-values).
+This is checked at compile time. At runtime, an enum value is just its member's value, as described under [Enum values](#enum-values).
 
 ### Enum values
 
@@ -163,7 +164,7 @@ action SetTone(tone: enum("warm", "dry")): VOID
         // ...
 ```
 
-An inline enum lists values only. Its values follow the same rules as a named enum's: they can be of any base type except `VOID`, and they must all have the same type, so `enum(1, "two")` is an error. Its members have no names, so `:=` is not used, and a program passes one of its values directly ([Converting values to enums](#converting-values-to-enums)).
+An inline enum lists values only. Its values follow the same rules as a named enum's: they can be of any base type that has literals, and they must all have the same type, so `enum(1, "two")` is an error. Its members have no names, so `:=` is not used, and a program passes one of its values directly ([Converting values to enums](#converting-values-to-enums)).
 
 Like a named enum, an inline enum cannot have duplicate values, so `enum("a", "a")` is an error.
 
@@ -178,10 +179,10 @@ An inline enum suits a set of values used in only one place. A set used in more 
 - A set of values can be declared once, named, and reused, so changing it means changing one place.
 - Because compatibility depends on values rather than names, an enum that is a subset of another, such as a narrower set of statuses, can be used wherever the wider one is expected without any conversion. The cost is that two unrelated enums that happen to share values, such as invoice and quote statuses, can be mixed up without an error.
 - Adding a value to an enum can make it stop being compatible with enums it used to fit into, so the change can break code far from the declaration.
-- Enum values are plain strings at runtime, so they need no special representation and can be stored, compared and sent as text.
-- Enums can hold numbers, booleans and other base types as well as text, so codes and levels such as priorities can be enums. Because each enum is homogeneous, an enum value always has one known value type.
+- At runtime, enum values are plain values of their value type, such as strings or numbers, so they need no special representation and can be stored, compared and sent like any other value.
+- Enums can hold numbers, booleans and dates as well as text, so codes and levels such as priorities can be enums. Because each enum is homogeneous, an enum value always has one known value type.
 - Because a value of an enum's value type can be passed or returned where the enum is expected, callers can write `"paid"` instead of `InvoiceStatus.paid`, and outside data, such as user input, can be turned into an enum without a separate conversion step. A literal does not show which enum it belongs to, but a misspelled one is still caught at compile time.
-- `TEXT` values that cannot be checked at compile time are checked at runtime, so the runtime has to know each enum's values, and a call can fail at runtime because of a bad value.
+- Values that cannot be checked at compile time are checked at runtime, so the runtime has to know each enum's values, and a call can fail at runtime because of a bad value.
 - Inline enums stay available for one-off sets, so simple cases don't need a separate declaration.
 - Two ways to write the same thing means the language has to define how they relate, and style guidance on when to use each.
 - Members have names for code and values for data, so a value can be any text, such as a label shown to people or a code from another system, while code still refers to it by a valid identifier. Renaming a member changes code but not stored data, as long as its value is assigned with `:=`.

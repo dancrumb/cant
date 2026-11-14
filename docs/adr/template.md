@@ -1,6 +1,7 @@
 # NNNN. Title
 
 - **Status:** Proposed | Accepted | Deprecated | Superseded by [NNNN](NNNN-title.md)
+- **Amended by:** [NNNN](NNNN-title.md) (the part it changes), only if a later record amends this one
 - **Date:** YYYY-MM-DD
 
 ## Context

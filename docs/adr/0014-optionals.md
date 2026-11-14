@@ -1,6 +1,7 @@
 # 0014. Optionals
 
 - **Status:** Accepted
+- **Amended by:** [0016](0016-handling-optional-values.md) (`NOTHING` cannot be compared against, so it can only be written in a `return`)
 - **Date:** 2026-11-14
 
 ## Context

@@ -1,6 +1,7 @@
 # 0012. Base types
 
 - **Status:** Accepted
+- **Amended by:** [0014](0014-optionals.md) (`NOTHING` cannot be assigned or passed), [0016](0016-handling-optional-values.md) (`NOTHING` cannot be compared against)
 - **Date:** 2026-11-14
 
 ## Context

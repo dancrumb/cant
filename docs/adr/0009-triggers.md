@@ -1,6 +1,7 @@
 # 0009. Triggers
 
 - **Status:** Accepted
+- **Amended by:** [0010](0010-security.md) (authorization)
 - **Date:** 2026-11-14
 
 ## Context
