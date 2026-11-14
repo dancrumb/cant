@@ -12,8 +12,7 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*",
-    "!dist/**/*.tsbuildinfo"
+    "!dist/**/*.test.*"
   ],
   "engines": {
     "node": ">=22"
@@ -22,14 +21,19 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b --noEmit",
-    "clean": "rm -rf dist",
+    "generate": "peggy --format es --dts -o src/generated/parser.js src/cant.peggy",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist src/generated",
     "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint ."
   },
   "dependencies": {
     "@types/unist": "^3.0.3",
-    "tokenizr": "^2.2.1"
+    "tokenizr": "^2.2.1",
+    "unist-builder": "^4.0.0"
+  },
+  "devDependencies": {
+    "peggy": "^5.1.1"
   }
 }

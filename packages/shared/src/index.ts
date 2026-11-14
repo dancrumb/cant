@@ -4,3 +4,6 @@ export function cant(): string {
 
 export { tokenize } from './tokenize.ts';
 export type { Token, TokenKind } from './tokenize.ts';
+
+export { parse, ParseError } from './parse.ts';
+export type * from './ast.ts';

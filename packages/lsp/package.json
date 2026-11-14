@@ -12,8 +12,7 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*",
-    "!dist/**/*.tsbuildinfo"
+    "!dist/**/*.test.*"
   ],
   "engines": {
     "node": ">=22"
@@ -25,8 +24,8 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -b",
-    "typecheck": "tsc -b --noEmit",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "lint": "eslint ."
   }

@@ -5,9 +5,15 @@
     "eslint.config.js"
   ],
   "tasks": {
+    "generate": {
+      "outputs": [
+        "src/generated/**"
+      ]
+    },
     "build": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "generate"
       ],
       "outputs": [
         "dist/**"
@@ -15,7 +21,8 @@
     },
     "typecheck": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "generate"
       ]
     },
     "test": {
@@ -25,7 +32,8 @@
     },
     "lint": {
       "dependsOn": [
-        "^build"
+        "^build",
+        "generate"
       ]
     },
     "clean": {
