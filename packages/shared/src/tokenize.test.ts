@@ -137,3 +137,98 @@ test('leaves a lone colon or equals sign as punctuation', () => {
     'identifier:c',
   ]);
 });
+
+test('tokenizes the keywords from the actions ADR', () => {
+  assert.deepEqual(
+    describeTokens(
+      'action body return break continue for in while if else enqueue queue with enum',
+    ),
+    [
+      'keyword:action',
+      'keyword:body',
+      'keyword:return',
+      'keyword:break',
+      'keyword:continue',
+      'keyword:for',
+      'keyword:in',
+      'keyword:while',
+      'keyword:if',
+      'keyword:else',
+      'keyword:enqueue',
+      'keyword:queue',
+      'keyword:with',
+      'keyword:enum',
+    ],
+  );
+});
+
+test('tokenizes into and as as keywords only on an import line', () => {
+  assert.deepEqual(describeTokens('import "./a.json" into a as "json"\ninto as'), [
+    'keyword:import',
+    'string:"./a.json"',
+    'keyword:into',
+    'identifier:a',
+    'keyword:as',
+    'string:"json"',
+    'identifier:into',
+    'identifier:as',
+  ]);
+});
+
+test('keeps escapes and lone dollar signs inside strings', () => {
+  assert.deepEqual(describeTokens(String.raw`"a\"b\${c} $5" x`), [
+    String.raw`string:"a\"b\${c} $5"`,
+    'identifier:x',
+  ]);
+});
+
+test('splits template strings around their interpolations', () => {
+  assert.deepEqual(describeTokens('"Hello, ${name}! ${greet("you")}" x'), [
+    'string:"Hello, ',
+    'punctuation:${',
+    'identifier:name',
+    'punctuation:}',
+    'string:! ',
+    'punctuation:${',
+    'identifier:greet',
+    'punctuation:(',
+    'string:"you"',
+    'punctuation:)',
+    'punctuation:}',
+    'string:"',
+    'identifier:x',
+  ]);
+  assert.deepEqual(describeTokens('"${a}${b}"'), [
+    'string:"',
+    'punctuation:${',
+    'identifier:a',
+    'punctuation:}',
+    'punctuation:${',
+    'identifier:b',
+    'punctuation:}',
+    'string:"',
+  ]);
+});
+
+test('ends unfinished template strings and interpolations at the end of the line', () => {
+  assert.deepEqual(describeTokens('"a ${b} c\nimport x\n"d ${e\nf'), [
+    'string:"a ',
+    'punctuation:${',
+    'identifier:b',
+    'punctuation:}',
+    'string: c',
+    'keyword:import',
+    'identifier:x',
+    'string:"d ',
+    'punctuation:${',
+    'identifier:e',
+    'identifier:f',
+  ]);
+  assert.deepEqual(describeTokens('"a ${b}\nc'), [
+    'string:"a ',
+    'punctuation:${',
+    'identifier:b',
+    'punctuation:}',
+    'identifier:c',
+  ]);
+});

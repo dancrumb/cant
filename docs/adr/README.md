@@ -14,3 +14,5 @@ Records are not edited once they are accepted. If a decision changes, write a ne
 | [0004](0004-let-turbo-handle-build-caching.md) | Let Turborepo handle build caching | Accepted |
 | [0005](0005-module-namespaces.md) | Module namespaces | Proposed |
 | [0006](0006-imports.md) | Imports | Proposed |
+| [0007](0007-actions.md) | Actions | Proposed |
+| [0008](0008-strings.md) | Strings | Proposed |

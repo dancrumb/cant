@@ -11,9 +11,9 @@ import IO
 Next, we need to define an `Action` that writes our message
 
 ```cant
-action SayHello():VOID {
-    IO.stdout.write("Hello World!");
-}
+action SayHello():VOID
+    body
+        IO.stdout.write("Hello World!")
 ```
 
 Finally, we need to invoke that `Action` based on a `Trigger`
