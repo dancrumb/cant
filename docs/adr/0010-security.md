@@ -37,8 +37,8 @@ entity User
     subject
     identity email
     fields
-        email: String
-        name: String
+        email: TEXT
+        name: TEXT
 
 entity Organization
     group organization
@@ -46,7 +46,7 @@ entity Organization
     role member
     identity slug
     fields
-        slug: String
+        slug: TEXT
 ```
 
 #### `subject`

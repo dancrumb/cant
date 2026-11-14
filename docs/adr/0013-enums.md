@@ -33,7 +33,7 @@ enum InvoiceStatus
 - The name is a type. It can be used wherever a `TypeRef` can, by name (`InvoiceStatus`) or, from another namespace, by qualified name (`billing::InvoiceStatus`, see [ADR 0005](0005-module-namespaces.md)).
 
 ```cant
-action SetStatus(invoiceId: String, status: InvoiceStatus): VOID
+action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
     body
         // ...
 ```

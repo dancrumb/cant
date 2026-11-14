@@ -24,7 +24,7 @@ Action    = ActionKeyword, ActionSignature, ?indent?, {?comment?}, BodyKeyword, 
 ```
 
 ```cant
-action Greet(name: String, greeting?: String := "Hello, "): String
+action Greet(name: TEXT, greeting?: TEXT := "Hello, "): TEXT
     body
         return greeting + name
 ```
@@ -46,7 +46,7 @@ DefaultValue       = [":=", Value] ;
 ```
 
 - The signature is the action's name, a parenthesised parameter list (which may be empty) and a return type.
-- A `?` after the return type means the action may return `null`.
+- A `?` after the return type means the action may return `NOTHING` ([ADR 0012](0012-base-types.md), [ADR 0014](0014-optionals.md)).
 - Each parameter has a name, an optional `?` marking it as optional, a type, and an optional default value.
 - A default value must be a `Value`, not an arbitrary expression.
 - A default value follows `:=`, the assignment operator. The source EBNF calls it `?assign?`. `:=` gives a name its value, as it also does in a trigger's `arguments` ([ADR 0009](0009-triggers.md)), and the tokenizer classes it as an operator.
@@ -62,7 +62,7 @@ A type is one of:
 
 | Form | Example | Meaning |
 | --- | --- | --- |
-| Built-in | `String`, `VOID` | A built-in type, defined in [ADR 0012](0012-base-types.md) |
+| Built-in | `TEXT`, `VOID` | A base type, defined in [ADR 0012](0012-base-types.md) |
 | Named | `User` | A type declared elsewhere, such as an entity, a schema or an enum ([ADR 0013](0013-enums.md)) |
 | Namespaced | `accounts::User` | A named type in another namespace (see [ADR 0005](0005-module-namespaces.md)) |
 | Inline enum | `enum("draft", "published")` | One of a fixed set of strings, without declaring a named enum |
@@ -95,7 +95,7 @@ A comment starts with `//` and runs to the end of the line. There are no block c
 
 ## Consequences
 
-- Actions can take typed parameters with defaults, and return nullable values.
+- Actions can take typed parameters with defaults, and return optional values.
 - Bodies get structured control flow (`if`, `for`, `while`).
 - Indentation-delimited blocks make the parser track indentation, which is more complex than brace matching. Editors need to fold and indent by indentation too.
 - The existing `action Name():TYPE { ... }` syntax becomes invalid.
