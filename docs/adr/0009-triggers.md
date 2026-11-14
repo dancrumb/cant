@@ -56,9 +56,9 @@ AuthAnd        = AuthParens, {"and", AuthParens} ;
 AuthParens     = "(", AuthRule, ")" | AuthPredicate ;
 AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [InKeyword, Identifier]
                           | IsKeyword, (SubjectType | Identifier, InKeyword, Identifier) ) ;
-SubjectType    = Identifier | Internal ;
+SubjectType    = Identifier | BuiltIn ;
 Subject        = "@subject" ;
-Internal       = "@", Identifier ;
+BuiltIn        = "@", Identifier ;
 ```
 
 `auth` holds a single rule that must hold for the trigger to run the action. `@subject` is whoever caused the trigger. A rule combines any number of predicates with `and`, `or` and parentheses, with `and` binding tighter than `or`:
@@ -72,7 +72,7 @@ Internal       = "@", Identifier ;
 | `@subject is <type>` | The subject is of the given type |
 | `@subject is <role> in <group>` | The subject has the role within the group |
 
-`@subject`, `@anonymous` and `@defined` are **internal values**. An internal value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which a later ADR will define. This ADR uses only these three. As a `SubjectType`, only `@anonymous` and `@defined` are valid for now.
+`@subject`, `@anonymous` and `@defined` are **built-in values**. A built-in value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which a later ADR will define. This ADR uses only these three. As a `SubjectType`, only `@anonymous` and `@defined` are valid for now.
 
 [ADR 0010](0010-security.md) defines where subject types, roles, groups and permissions are declared, and how `auth` rules are checked.
 

@@ -113,9 +113,9 @@ AuthAnd        = AuthParens, {"and", AuthParens} ;
 AuthParens     = "(", AuthRule, ")" | AuthPredicate ;
 AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [InKeyword, Identifier]
                           | IsKeyword, (SubjectType | Identifier, InKeyword, Identifier) ) ;
-SubjectType    = Identifier | Internal ;
+SubjectType    = Identifier | BuiltIn ;
 Subject        = "@subject" ;
-Internal       = "@", Identifier ;
+BuiltIn        = "@", Identifier ;
 ```
 
 An `auth` block appears in a trigger and holds one rule. A trigger with no `auth` block lets any subject through, including an anonymous one.
@@ -161,7 +161,7 @@ trigger PayInvoice on InvoicePaymentRequested
 - `has`, in a `permissions` declaration;
 - `can` and `is`, in an `auth` rule (`in` is already reserved).
 
-`@subject`, `@anonymous` and `@defined` are internal values, written `@<identifier>` as described in [ADR 0009](0009-triggers.md). The full list of internal values will be defined in a later ADR. Because the `@` prefix is reserved for them, they cannot clash with anything a program declares.
+`@subject`, `@anonymous` and `@defined` are built-in values, written `@<identifier>` as described in [ADR 0009](0009-triggers.md). The full list of built-in values will be defined in a later ADR. Because the `@` prefix is reserved for them, they cannot clash with anything a program declares.
 
 ## Consequences
 

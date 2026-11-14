@@ -30,7 +30,7 @@ action Greet(name: TEXT, greeting?: TEXT := "Hello, "): TEXT
 
 action SayHello(): VOID
     body
-        IO.stdout.write("Hello World!")
+        IO::stdout.write("Hello World!")
 ```
 
 There is a single `NUMBER` type, rather than separate integer and decimal types.

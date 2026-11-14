@@ -49,7 +49,7 @@ test('parses the hello world example', () => {
     '',
     'action SayHello():VOID',
     '    body',
-    '        IO.stdout.write("Hello World!")',
+    '        IO::stdout.write("Hello World!")',
     '',
     'trigger SayHello on Start',
   ].join('\n');
@@ -70,9 +70,9 @@ test('parses the hello world example', () => {
             callee: {
               type: 'member',
               object: {
-                type: 'member',
-                object: identifier('IO'),
-                property: identifier('stdout'),
+                type: 'qualifiedIdentifier',
+                namespace: identifier('IO'),
+                name: identifier('stdout'),
               },
               property: identifier('write'),
             },
@@ -286,11 +286,11 @@ test('gives every node a unist position', () => {
 });
 
 test('spans a member expression from its object to its property', () => {
-  const [statement] = parseAction('action A():VOID\n  body\n    IO.stdout').children;
+  const [statement] = parseAction('action A():VOID\n  body\n    user.email').children;
   assert.equal(statement?.type, 'expressionStatement');
   assert.deepEqual(statement.expression.position, {
     start: { line: 3, column: 5, offset: 27 },
-    end: { line: 3, column: 14, offset: 36 },
+    end: { line: 3, column: 15, offset: 37 },
   });
 });
 
