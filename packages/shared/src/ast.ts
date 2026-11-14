@@ -150,14 +150,6 @@ export interface EnqueueStatement extends Node {
   message: Identifier;
 }
 
-/** `queue name with identifier` */
-export interface QueueStatement extends Node {
-  type: 'queue';
-  position: Position;
-  name: Identifier;
-  with: Identifier;
-}
-
 export type Statement =
   | ExpressionStatement
   | ReturnStatement
@@ -166,8 +158,7 @@ export type Statement =
   | ForStatement
   | WhileStatement
   | IfStatement
-  | EnqueueStatement
-  | QueueStatement;
+  | EnqueueStatement;
 
 // ----- Declarations -----
 

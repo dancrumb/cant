@@ -160,7 +160,6 @@ Statement
   / WhileStatement
   / IfStatement
   / EnqueueStatement
-  / Queue
   / ExpressionStatement
 
 ExpressionStatement
@@ -204,11 +203,6 @@ IfStatement
 EnqueueStatement
   = EnqueueKeyword __ queue:Identifier __ WithKeyword __ message:Identifier {
       return u('enqueue', { queue, message, position: toPosition(location()) });
-    }
-
-Queue
-  = QueueKeyword __ name:Identifier __ WithKeyword __ with_:Identifier {
-      return u('queue', { name, with: with_, position: toPosition(location()) });
     }
 
 // ----- Triggers -----
@@ -312,7 +306,6 @@ Keyword
   / IfKeyword
   / ElseKeyword
   / EnqueueKeyword
-  / QueueKeyword
   / WithKeyword
   / EnumKeyword
 
@@ -331,7 +324,6 @@ WhileKeyword     = "while"     !IdentifierPart
 IfKeyword        = "if"        !IdentifierPart
 ElseKeyword      = "else"      !IdentifierPart
 EnqueueKeyword   = "enqueue"   !IdentifierPart
-QueueKeyword     = "queue"     !IdentifierPart
 WithKeyword      = "with"      !IdentifierPart
 EnumKeyword      = "enum"      !IdentifierPart
 

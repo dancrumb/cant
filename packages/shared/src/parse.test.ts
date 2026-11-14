@@ -238,14 +238,13 @@ test('parses if, else if and else', () => {
   ]);
 });
 
-test('parses enqueue and queue statements', () => {
-  assert.deepEqual(parseBody('enqueue Emails with message', 'queue Emails with Sender'), [
+test('parses enqueue statements', () => {
+  assert.deepEqual(parseBody('enqueue Emails with message'), [
     {
       type: 'enqueue',
       queue: identifier('Emails'),
       message: identifier('message'),
     },
-    { type: 'queue', name: identifier('Emails'), with: identifier('Sender') },
   ]);
 });
 

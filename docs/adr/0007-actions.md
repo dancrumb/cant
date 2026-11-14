@@ -44,29 +44,30 @@ DefaultValue       = [":=", Value] ;
 - A `?` after the return type means the action may return `null`.
 - Each parameter has a name, an optional `?` marking it as optional, a type, and an optional default value.
 - A default value must be a `Value`, not an arbitrary expression.
+- A default value follows `:=`, the assignment operator. The source EBNF calls it `?assign?`. `:=` gives a name its value, as it also does in a trigger's `arguments` ([ADR 0009](0009-triggers.md)), and the tokenizer classes it as an operator.
 
 ### Types
 
 ```ebnf
 TypeRef    = ?builtin? | Enum | Identifier | QualifiedIdentifier ;
-Enum       = EnumKeyword, StringLiteral, {",", StringLiteral}, ")" ;
+Enum       = EnumKeyword, "(", ConstantStringLiteral, {",", ConstantStringLiteral}, ")" ;
 ```
 
 A type is one of:
 
 | Form | Example | Meaning |
 | --- | --- | --- |
-| Built-in | `String`, `VOID` | A built-in type |
-| Named | `User` | A type declared elsewhere (entity, schema or enum) |
+| Built-in | `String`, `VOID` | A built-in type, defined in [ADR 0012](0012-base-types.md) |
+| Named | `User` | A type declared elsewhere, such as an entity, a schema or an enum ([ADR 0013](0013-enums.md)) |
 | Namespaced | `accounts::User` | A named type in another namespace (see [ADR 0005](0005-module-namespaces.md)) |
-| Inline enum | `enum("draft", "published")` | One of a fixed set of strings |
+| Inline enum | `enum("draft", "published")` | One of a fixed set of strings, without declaring a named enum |
 
 ### Blocks and statements
 
 ```ebnf
 Block        = ?indent?, {Statement | ?comment?}, ?dedent? ;
 Statement    = ExpressionStatement | ReturnStatement | BreakStatement | ContinueStatement
-             | ForStatement | WhileStatement | IfStatement | EnqueueStatement | Queue ;
+             | ForStatement | WhileStatement | IfStatement | EnqueueStatement ;
 ```
 
 | Statement | Form |
@@ -78,17 +79,19 @@ Statement    = ExpressionStatement | ReturnStatement | BreakStatement | Continue
 | While | `while <expression>` followed by a block |
 | If | `if <expression>` followed by a block, then optionally `else` and either a block or another `if` |
 | Enqueue | `enqueue <queue> with <message>` |
-| Queue | `queue <name> with <identifier>` |
+
+### Comments
+
+```ebnf
+Comment  = "//", ? any characters up to the end of the line ? ;
+```
+
+A comment starts with `//` and runs to the end of the line. There are no block comments. A `//` inside a string is part of the string, not a comment. Wherever this grammar and later ones write `?comment?`, they mean a `Comment`.
 
 ## Open questions
 
 These need answers before this ADR is accepted:
 
-- **Assignment operator.** This draft uses `:=` for default values, since the tokenizer already treats it as an operator. The source EBNF only says `?assign?`.
-- **`Enum` has no opening parenthesis.** The rule ends in `")"` but never opens one. This draft assumes `EnumKeyword` matches `enum(`.
-- **Built-in types.** The set of built-in types is not defined. The hello world example uses `VOID`.
-- **Comments.** The syntax for `?comment?` is not defined.
-- **`queue` as a statement.** `Queue` appears both at the top level and inside blocks. Is declaring a queue inside an action body intended?
 - **Brace blocks.** Moving to indentation-delimited blocks means changing the existing parser, the hello world example and the tokenizer, which will need to emit indent and dedent tokens.
 
 ## Consequences

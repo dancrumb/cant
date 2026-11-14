@@ -28,7 +28,6 @@ const KEYWORDS = new Set([
   'if',
   'else',
   'enqueue',
-  'queue',
   'with',
   'enum',
 ]);

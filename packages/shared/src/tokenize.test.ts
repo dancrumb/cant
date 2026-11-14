@@ -141,7 +141,7 @@ test('leaves a lone colon or equals sign as punctuation', () => {
 test('tokenizes the keywords from the actions ADR', () => {
   assert.deepEqual(
     describeTokens(
-      'action body return break continue for in while if else enqueue queue with enum',
+      'action body return break continue for in while if else enqueue with enum',
     ),
     [
       'keyword:action',
@@ -155,7 +155,6 @@ test('tokenizes the keywords from the actions ADR', () => {
       'keyword:if',
       'keyword:else',
       'keyword:enqueue',
-      'keyword:queue',
       'keyword:with',
       'keyword:enum',
     ],
