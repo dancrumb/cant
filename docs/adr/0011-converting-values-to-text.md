@@ -1,6 +1,7 @@
 # 0011. Converting values to text
 
 - **Status:** Accepted
+- **Amended by:** [0017](0017-faceted-types.md) (faceted types, including `FILE`, convert by their identifier)
 - **Date:** 2026-11-14
 
 ## Context
@@ -21,10 +22,11 @@ A value is converted to text according to its type:
 | `NUMBER` | The number in decimal notation, without trailing zeros after the decimal point or an exponent |
 | `BOOLEAN` | `"true"` or `"false"` |
 | `DATE_TIME` | The ISO 8601 representation of the timestamp in UTC, with milliseconds, ending in `Z` |
-| `FILE` | Decided by [ADR 0015](0015-files.md) |
+| `FILE` | Its URL, as a faceted type (see below) |
 | `VOID` | An error |
 | `NOTHING` | An error, as [ADR 0014](0014-optionals.md) describes |
 | An enum | The member's value, converted by the rules above for its type |
+| A faceted type, such as `FILE` or an entity | Its identifier, converted by the rules above for its type |
 
 ### Numbers
 
@@ -52,6 +54,10 @@ The rules for numbers, dates and times apply to enum values of those types too.
 
 `VOID` and `NOTHING` cannot be converted, because there is no value to write. `VOID` is not a value at all ([ADR 0012](0012-base-types.md)), and `NOTHING` stands for a missing one. A program that wants to show a missing value has to check for `NOTHING` and choose the text itself. How interpolating `NOTHING`, or a value that might be `NOTHING`, is reported is decided by [ADR 0014](0014-optionals.md).
 
+### Faceted types
+
+Every faceted type ([ADR 0017](0017-faceted-types.md)) converts to text as its identifier facet, and that identifier is then converted by the rules above for its own type. A `FILE` becomes its URL ([ADR 0015](0015-files.md)), which may be a `data:` URL, and an entity becomes its `@id`.
+
 ### Extended types
 
 A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by a future ADR.
@@ -60,7 +66,7 @@ Composite types, such as lists and objects, are out of scope for this ADR and wi
 
 ## Consequences
 
-- Every base type except `FILE` and `VOID` has one fixed text form, so the same value always produces the same text.
+- Every base type except `VOID` has one fixed text form, so the same value always produces the same text. For `FILE` and other faceted types, that form is their identifier.
 - Numbers are never written with an exponent, so very large or very small numbers can produce long text. In exchange, the text is always plain digits that people and other systems can read without knowing scientific notation.
 - Because every `DATE_TIME` is written in UTC, the text does not show the time zone a value came from, but the same moment always produces the same text. Because the fractional seconds always have three digits, every `DATE_TIME` is written at the same length.
 - `true` and `false` are written in lower case, matching how they are written in programs.
