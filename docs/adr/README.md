@@ -18,3 +18,4 @@ Records are not edited once they are accepted. If a decision changes, write a ne
 | [0008](0008-strings.md) | Strings | Accepted |
 | [0009](0009-triggers.md) | Triggers | Accepted |
 | [0010](0010-security.md) | Security | Proposed |
+| [0011](0011-converting-values-to-text.md) | Converting values to text | Proposed |

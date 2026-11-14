@@ -24,24 +24,35 @@ The grammar uses ISO/IEC 14977 EBNF, with rule names that match [`cant.peggy`](.
 ```ebnf
 StringLiteral      = '"', {StringCharacter | EscapeSequence | Interpolation}, '"' ;
 StringCharacter    = ? any character except '"', '\', a line break, or a '$' that starts an Interpolation ? ;
-EscapeSequence     = '\', ? an escape character ? ;
+EscapeSequence     = '\', ('"' | '\' | '$' | 'n' | 't' | UnicodeEscape) ;
+UnicodeEscape      = 'u{', HexDigit, [HexDigit], [HexDigit], [HexDigit], [HexDigit], [HexDigit], '}' ;
 Interpolation      = "${", Expression, "}" ;
 ```
 
 - **Literal text** is any run of characters other than `"`, `\` and line breaks. A `$` is literal unless it is followed by `{`.
-- **Escape sequences** start with `\`. They let a string contain characters that would otherwise end it or start an interpolation, such as `\"`, `\\` and `\${`.
-- **Interpolations** are written `${ … }` and contain an `Expression`. When the string is evaluated, the expression is evaluated and its result is inserted in place of the interpolation. Expressions are defined in a later ADR.
+- **Escape sequences** start with `\`. They let a string contain characters that would otherwise end it or start an interpolation, such as `\"`, `\\` and `\${`, and characters that are hard to type or see.
+- **Interpolations** are written `${ … }`, as in JavaScript, Kotlin and shell, and contain an `Expression`. The source EBNF names the opening token `?templateStart?` without spelling it; this ADR spells it `${`. When the string is evaluated, the expression is evaluated and its result is inserted in place of the interpolation. Expressions are defined in a later ADR, and how a result that is not a string is converted to text is defined in [ADR 0011](0011-converting-values-to-text.md).
 
 A string with no interpolations is simply a template that always produces the same text, so there is no separate syntax for a "plain" string.
 
-## Open questions
+### Escape sequences
 
-These need answers before this ADR is accepted:
+Cant starts with a minimal set of escape sequences:
 
-- **Escape sequences.** Which characters can follow `\`? A likely minimum is `\"`, `\\`, `\$`, `\n`, `\t` and a Unicode escape such as `\u{1F600}`. What happens to an unrecognised escape: an error, or the character itself?
-- **Interpolation delimiter.** The source EBNF names the opening token `?templateStart?` without spelling it. This draft assumes `${`.
-- **Multi-line strings.** Can a string span lines? This draft says no, matching the current tokenizer and parser.
-- **Converting values to text.** How is a non-string result of an interpolated expression turned into text? For example, `null`, numbers and objects.
+| Escape | Stands for |
+| --- | --- |
+| `\"` | A double quote |
+| `\\` | A backslash |
+| `\$` | A dollar sign, so `\${` is literal text, not an interpolation |
+| `\n` | A line feed |
+| `\t` | A tab |
+| `\u{…}` | The Unicode code point with the given hexadecimal value, from one to six digits, up to `10FFFF` |
+
+Any other character after `\`, or a `\u{…}` above `10FFFF`, is an error. More escapes can be added later without changing the meaning of existing programs, because none of them are valid today.
+
+### Line breaks
+
+A string cannot span lines. A line break before the closing `"` is an error. To put a line break in a string, use `\n`. Multi-line strings may be added in a later ADR.
 
 ## Consequences
 
