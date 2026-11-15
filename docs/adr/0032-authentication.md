@@ -24,6 +24,7 @@ These need answers before this ADR is accepted:
 - **Matching identities.** How is an authenticated request's claims matched to an entity's `identity` fields, especially when `identity` names several fields?
 - **Several subject types.** When a program has several subject entities, such as `User` and `ServiceAccount`, how is the right one chosen?
 - **Signing in and out.** Does Cant provide ways to sign in, sign out or issue tokens, or are those left to the program or an external service?
+- **Membership and roles.** How do subjects become members of groups, and how are roles assigned to them within a group ([ADR 0010](0010-security.md))? Are memberships and roles stored as entities, and who can change them?
 - **Non-request triggers.** Do triggers that are not requests, such as schedules or queues, ever have a subject?
 
 ## Consequences

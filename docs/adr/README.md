@@ -31,7 +31,7 @@ Once the major version is released, records are immutable. If a decision changes
 | [0019](0019-operators.md) | Operators | Accepted |
 | [0020](0020-action-parameters.md) | Action parameters | Accepted |
 | [0021](0021-collections.md) | Collections | Accepted |
-| [0022](0022-entities.md) | Entities | Proposed |
+| [0022](0022-entities.md) | Entities | Accepted |
 | [0023](0023-error-handling.md) | Error handling | Proposed |
 | [0024](0024-built-in-values.md) | Built-in values | Proposed |
 | [0025](0025-trigger-sources.md) | Trigger sources | Proposed |

@@ -15,7 +15,7 @@ We need a security model that says:
 - which **permissions** a group or role grants;
 - how a trigger's **authorization** rules use all of the above.
 
-Subjects and groups are kinds of **entity**. Roles are not entities: they are declared on group entities, and represent roles in the application's security model. Entities will be fully described in [ADR 0022](0022-entities.md); this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `fields`) only to give examples context.
+Subjects and groups are kinds of **entity**. Roles are not entities: they are declared on group entities, and represent roles in the application's security model. Entities will be fully described in [ADR 0022](0022-entities.md); this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `models` and `expose`) only to give examples context.
 
 ## Decision
 
@@ -23,7 +23,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 
 ### Security in entities
 
-An entity declaration can contain these security lines, in any order, before its fields:
+An entity declaration can contain these security lines, in any order, alongside its `models`, `expose` and `hide` blocks ([ADR 0022](0022-entities.md)):
 
 ```ebnf
 EntitySecurity  = SubjectKeyword | Identity | GroupDefiner | RoleDefiner ;
@@ -33,20 +33,30 @@ RoleDefiner     = RoleKeyword, Identifier ;
 ```
 
 ```cant
+model UserRecord
+    email: TEXT
+    name: TEXT
+
 entity User
     subject
     identity email
-    fields
-        email: TEXT
-        name: TEXT
+    models
+        UserRecord
+    expose
+        @all
+
+model OrganizationRecord
+    slug: TEXT
 
 entity Organization
     group organization
     role admin
     role member
     identity slug
-    fields
-        slug: TEXT
+    models
+        OrganizationRecord
+    expose
+        @all
 ```
 
 #### `subject`
@@ -55,14 +65,19 @@ entity Organization
 
 #### `identity`
 
-`identity` names the fields of an entity that together uniquely identify each instance of it. An entity has at most one `identity` line, and each field it names must be declared in the entity's fields:
+`identity` names the fields of an entity that together uniquely identify each instance of it. An entity has at most one `identity` line, and each field it names must be a field of the entity's model, named as it is in the model ([ADR 0022](0022-entities.md)):
 
 ```cant
+model MembershipRecord
+    organization: Organization
+    user: User
+
 entity Membership
     identity organization, user
-    fields
-        organization: Organization
-        user: User
+    models
+        MembershipRecord
+    expose
+        @all
 ```
 
 For a subject entity, the identity is what an authenticated request is matched against to find the subject, so every subject entity must have an `identity`.
@@ -75,7 +90,7 @@ For a subject entity, the identity is what an authenticated request is matched a
 
 `role` declares a role in the application's security model: one that a member can have within a group of this entity's kind. The role itself is not an entity; it is a name that `permissions` declarations and `auth` rules refer to. An entity can declare any number of roles, but only if it also has a `group` line. A `role` in an entity with no `group` is an error, since there would be no group for a member to hold the role in. Role names are scoped to their group kind, so two group kinds can both have an `admin` role.
 
-How subjects become members of groups, and how roles are assigned, is part of the entity model and is left to [ADR 0022](0022-entities.md).
+How subjects become members of groups, and how roles are assigned, is left to [ADR 0032](0032-authentication.md).
 
 ### Permissions
 
@@ -177,5 +192,5 @@ trigger PayInvoice on InvoicePaymentRequested
 - Many mistakes in `auth` rules, such as a misspelled role or permission, are caught by the compiler rather than when a request is refused.
 - Because `auth` rules are ordinary expressions, they can use every operator, and the same predicates can be checked inside an action when a decision depends on more than the trigger.
 - Permissions are always scoped to a group, which suits multi-tenant programs but makes "global" permissions (for example, for site administrators) awkward to express.
-- Security depends on entities ([ADR 0022](0022-entities.md)) for membership, role assignment and fields, so it cannot be implemented until that ADR is decided.
+- Security depends on entities ([ADR 0022](0022-entities.md)) for its subjects and groups, and on [ADR 0032](0032-authentication.md) for authentication, membership and role assignment, so it cannot be fully implemented until those are decided.
 - More contextual keywords make the grammar harder to read and the tokenizer harder to get right, since it has to know which block it is in.
