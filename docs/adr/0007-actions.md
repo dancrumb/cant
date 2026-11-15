@@ -58,7 +58,7 @@ DefaultValue       = ":=", Expression ;
 ### Types
 
 ```ebnf
-TypeRef    = BaseType | Enum | ArrayType | MapType | Identifier | QualifiedIdentifier ;
+TypeRef    = BaseType | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
 Enum       = EnumKeyword, "(", ConstantValue, {",", ConstantValue}, ")" ;
 ```
 
@@ -72,6 +72,7 @@ A type is one of:
 | Inline enum | `enum("draft", "published")` | One of a fixed set of literal values of one base type, without declaring a named enum ([ADR 0013](0013-enums.md)) |
 | Array | `[TEXT]` | An array of values of one type ([ADR 0021](0021-collections.md)) |
 | Map | `{TEXT}` | A map whose members all have values of one type ([ADR 0021](0021-collections.md)) |
+| Set | `SET(TEXT)` | A set of distinct values of one type, with no order ([ADR 0021](0021-collections.md)) |
 
 ### Blocks and statements
 

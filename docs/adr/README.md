@@ -30,7 +30,7 @@ Once the major version is released, records are immutable. If a decision changes
 | [0018](0018-immutable-identifiers.md) | Immutable identifiers | Accepted |
 | [0019](0019-operators.md) | Operators | Accepted |
 | [0020](0020-action-parameters.md) | Action parameters | Accepted |
-| [0021](0021-collections.md) | Collections | Proposed |
+| [0021](0021-collections.md) | Collections | Accepted |
 | [0022](0022-entities.md) | Entities | Proposed |
 | [0023](0023-error-handling.md) | Error handling | Proposed |
 | [0024](0024-built-in-values.md) | Built-in values | Proposed |

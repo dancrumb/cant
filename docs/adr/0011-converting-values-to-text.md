@@ -26,6 +26,9 @@ A value is converted to text according to its type:
 | `NOTHING` | An error, as [ADR 0014](0014-optionals.md) describes |
 | An enum | The member's value, converted by the rules above for its type |
 | A faceted type, such as `FILE` or an entity | Its identifier, converted by the rules above for its type |
+| An array | Each element converted to text, joined with `", "`, skipping empty slots ([ADR 0021](0021-collections.md)) |
+| A set | Each element converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
+| A map | Each member written as `name: value`, with the value converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
 
 ### Numbers
 
@@ -61,7 +64,7 @@ Every faceted type ([ADR 0017](0017-faceted-types.md)) converts to text as its i
 
 A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by [ADR 0028](0028-extending-base-types.md).
 
-How arrays and maps ([ADR 0021](0021-collections.md)) are converted to text is not decided yet.
+Arrays and maps are converted as [ADR 0021](0021-collections.md) describes: an array's elements, or a map's members written as `name: value`, are converted and joined with `", "`.
 
 ## Consequences
 

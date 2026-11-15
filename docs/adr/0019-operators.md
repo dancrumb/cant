@@ -156,7 +156,7 @@ Suffix              = ".", (Identifier | ?keyword?)
                     | "(", [ArgumentList], ")"
                     | "[", Expression, "]" ;
 Primary             = Literal | Identifier | QualifiedIdentifier | BuiltIn
-                    | ArrayValue | ObjectValue | "(", Expression, ")" ;
+                    | ArrayValue | ObjectValue | SetValue | "(", Expression, ")" ;
 Literal             = StringLiteral | NumberLiteral | BooleanLiteral ;
 ```
 
@@ -185,7 +185,7 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - `Prefix` contains `Fallback`, so `isEmpty a orElse b` and `!a orElse b` apply the prefix operator to the result of `orElse`.
 - The three `Suffix` forms are member access ([ADR 0021](0021-collections.md)), calls ([ADR 0020](0020-action-parameters.md)) and indexing ([ADR 0021](0021-collections.md)). `Prefix` includes `isEmpty` ([ADR 0016](0016-handling-optional-values.md)).
 - `QualifiedIdentifier` is a name in a namespace, `namespace::name` ([ADR 0005](0005-module-namespaces.md)), so `::` binds before any other operator.
-- `StringLiteral` comes from [ADR 0008](0008-strings.md), `BuiltIn` from [ADR 0009](0009-triggers.md), and `ArrayValue` and `ObjectValue` from [ADR 0021](0021-collections.md). `NumberLiteral` and `BooleanLiteral` are defined above.
+- `StringLiteral` comes from [ADR 0008](0008-strings.md), `BuiltIn` from [ADR 0009](0009-triggers.md), and `ArrayValue`, `ObjectValue` and `SetValue` from [ADR 0021](0021-collections.md). `NumberLiteral` and `BooleanLiteral` are defined above.
 - `NOTHING` is not a `Primary`, since it can only be written in a `return` ([ADR 0016](0016-handling-optional-values.md)).
 
 ## Deferred
