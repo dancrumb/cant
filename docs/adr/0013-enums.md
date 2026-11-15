@@ -58,6 +58,8 @@ An enum has at least one member. Its members' names must be distinct, and so mus
 
 The enum's name is a type. It can be used wherever a `TypeRef` can, by name (`InvoiceStatus`) or, from another namespace, by qualified name (`billing::InvoiceStatus`, see [ADR 0005](0005-module-namespaces.md)).
 
+Because an enum's name is a type name, it must be unique among the type names in its namespace: two enums, or an enum and a model ([ADR 0027](0027-object-shapes.md)) or an entity, with the same name in the same namespace are a compile-time error.
+
 ```cant
 action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
     body

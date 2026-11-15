@@ -63,7 +63,7 @@ The base type names and `NOTHING` are keywords, reserved everywhere. A program c
 
 ```ebnf
 BaseType    = TextKeyword | NumberKeyword | BooleanKeyword | DateTimeKeyword | FileKeyword ;
-TypeRef     = BaseType | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
+TypeRef     = BaseType | UnknownKeyword | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
 ReturnType  = VoidKeyword | TypeRef, ["?"] ;
 ```
 

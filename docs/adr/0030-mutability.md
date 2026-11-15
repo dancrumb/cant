@@ -15,6 +15,7 @@ Not decided yet. Earlier ADRs already constrain it:
 - A nested block can shadow a name from an enclosing block, which is not a reassignment ([ADR 0018](0018-immutable-identifiers.md)).
 - Parameters and loop variables are constants ([ADR 0018](0018-immutable-identifiers.md), [ADR 0020](0020-action-parameters.md)).
 - Collections are passed by reference, so a change made through one name is seen through every name that holds the collection ([ADR 0021](0021-collections.md)).
+- A model's fields are mutable, and objects are passed by reference too ([ADR 0027](0027-object-shapes.md)).
 
 ## Open questions
 
@@ -24,7 +25,7 @@ These need answers before this ADR is accepted:
 - **Syntax.** If identifiers can be reassigned, how is a mutable one declared, and is reassignment written with `:=`?
 - **Narrowing.** Where does narrowing stop holding once an identifier can be reassigned, such as inside loops?
 - **Parameters and loop variables.** Can these ever be reassigned?
-- **Values.** Can an entity's fields, or a shaped object's members ([ADR 0027](0027-object-shapes.md)), be changed in place?
+- **Entity fields.** Can an entity's fields be changed in place, as a model's fields can ([ADR 0027](0027-object-shapes.md))?
 
 ## Consequences
 

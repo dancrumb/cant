@@ -44,6 +44,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | `!=` | `a != b` | Inequality: `true` exactly when `a == b` is `false` | This ADR |
 | `<`, `<=`, `>`, `>=` | `a < b` | Ordering | This ADR |
 | `in` | `a in b` | Whether `a` is in the collection `b` | [ADR 0021](0021-collections.md) |
+| `instanceOf` | `a instanceOf T` | Whether the value `a` is of the type `T` | [ADR 0033](0033-unknown-type.md) |
 | `and` | `a and b` | Boolean and, short-circuiting | [ADR 0009](0009-triggers.md) |
 | `or` | `a or b` | Boolean or, short-circuiting | [ADR 0009](0009-triggers.md), [ADR 0016](0016-handling-optional-values.md) |
 | `( … )` | `(a)` | Grouping | [ADR 0009](0009-triggers.md) |
@@ -86,7 +87,7 @@ Operators are listed from the most tightly binding to the least.
 | 5 | `**` | Right | Settled |
 | 6 | `*`, `/`, `%` | Left | Settled |
 | 7 | `+`, `-` | Left | Settled |
-| 8 | `==`, `!=`, `<`, `<=`, `>`, `>=`, `in`, `can`, `is` | None | Settled |
+| 8 | `==`, `!=`, `<`, `<=`, `>`, `>=`, `in`, `instanceOf`, `can`, `is` | None | Settled |
 | 9 | `and` | Left | Settled |
 | 10 | `or` | Left | Settled |
 
@@ -143,6 +144,7 @@ Expression          = OrExpression ;
 OrExpression        = AndExpression, {"or", AndExpression} ;
 AndExpression       = Comparison, {"and", Comparison} ;
 Comparison          = AuthPredicate
+                    | Additive, InstanceOfKeyword, TypeRef, ["?"]
                     | Additive, [ComparisonOperator, Additive] ;
 ComparisonOperator  = "==" | "!=" | "<" | "<=" | ">" | ">=" | InKeyword ;
 Additive            = Multiplicative, {("+" | "-"), Multiplicative} ;

@@ -24,6 +24,7 @@ A value is converted to text according to its type:
 | `FILE` | Its URL, as a faceted type (see below) |
 | `VOID` | An error |
 | `NOTHING` | An error, as [ADR 0014](0014-optionals.md) describes |
+| `UNKNOWN` | An error, until it is narrowed with `instanceOf` ([ADR 0033](0033-unknown-type.md)) |
 | An enum | The member's value, converted by the rules above for its type |
 | A faceted type, such as `FILE` or an entity | Its identifier, converted by the rules above for its type |
 | An array | Each element converted to text, joined with `", "`, skipping empty slots ([ADR 0021](0021-collections.md)) |

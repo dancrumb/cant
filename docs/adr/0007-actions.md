@@ -58,7 +58,7 @@ DefaultValue       = ":=", Expression ;
 ### Types
 
 ```ebnf
-TypeRef    = BaseType | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
+TypeRef    = BaseType | UnknownKeyword | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
 Enum       = EnumKeyword, "(", ConstantValue, {",", ConstantValue}, ")" ;
 ```
 
@@ -67,11 +67,12 @@ A type is one of:
 | Form | Example | Meaning |
 | --- | --- | --- |
 | Base type | `TEXT`, `NUMBER` | A base type, defined in [ADR 0012](0012-base-types.md). `VOID` is not a `TypeRef`: it can only be a return type |
-| Named | `User` | A type declared elsewhere, such as an entity or an enum ([ADR 0013](0013-enums.md)) |
+| Named | `User` | A type declared elsewhere, such as an entity, an enum ([ADR 0013](0013-enums.md)) or a model ([ADR 0027](0027-object-shapes.md)) |
 | Namespaced | `accounts::User` | A named type in another namespace (see [ADR 0005](0005-module-namespaces.md)) |
 | Inline enum | `enum("draft", "published")` | One of a fixed set of literal values of one base type, without declaring a named enum ([ADR 0013](0013-enums.md)) |
 | Array | `[TEXT]` | An array of values of one type ([ADR 0021](0021-collections.md)) |
 | Map | `{TEXT}` | A map whose members all have values of one type ([ADR 0021](0021-collections.md)) |
+| Unknown | `UNKNOWN` | A value of any type, whose type is not known where it is used ([ADR 0033](0033-unknown-type.md)) |
 | Set | `SET(TEXT)` | A set of distinct values of one type, with no order ([ADR 0021](0021-collections.md)) |
 
 ### Blocks and statements

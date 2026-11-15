@@ -17,11 +17,13 @@ Not decided yet. Earlier ADRs already constrain it:
 - `@id` is provided by the interpreter, cannot be named in `identity`, and picks out the same entity as the `identity` fields ([ADR 0017](0017-faceted-types.md)).
 - Each entity type is its own type: a `User` can only be used where a `User` is expected, and two entities are equal when they have the same type and `@id` ([ADR 0017](0017-faceted-types.md)).
 - Entities convert to text as their `@id` ([ADR 0011](0011-converting-values-to-text.md)).
+- An entity is essentially an aggregation of models ([ADR 0027](0027-object-shapes.md)), the named object shapes whose fields have their own types, can be optional, can have defaults, and are mutable.
 
 ## Open questions
 
 These need answers before this ADR is accepted:
 
+- **Aggregating models.** How does an entity declare the models it is made of: by naming them, by declaring fields inline as in a `model`, or both? How does that fit with the `fields` line that [ADR 0010](0010-security.md) shows? Is an entity's contents facet an object of one of those models? Can an object of a model be used to create or update an entity?
 - **Fields.** What is the grammar of `fields`? Can a field be optional, have a default, or be computed from other fields? Which types can a field have, including arrays, maps ([ADR 0021](0021-collections.md)) and other entities?
 - **Relations.** How does one entity refer to another, and how are one-to-many and many-to-many relations declared?
 - **Creating, changing and deleting.** How does a program create an entity, change its fields and delete it? `delete` is already a statement for collections only ([ADR 0021](0021-collections.md)).
