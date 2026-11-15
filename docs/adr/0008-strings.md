@@ -31,7 +31,7 @@ Interpolation      = "${", Expression, "}" ;
 
 - **Literal text** is any run of characters other than `"`, `\` and line breaks. A `$` is literal unless it is followed by `{`.
 - **Escape sequences** start with `\`. They let a string contain characters that would otherwise end it or start an interpolation, such as `\"`, `\\` and `\${`, and characters that are hard to type or see.
-- **Interpolations** are written `${ … }`, as in JavaScript, Kotlin and shell, and contain an `Expression`. The source EBNF names the opening token `?templateStart?` without spelling it; this ADR spells it `${`. When the string is evaluated, the expression is evaluated and its result is inserted in place of the interpolation. Expressions are defined in a later ADR, and how a result that is not a string is converted to text is defined in [ADR 0011](0011-converting-values-to-text.md).
+- **Interpolations** are written `${ … }`, as in JavaScript, Kotlin and shell, and contain an `Expression`. The source EBNF names the opening token `?templateStart?` without spelling it; this ADR spells it `${`. When the string is evaluated, the expression is evaluated and its result is inserted in place of the interpolation. Expressions are defined in [ADR 0019](0019-operators.md), and how a result that is not a string is converted to text is defined in [ADR 0011](0011-converting-values-to-text.md).
 
 A string with no interpolations is simply a template that always produces the same text, so there is no separate syntax for a "plain" string.
 

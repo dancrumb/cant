@@ -1,12 +1,11 @@
 # 0016. Handling optional values
 
 - **Status:** Accepted
-- **Amended by:** [0019](0019-operators.md) (`isEmpty` requires an optional)
 - **Date:** 2026-11-14
 
 ## Context
 
-[ADR 0014](0014-optionals.md) gives a value that might be missing the internal type `Optional<T>`, written `T?`, which holds either a `T` or `NOTHING`. Using the value inside an `Optional<T>` as a `T` is a compile-time error unless the program has first checked whether it holds a `T` or `NOTHING`. ADR 0014 does not say how a program makes that check, so until this ADR is decided, a program cannot use an optional's value at all. It can only pass it on to other optional parameters.
+[ADR 0014](0014-optionals.md) gives a value that might be missing the internal type `Optional<T>`, written `T?`, which holds either a `T` or `NOTHING`. Using the value inside an `Optional<T>` as a `T` is a compile-time error unless the program has first checked whether it holds a `T` or `NOTHING`. This ADR says how a program makes that check.
 
 Some rules from ADR 0014 limit the options:
 
@@ -22,16 +21,11 @@ Cant has two operators for optional values: `isEmpty`, which checks whether a va
 
 ### `isEmpty`
 
-`isEmpty` is a unary operator that can be applied to any value. It produces a `BOOLEAN`:
+`isEmpty` is a prefix operator that produces a `BOOLEAN`: `true` when the optional holds `NOTHING`, and `false` when it holds a value.
 
-- If the value is not an optional, `isEmpty` is `false`.
-- If the value is an optional, `isEmpty` is `true` when it holds `NOTHING`, and `false` when it holds a value.
+`isEmpty` can only be applied to an optional. Applying it to a value that is not optional is a compile-time error, just as applying `orElse` to one is, since the check could never be `true`.
 
-```ebnf
-IsEmptyExpression  = IsEmptyKeyword, Expression ;
-```
-
-`isEmpty` is a keyword. It binds more tightly than comparison operators, so `isEmpty a == b` is read as `(isEmpty a) == b`.
+`isEmpty` is a keyword. It binds more tightly than comparison operators, so `isEmpty a == b` is read as `(isEmpty a) == b`. Its place in the grammar and the full order of operators are defined in [ADR 0019](0019-operators.md).
 
 #### `isEmpty`, not `== NOTHING`
 
@@ -42,7 +36,7 @@ if isEmpty user      // valid
 if user == NOTHING   // syntax error
 ```
 
-This narrows [ADR 0012](0012-base-types.md) and [ADR 0014](0014-optionals.md), which say a program can compare against `NOTHING`. With this rule, the only place a program can write `NOTHING` is in returning it from an action whose return type is `T?`.
+With this rule, and those of [ADR 0014](0014-optionals.md), the only place a program can write `NOTHING` is in returning it from an action whose return type is `T?`.
 
 #### Narrowing
 
@@ -130,7 +124,7 @@ same := FindNickname(user) orElse "" == name  // (FindNickname(user) orElse "") 
 
 Operators that build up a single operand, such as `::`, `.` and calls, bind more tightly than `orElse`, so `FindUser(email) orElse guest` applies `orElse` to the result of the call.
 
-`orElse` also binds more tightly than `isEmpty`, so `isEmpty a orElse b` is read as `isEmpty (a orElse b)`. The other reading, `(isEmpty a) orElse b`, would apply `orElse` to a `BOOLEAN` and could never use `b`. `isEmpty (a orElse b)` is useful when `b` is itself optional, as at the end of a series of optionals: it is `true` only when every optional in the series holds `NOTHING`. The full order of operators is left to the ADR that defines expressions.
+`orElse` also binds more tightly than `isEmpty`, so `isEmpty a orElse b` is read as `isEmpty (a orElse b)`. The other reading, `(isEmpty a) orElse b`, would apply `orElse` to a `BOOLEAN` and could never use `b`. `isEmpty (a orElse b)` is useful when `b` is itself optional, as at the end of a series of optionals: it is `true` only when every optional in the series holds `NOTHING`. The full order of operators is defined in [ADR 0019](0019-operators.md).
 
 `orElse` can be applied to an unchecked optional. It does not use the optional's value as a `T` unless that value is present, so it needs no `isEmpty` check first.
 
@@ -154,7 +148,7 @@ Property chaining, which reads a field or calls an action through an optional va
 - Because a value stays narrowed after an early return, a program can deal with a missing value at the top of a block and then use the value freely, without nesting the rest of the block in an `else`.
 - Because narrowing follows the logic of the whole condition, a check can be combined with other conditions using `and`, `or` and `!`. The compiler has to analyse those combinations to know where narrowing applies.
 - `orElse` handles the common case of a fallback in one expression, without an `if`.
-- Because `isEmpty` works on any value, code can check a value without knowing whether its type is optional. On a value that is not optional, the check is always `false`, which the compiler could warn about.
+- Because `isEmpty` and `orElse` reject values that are not optional, a check that could never do anything is caught at compile time.
 - `orElse` and boolean `or` are separate words, so neither readers nor the compiler have to work out from context which one is meant. Both short-circuit, so the right-hand side is only evaluated when it is needed.
 - Treating identifiers as constants keeps narrowing simple and reliable for now. Adding mutability later will mean revisiting where narrowing holds.
 - `orElse` adds another keyword, and is longer to type than a symbol such as `??`.

@@ -1,7 +1,6 @@
 # 0014. Optionals
 
 - **Status:** Accepted
-- **Amended by:** [0016](0016-handling-optional-values.md) (`NOTHING` cannot be compared against, so it can only be written in a `return`)
 - **Date:** 2026-11-14
 
 ## Context
@@ -33,7 +32,7 @@ An optional type can be declared in two places, with `?` in the positions [ADR 0
 
   A parameter marked `?` with a default, such as `greeting?: TEXT := "Hello, "` in [ADR 0007](0007-actions.md), is optional only for the caller. Inside the action it always has a value, either the caller's or the default, so its type there is the plain `TEXT`, not `TEXT?`, and it can be used without a check.
 
-  Only a parameter marked `?` can have a default. A default on a parameter that is not marked `?`, such as `greeting: TEXT := "Hello, "`, is a syntax error, since a caller must always pass that parameter and the default could never be used. This narrows the `Parameter` rule in [ADR 0007](0007-actions.md), which allows a default on any parameter:
+  Only a parameter marked `?` can have a default. A default on a parameter that is not marked `?`, such as `greeting: TEXT := "Hello, "`, is a syntax error, since a caller must always pass that parameter and the default could never be used. The `Parameter` rule in [ADR 0007](0007-actions.md) enforces this:
 
   ```ebnf
   Parameter  = Identifier, "?", ":", TypeRef, [DefaultValue]
@@ -98,7 +97,7 @@ found := FindUser(email)  // valid: found is a User?
 missing := NOTHING        // compile-time error: NOTHING cannot be assigned
 ```
 
-This narrows [ADR 0012](0012-base-types.md), which says `NOTHING` can be assigned like any other value. Within the rules here, `NOTHING` can be written only where an action returns it from a `T?` return type, or where a program compares against it.
+Comparing a value against `NOTHING` is also an error ([ADR 0016](0016-handling-optional-values.md)), so the only place a program can write `NOTHING` is in returning it from an action whose return type is `T?`.
 
 ### Using an optional's value
 
@@ -133,4 +132,4 @@ action SayHello(): VOID?    // syntax error
 - Because an `Optional<T>` holding `NOTHING` behaves like a missing argument, a caller can pass an optional value straight through without checking it first. Because `NOTHING` itself cannot be passed, leaving an argument out is the only way to write "no value" in a call.
 - `NOTHING` cannot be passed or assigned, so an optional only ever comes from an action's optional return or an optional parameter. Every `NOTHING` in a running program can be traced back to one of those.
 - Returning a `T` from an action that returns `T?` does not narrow the result, so callers always have to check, even when an action never actually returns `NOTHING`.
-- Until [ADR 0016](0016-handling-optional-values.md) decides how to check for a value, programs cannot use the value of an optional at all, only pass it on to other optional parameters.
+- A program checks an optional with `isEmpty`, or supplies a fallback with `orElse`, as [ADR 0016](0016-handling-optional-values.md) describes.

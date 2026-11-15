@@ -8,7 +8,7 @@
 Several ADRs use operators, and some decide parts of how they behave, but no ADR lists them all or gives their full order of precedence:
 
 - [ADR 0005](0005-module-namespaces.md) uses `::` to name a symbol in a namespace.
-- [ADR 0007](0007-actions.md) uses `:=` for default values, and says expressions will be defined later.
+- [ADR 0007](0007-actions.md) uses `:=` for default values and refers to expressions without defining them.
 - [ADR 0009](0009-triggers.md) and [ADR 0010](0010-security.md) combine `auth` predicates with `and`, `or` and parentheses, with `and` binding more tightly than `or`.
 - [ADR 0013](0013-enums.md) uses `.` to name an enum member (`InvoiceStatus.paid`) and `:=` to give a member its value.
 - [ADR 0016](0016-handling-optional-values.md) adds `isEmpty` and `orElse`, uses `!` and `==`, says `or` short-circuits, and fixes part of the order of precedence.
@@ -16,7 +16,7 @@ Several ADRs use operators, and some decide parts of how they behave, but no ADR
 
 Before this ADR, the tokenizer recognised these symbol operators: `::`, `:=`, `<=`, `>=`, `==`, `<`, `>`, `+`, `*`, `-`, `\`, `!` and `.`, and the word operators `and` and `or`. It had no operator for division, and `\` had no meaning in any ADR.
 
-This ADR is the single place where every operator, what it does, and its precedence are defined. Later ADRs that add an operator should amend this one.
+This ADR is the single place where every operator, what it does, and its precedence are defined. Later ADRs that add an operator should update this one.
 
 ## Decision
 
@@ -27,11 +27,11 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | Operator | Form | Meaning | Source |
 | --- | --- | --- | --- |
 | `::` | `namespace::name` | The symbol `name` in the namespace `namespace` | [ADR 0005](0005-module-namespaces.md) |
-| `.` | `value.member` | A member of a value, such as a field. Also names an enum member (`InvoiceStatus.paid`), the one place `.` is used on a type | [ADR 0013](0013-enums.md); objects to come |
+| `.` | `value.member` | A member of a value, such as a member of a map. Also names an enum member (`InvoiceStatus.paid`), the one place `.` is used on a type | [ADR 0013](0013-enums.md), [ADR 0021](0021-collections.md) |
 | `( … )` | `action(arguments)` | Calls an action | [ADR 0007](0007-actions.md) |
 | `[ … ]` | `a[i]` | An element of an array, or a member of a map | [ADR 0021](0021-collections.md) |
 | `orElse` | `a orElse b` | The value inside the optional `a`, or `b` if `a` is empty | [ADR 0016](0016-handling-optional-values.md) |
-| `isEmpty` | `isEmpty a` | Whether the optional `a` holds `NOTHING`. `a` must be an optional | [ADR 0016](0016-handling-optional-values.md), amended here |
+| `isEmpty` | `isEmpty a` | Whether the optional `a` holds `NOTHING`. `a` must be an optional | [ADR 0016](0016-handling-optional-values.md) |
 | `!` | `!a` | Boolean not | Used in [ADR 0016](0016-handling-optional-values.md) |
 | `-` | `-a` | Negation | This ADR |
 | `**` | `a ** b` | Exponentiation: `a` to the power `b` | This ADR |
@@ -67,38 +67,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 
 ### Operators in `auth` rules
 
-An `auth` rule ([ADR 0010](0010-security.md)) is an expression. Every operator in this ADR can be used in one, but the rule as a whole must have the type `BOOLEAN`. A rule of any other type is a compile-time error.
-
-```ebnf
-AuthBlock      = AuthKeyword, ?indent?, Expression, ?dedent? ;
-```
-
-This replaces the `AuthRule`, `AuthAnd` and `AuthParens` rules of [ADR 0010](0010-security.md), whose `and`, `or` and parentheses are now the ordinary operators. The `can` and `is` predicates (`AuthPredicate`) become `BOOLEAN` expressions that an `auth` rule can use.
-
-A predicate names its group with `within`, not `in`, so that `in` only ever tests whether a value is in a collection ([ADR 0021](0021-collections.md)):
-
-```ebnf
-AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [WithinKeyword, Identifier]
-                          | IsKeyword, (SubjectType | Identifier, WithinKeyword, Identifier) ) ;
-```
-
-```cant
-trigger PayInvoice on InvoicePaymentRequested
-    auth
-        @subject is User and (@subject can "invoices:write" within org or @subject is admin within org)
-```
-
-`within` matches how [ADR 0010](0010-security.md) describes permissions and roles, as held "within a group", and it becomes a keyword.
-
-The predicates are ordinary `BOOLEAN` expressions, so they can be used anywhere an expression can, not only in an `auth` rule. An action can check them in an `if`:
-
-```cant
-if @subject can "invoices:approve" within org
-    // ...
-```
-
-- **Permissions are literals.** The permission in a `can` predicate must be a string literal, as the `ConstantStringLiteral` in the grammar requires, so that the compiler can check it against the `permissions` declarations ([ADR 0010](0010-security.md)). A later version of Cant may allow an expression there.
-- **`@subject` is always defined.** `@subject` is the subject that caused the trigger that started the action. When there is no such subject, such as in an action started by a trigger that has no subject, `@subject` is `@anonymous` ([ADR 0010](0010-security.md)). So using `@subject` is never an error, and `@subject is @anonymous` is `true` there.
+An `auth` rule is an ordinary expression, so every operator in this ADR can be used in one, but the rule as a whole must have the type `BOOLEAN`. The `can` and `is` predicates about `@subject` are `BOOLEAN` expressions too, and can be used in any expression, not only in an `auth` rule. A predicate names a group with `within`, not `in`, so that `in` only ever tests whether a value is in a collection ([ADR 0021](0021-collections.md)). The predicates' grammar and meaning are defined in [ADR 0010](0010-security.md).
 
 ### `::` and `.`
 
@@ -153,7 +122,7 @@ So if the right-hand side is an action call, the action is not called unless its
 ### Settled rules for particular operands
 
 - **`NOTHING`.** Comparing a value against `NOTHING`, with `==`, `!=` or any other comparison operator, is a syntax error ([ADR 0016](0016-handling-optional-values.md)).
-- **`isEmpty` needs an optional.** Applying `isEmpty` to a value that is not optional is a compile-time error, just as applying `orElse` to one is ([ADR 0016](0016-handling-optional-values.md)). This amends ADR 0016, which made `isEmpty` on a value that is not optional `false`. Both operators now reject a value that cannot be empty, since checking it, or falling back from it, could never do anything.
+- **`isEmpty` and `orElse` need an optional.** Applying either to a value that is not optional is a compile-time error ([ADR 0016](0016-handling-optional-values.md)), since checking it, or falling back from it, could never do anything.
 - **Optionals.** Any operator that uses an optional's value as a `T`, such as `+` or `==`, is a compile-time error on an unchecked optional ([ADR 0014](0014-optionals.md)). `isEmpty` and `orElse` are the exceptions.
 - **Enums.** At runtime, an enum value is its member's value ([ADR 0013](0013-enums.md)), so operators act on that value. Enums are compared by value: comparing two enum values compares their members' values, even if they belong to different enums, so `InvoiceStatus.paid == QuoteStatus.paid` is `true` when both members' values are `"paid"`. Comparing an enum value with a value of its enum's value type does the same, so `status == "paid"` is `true` when `status` is `InvoiceStatus.paid`.
 - **`+` does not join text.** `+` is not defined on `TEXT`, so `greeting + name` is a compile-time error. Text is joined with interpolation instead, as in `"${greeting}${name}"` ([ADR 0008](0008-strings.md)).
@@ -214,7 +183,7 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - `Power`'s operands are `Prefix` expressions, so a prefix operator applies to the operand, not the whole power: `-2 ** 2` is `(-2) ** 2`, and `2 ** -1` is allowed. Its right operand is itself a `Power`, which makes `**` right-associative.
 - `orElse`'s right operand can be negated, so `count orElse -1` and `offset orElse -step` are allowed, even though unary `-` otherwise binds more loosely than `orElse`. No other prefix operator is allowed there.
 - `Prefix` contains `Fallback`, so `isEmpty a orElse b` and `!a orElse b` apply the prefix operator to the result of `orElse`.
-- The three `Suffix` forms are member access ([ADR 0021](0021-collections.md)), calls ([ADR 0020](0020-action-parameters.md)) and indexing ([ADR 0021](0021-collections.md)). They replace the `Member`, `Call` and `Index` rules of those ADRs, and `Prefix` replaces the `IsEmptyExpression` rule of [ADR 0016](0016-handling-optional-values.md).
+- The three `Suffix` forms are member access ([ADR 0021](0021-collections.md)), calls ([ADR 0020](0020-action-parameters.md)) and indexing ([ADR 0021](0021-collections.md)). `Prefix` includes `isEmpty` ([ADR 0016](0016-handling-optional-values.md)).
 - `QualifiedIdentifier` is a name in a namespace, `namespace::name` ([ADR 0005](0005-module-namespaces.md)), so `::` binds before any other operator.
 - `StringLiteral` comes from [ADR 0008](0008-strings.md), `BuiltIn` from [ADR 0009](0009-triggers.md), and `ArrayValue` and `ObjectValue` from [ADR 0021](0021-collections.md). `NumberLiteral` and `BooleanLiteral` are defined above.
 - `NOTHING` is not a `Primary`, since it can only be written in a `return` ([ADR 0016](0016-handling-optional-values.md)).

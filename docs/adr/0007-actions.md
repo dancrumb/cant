@@ -1,7 +1,6 @@
 # 0007. Actions
 
 - **Status:** Accepted
-- **Amended by:** [0012](0012-base-types.md) (built-in types and `VOID` return types), [0013](0013-enums.md) (inline enum values), [0014](0014-optionals.md) (optional parameters, defaults and `ReturnType`), [0020](0020-action-parameters.md) (a default can be any expression), [0021](0021-collections.md) (assigning to and deleting elements and members of a collection)
 - **Date:** 2026-11-14
 
 ## Context
@@ -10,7 +9,7 @@ An **action** is Cant's unit of behaviour: a named, typed piece of work that a t
 
 We need to define the full shape of an action: its signature, how its body is written, and which statements a body can contain.
 
-Expressions, and the values they are built from, are out of scope here and will be covered in a later ADR. This ADR refers to `Expression` and `Value` without defining them.
+Expressions, and the operators and literals they are built from, are defined in [ADR 0019](0019-operators.md). This ADR refers to `Expression` without defining it.
 
 ## Decision
 
@@ -40,52 +39,64 @@ Blocks are delimited by indentation, not braces. This replaces the earlier `{ ..
 ### Signatures
 
 ```ebnf
-ActionSignature    = Identifier, "(", [ParameterList], ")", ":", TypeRef, ["?"] ;
+ActionSignature    = Identifier, "(", [ParameterList], ")", ":", ReturnType ;
+ReturnType         = VoidKeyword | TypeRef, ["?"] ;
 ParameterList      = Parameter, {",", Parameter} ;
-Parameter          = Identifier, ["?"], ":", TypeRef, DefaultValue ;
-DefaultValue       = [":=", Value] ;
+Parameter          = Identifier, "?", ":", TypeRef, [DefaultValue]
+                   | Identifier, ":", TypeRef ;
+DefaultValue       = ":=", Expression ;
 ```
 
 - The signature is the action's name, a parenthesised parameter list (which may be empty) and a return type.
-- A `?` after the return type means the action may return `NOTHING` ([ADR 0012](0012-base-types.md), [ADR 0014](0014-optionals.md)).
-- Each parameter has a name, an optional `?` marking it as optional, a type, and an optional default value.
-- A default value must be a `Value`, not an arbitrary expression.
+- The return type is either `VOID`, meaning the action produces no value ([ADR 0012](0012-base-types.md)), or a `TypeRef`, optionally followed by `?`. A `?` after the return type means the action may return `NOTHING` ([ADR 0014](0014-optionals.md)). `VOID` already means there is no value, so `VOID?` is a syntax error.
+- Each parameter has a name, an optional `?` marking it as optional, and a type. A parameter's type is a `TypeRef`, so it is never `VOID`.
+- Only a parameter marked `?` can have a default value. A default on any other parameter is a syntax error, since a caller must always pass that parameter and the default could never be used ([ADR 0014](0014-optionals.md)).
+- A default value can be any expression whose type is compatible with the parameter's ([ADR 0020](0020-action-parameters.md)).
 - A default value follows `:=`, the assignment operator. The source EBNF calls it `?assign?`. `:=` gives a name its value, as it also does in a trigger's `arguments` ([ADR 0009](0009-triggers.md)), and the tokenizer classes it as an operator.
+- How parameters behave inside an action, and how callers pass arguments to them, is described in [ADR 0020](0020-action-parameters.md).
 
 ### Types
 
 ```ebnf
-TypeRef    = ?builtin? | Enum | Identifier | QualifiedIdentifier ;
-Enum       = EnumKeyword, "(", ConstantStringLiteral, {",", ConstantStringLiteral}, ")" ;
+TypeRef    = BaseType | Enum | ArrayType | MapType | Identifier | QualifiedIdentifier ;
+Enum       = EnumKeyword, "(", ConstantValue, {",", ConstantValue}, ")" ;
 ```
 
 A type is one of:
 
 | Form | Example | Meaning |
 | --- | --- | --- |
-| Built-in | `TEXT`, `VOID` | A base type, defined in [ADR 0012](0012-base-types.md) |
-| Named | `User` | A type declared elsewhere, such as an entity, a schema or an enum ([ADR 0013](0013-enums.md)) |
+| Base type | `TEXT`, `NUMBER` | A base type, defined in [ADR 0012](0012-base-types.md). `VOID` is not a `TypeRef`: it can only be a return type |
+| Named | `User` | A type declared elsewhere, such as an entity or an enum ([ADR 0013](0013-enums.md)) |
 | Namespaced | `accounts::User` | A named type in another namespace (see [ADR 0005](0005-module-namespaces.md)) |
-| Inline enum | `enum("draft", "published")` | One of a fixed set of strings, without declaring a named enum |
+| Inline enum | `enum("draft", "published")` | One of a fixed set of literal values of one base type, without declaring a named enum ([ADR 0013](0013-enums.md)) |
+| Array | `[TEXT]` | An array of values of one type ([ADR 0021](0021-collections.md)) |
+| Map | `{TEXT}` | A map whose members all have values of one type ([ADR 0021](0021-collections.md)) |
 
 ### Blocks and statements
 
 ```ebnf
 Block        = ?indent?, {Statement | ?comment?}, ?dedent? ;
-Statement    = AssignmentStatement | ExpressionStatement | ReturnStatement | BreakStatement
-             | ContinueStatement | ForStatement | WhileStatement | IfStatement ;
-AssignmentStatement = Identifier, ":=", Expression ;
+Statement    = AssignmentStatement | DeleteStatement | ExpressionStatement | ReturnStatement
+             | BreakStatement | ContinueStatement | ForStatement | WhileStatement | IfStatement ;
+AssignmentStatement = AssignmentTarget, ":=", Expression ;
+AssignmentTarget    = Identifier | Postfix ;
+DeleteStatement     = DeleteKeyword, Postfix ;
 ```
 
 | Statement | Form |
 | --- | --- |
-| Assignment | `<identifier> := <expression>`, which gives a name a value |
+| Assignment | `<identifier> := <expression>`, which gives a name its value. Every identifier is a constant, so a name can only be assigned once in a block ([ADR 0018](0018-immutable-identifiers.md)) |
+| Assignment to a member | `<collection>[<index>] := <expression>` or `<collection>.<name> := <expression>`, which changes an element or member of a collection ([ADR 0021](0021-collections.md)) |
+| Delete | `delete <collection>[<index>]` or `delete <collection>.<name>`, which removes an element or member of a collection ([ADR 0021](0021-collections.md)) |
 | Expression | An `Expression` on its own |
 | Return | `return <expression>` |
 | Break / continue | `break`, `continue` |
 | For | `for <identifier> in <expression>` followed by a block |
 | While | `while <expression>` followed by a block |
 | If | `if <expression>` followed by a block, then optionally `else` and either a block or another `if` |
+
+In an assignment to a member and in a `delete`, the `Postfix` ([ADR 0019](0019-operators.md)) must end in a member, `.name`, or an index, `[ … ]`. `delete` only applies to collections.
 
 ### Comments
 

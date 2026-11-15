@@ -1,7 +1,6 @@
 # 0020. Action parameters
 
 - **Status:** Accepted
-- **Amended by:** [0021](0021-collections.md) (no variable numbers of arguments)
 - **Date:** 2026-11-14
 
 ## Context
@@ -27,13 +26,13 @@ Parameter      = Identifier, "?", ":", TypeRef, [DefaultValue]
 DefaultValue   = ":=", Expression ;
 ```
 
-This is the `Parameter` rule from [ADR 0014](0014-optionals.md), which narrowed [ADR 0007](0007-actions.md)'s, with a default widened from a `Value` to any `Expression`.
+This is the `Parameter` rule from [ADR 0007](0007-actions.md).
 
 - Each parameter has a name and a type. A parameter's type is a `TypeRef`, so it can never be `VOID` ([ADR 0012](0012-base-types.md)).
 - A parameter marked `?` is **optional**: a caller can leave it out. Any other parameter is **required**.
 - No two parameters in a list can have the same name. A parameter list that repeats a name is invalid.
 - Only an optional parameter can have a default ([ADR 0014](0014-optionals.md)).
-- A default can be any expression whose type is compatible with the parameter's: it must be a value that could be passed to that parameter. This is checked at compile time. It amends [ADR 0007](0007-actions.md), which only allowed a `Value`.
+- A default can be any expression whose type is compatible with the parameter's: it must be a value that could be passed to that parameter. This is checked at compile time.
 - A default is evaluated every time a caller leaves its parameter out, not once. A default that calls an action calls it afresh for each call that leaves the parameter out.
 - A default can refer to any of the action's other parameters, as in `end?: DATE_TIME := start`.
 - Parameters are not positional, so the order of a parameter list has no meaning. A default can refer to a parameter before or after it in the list.
@@ -112,6 +111,12 @@ Act(user)          // error: `user` goes to `user`, so the required `name` is mi
 Act(name := user)  // passes `user` to `name`
 ```
 
+### No variable numbers of arguments
+
+An action cannot take a variable number of arguments. Every argument is passed by name, and there are no positional parameters, so there is nothing for extra arguments to fill. An action that needs any number of values takes an array parameter ([ADR 0021](0021-collections.md)), as in `Total(amounts := [10, 20, 30])`.
+
+### Arguments in triggers
+
 The shorter forms are only for calls. A trigger's `arguments` always name every argument in full, as `<name> := <value>` ([ADR 0009](0009-triggers.md)).
 
 ### Checking arguments
@@ -124,10 +129,6 @@ These are compile-time errors, in a call or in a trigger's `arguments`:
 ### Trigger arguments that may be missing
 
 A trigger argument can draw on request or event data that may be missing, as in `user := event.user`. An expression whose value may be missing is optional, so, like any optional value, it can only be passed to an optional parameter. If it is missing, the parameter is treated as left out.
-
-## Deferred
-
-- **Variable numbers of arguments.** Whether an action can take any number of arguments of one type is left to a later ADR, likely alongside collections.
 
 ## Consequences
 

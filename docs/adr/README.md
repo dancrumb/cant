@@ -4,7 +4,9 @@ This folder records the significant decisions made about how Cant is designed an
 
 Each record is a Markdown file named `NNNN-short-title.md`, numbered in the order the decisions were made. Start a new one by copying [`template.md`](template.md).
 
-Records are not edited once they are accepted. If a decision changes, write a new record and mark the old one as superseded by it. If a later record only narrows or extends part of an earlier one, add an **Amended by** line to the earlier record's header that links to the later record and names the part it changes. The rest of the earlier record stays as it was, so read it together with the records that amend it.
+Until Cant's first major version is released, records can be edited directly: when a later decision changes an earlier one, the earlier record can be updated so that it states the current decision.
+
+Once the major version is released, records are immutable. If a decision changes, write a new record and mark the old one as superseded by it. If a later record only narrows or extends part of an earlier one, add an **Amended by** line to the earlier record's header that links to the later record and names the part it changes. The rest of the earlier record stays as it was, so read it together with the records that amend it.
 
 | ADR | Title | Status |
 | --- | --- | --- |

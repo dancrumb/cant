@@ -11,8 +11,7 @@ Several ADRs are waiting on this:
 
 - [ADR 0007](0007-actions.md) has a `for <identifier> in <expression>` statement, but nothing to loop over.
 - [ADR 0011](0011-converting-values-to-text.md) leaves converting lists and objects to text for later.
-- [ADR 0019](0019-operators.md) defines `.` as reaching a member of a value, with objects to come.
-- [ADR 0020](0020-action-parameters.md) defers actions that take any number of arguments until collections exist.
+- [ADR 0019](0019-operators.md) defines `.` as reaching a member of a value, but no values had members.
 
 The source EBNF that Cant's grammar started from already describes two kinds of collection:
 
@@ -38,7 +37,7 @@ ArrayValue  = "[", [Expression, {",", Expression}, [","]], "]" ;
 Index       = Expression, "[", Expression, "]" ;
 ```
 
-This adds `ArrayType`, and `MapType` from the next section, to the `TypeRef` rule of [ADR 0012](0012-base-types.md).
+`ArrayType`, and `MapType` from the next section, are forms of `TypeRef` ([ADR 0007](0007-actions.md)).
 
 ```cant
 action Total(amounts: [NUMBER]): NUMBER
@@ -110,11 +109,7 @@ Types for objects with a fixed set of members, of different types, are deferred 
 
 A collection's contents can be changed after it is made: elements can be added to, removed from or replaced in an array, and members can be added to, removed from or replaced in a map.
 
-Assigning to a member of a collection with `:=` changes the collection. This widens the `AssignmentStatement` of [ADR 0007](0007-actions.md), which only assigns to an identifier:
-
-```ebnf
-AssignmentStatement = (Identifier | Member | Index), ":=", Expression ;
-```
+Assigning to a member of a collection with `:=` changes the collection. The `AssignmentStatement` of [ADR 0007](0007-actions.md) allows a member or index as its target:
 
 ```cant
 scores[0] := 10
@@ -131,11 +126,7 @@ This does not conflict with [ADR 0018](0018-immutable-identifiers.md). An identi
 
 ### Removing members
 
-The `delete` statement removes an element from an array or a member from a map:
-
-```ebnf
-DeleteStatement = DeleteKeyword, (Member | Index) ;
-```
+The `delete` statement ([ADR 0007](0007-actions.md)) removes an element from an array or a member from a map:
 
 ```cant
 delete scores[2]
@@ -143,7 +134,7 @@ delete headers.name
 delete headers["Content-Type"]
 ```
 
-`DeleteStatement` is a new kind of `Statement` ([ADR 0007](0007-actions.md)), and `delete` becomes a keyword.
+`delete` is a keyword.
 
 - Deleting an element of an array leaves a slot with no element, like the gaps in a sparse array. Later elements keep their indexes, and the array keeps its length. Reading the slot gives an empty `T?`, and `for` skips it.
 - `delete` is only for collections. It cannot be applied to an identifier or used to delete a stored entity, as the source EBNF's `delete invoice` did.
@@ -175,10 +166,6 @@ b := [1, 2, 3]
 a == b  // false: two collections with the same contents
 a == a  // true
 ```
-
-### No variable numbers of arguments
-
-[ADR 0020](0020-action-parameters.md) deferred actions that take any number of arguments until collections existed. Cant will not have them. Every argument is passed by name, and there are no positional parameters, so there is nothing for a variable number of arguments to fill. An action that needs any number of values takes an array parameter, as in `Total(amounts := [10, 20, 30])`.
 
 ### Operators
 

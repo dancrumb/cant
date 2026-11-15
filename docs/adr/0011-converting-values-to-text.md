@@ -1,7 +1,6 @@
 # 0011. Converting values to text
 
 - **Status:** Accepted
-- **Amended by:** [0017](0017-faceted-types.md) (faceted types, including `FILE`, convert by their identifier)
 - **Date:** 2026-11-14
 
 ## Context
@@ -10,7 +9,7 @@ Strings ([ADR 0008](0008-strings.md)) can contain interpolations, written `${ â€
 
 Enum values ([ADR 0013](0013-enums.md)) can be interpolated too, whatever their value type, and are converted in the same way.
 
-The values that need converting are those of the base types ([ADR 0012](0012-base-types.md)), the `NOTHING` value, and enum values. Composite values, such as lists and objects, are not defined yet.
+The values that need converting are those of the base types ([ADR 0012](0012-base-types.md)), the `NOTHING` value, enum values and faceted values ([ADR 0017](0017-faceted-types.md)). Text can only be joined by interpolation, since `+` does not join text ([ADR 0019](0019-operators.md)).
 
 ## Decision
 
@@ -62,7 +61,7 @@ Every faceted type ([ADR 0017](0017-faceted-types.md)) converts to text as its i
 
 A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by a future ADR.
 
-Composite types, such as lists and objects, are out of scope for this ADR and will be addressed later.
+How arrays and maps ([ADR 0021](0021-collections.md)) are converted to text is not decided yet.
 
 ## Consequences
 

@@ -1,7 +1,6 @@
 # 0010. Security
 
 - **Status:** Accepted
-- **Amended by:** [0019](0019-operators.md) (`auth` rules are `BOOLEAN` expressions that can use any operator, and predicates name their group with `within` instead of `in`)
 - **Date:** 2026-11-14
 
 ## Context
@@ -105,53 +104,60 @@ permissions organization has admin
 
 ### Authorization
 
-This section supersedes the Authorization section of [ADR 0009](0009-triggers.md). The syntax is unchanged; it now has defined meanings for groups, roles and permissions.
-
 ```ebnf
-AuthBlock      = AuthKeyword, ?indent?, AuthRule, ?dedent? ;
-AuthRule       = AuthAnd, {"or", AuthAnd} ;
-AuthAnd        = AuthParens, {"and", AuthParens} ;
-AuthParens     = "(", AuthRule, ")" | AuthPredicate ;
-AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [InKeyword, Identifier]
-                          | IsKeyword, (SubjectType | Identifier, InKeyword, Identifier) ) ;
+AuthBlock      = AuthKeyword, ?indent?, Expression, ?dedent? ;
+AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [WithinKeyword, Identifier]
+                          | IsKeyword, (SubjectType | Identifier, WithinKeyword, Identifier) ) ;
 SubjectType    = Identifier | BuiltIn ;
 Subject        = "@subject" ;
 BuiltIn        = "@", Identifier ;
 ```
 
-An `auth` block appears in a trigger and holds one rule. A trigger with no `auth` block lets any subject through, including an anonymous one.
+An `auth` block appears in a trigger ([ADR 0009](0009-triggers.md)) and holds one rule. The rule is an expression, and can use any operator ([ADR 0019](0019-operators.md)), but it must have the type `BOOLEAN`. A rule of any other type is a compile-time error. A trigger with no `auth` block lets any subject through, including an anonymous one.
 
 `auth` blocks are handled by the interpreter. Each time a trigger fires, the interpreter:
 
 1. authenticates the request, using an algorithm that a later ADR will define, and finds `@subject`, the subject that caused the trigger, by matching the authenticated request against the `identity` of each subject entity; if none matches, the subject is anonymous;
-2. resolves each `in <identifier>` in the rule to a group instance;
-3. evaluates the rule, and runs the action only if it holds.
+2. resolves each `within <identifier>` in the rule to a group instance;
+3. evaluates the rule, and runs the action only if it is `true`.
 
-If the rule does not hold, the action does not run. How the interpreter reports that to the caller, such as with an HTTP 401 or 403 response, is up to the interpreter.
+If the rule is `false`, the action does not run. How the interpreter reports that to the caller, such as with an HTTP 401 or 403 response, is up to the interpreter.
 
 Before the program runs, the compiler validates `auth` rules as far as it can without running them. For example, it reports an error when a rule:
 
 - uses `@subject is <type>` with a type that is not a subject entity;
-- refers to a role that no group entity declares, or that the group in `in <identifier>` cannot have, when the group's kind is known;
+- refers to a role that no group entity declares, or that the group in `within <identifier>` cannot have, when the group's kind is known;
 - checks a permission that no `permissions` declaration grants.
 
 Anything that depends on the request, such as who the subject is and which group an identifier resolves to, is left to the interpreter.
 
-| Predicate | Holds when |
+#### Predicates
+
+| Predicate | Is `true` when |
 | --- | --- |
 | `@subject is @anonymous` | The subject is anonymous |
 | `@subject is @defined` | The subject is not anonymous |
 | `@subject is User` | The subject is an instance of the subject entity `User` |
-| `@subject is admin in org` | The subject has the role `admin` in the group `org` |
-| `@subject can "invoices:read" in org` | The subject has the permission in the group `org` |
+| `@subject is admin within org` | The subject has the role `admin` in the group `org` |
+| `@subject can "invoices:read" within org` | The subject has the permission in the group `org` |
 | `@subject can "invoices:read"` | The subject has the permission in at least one group |
 
-In `in <identifier>`, the identifier names a group instance. The interpreter resolves it when the trigger fires, for example from the request or event that caused the trigger; how it does so is up to the interpreter. If the identifier cannot be resolved to a group, the predicate does not hold. Rules combine predicates with `and`, `or` and parentheses, and `and` binds tighter than `or`. An anonymous subject is in no groups, so every `can` and role predicate fails for it.
+- A predicate names a group with `within <identifier>`. The identifier names a group instance, which the interpreter resolves when the trigger fires, for example from the request or event that caused the trigger; how it does so is up to the interpreter. If the identifier cannot be resolved to a group, the predicate is `false`.
+- An anonymous subject is in no groups, so every `can` and role predicate is `false` for it.
+- The permission in a `can` predicate must be a string literal, so that the compiler can check it against the `permissions` declarations. A later version of Cant may allow an expression there.
+- Predicates are ordinary `BOOLEAN` expressions. They sit at the same level of precedence as comparisons ([ADR 0019](0019-operators.md)), so they bind more tightly than `and` and `or`, and they can be used in any expression, not only in an `auth` rule. An action can check one in an `if`:
+
+```cant
+if @subject can "invoices:approve" within org
+    // ...
+```
+
+- `@subject` is always defined. In an action, it is the subject that caused the trigger that started the action. When there is no such subject, such as for an action started by a trigger that has no subject, `@subject` is `@anonymous`.
 
 ```cant
 trigger PayInvoice on InvoicePaymentRequested
     auth
-        @subject is User and (@subject can "invoices:write" in org or @subject is admin in org)
+        @subject is User and (@subject can "invoices:write" within org or @subject is admin within org)
 ```
 
 ### Keywords
@@ -160,7 +166,7 @@ trigger PayInvoice on InvoicePaymentRequested
 
 - `subject`, `identity`, `group` and `role`, in an entity's block;
 - `has`, in a `permissions` declaration;
-- `can` and `is`, in an `auth` rule (`in` is already reserved).
+- `can`, `is` and `within`, in a predicate.
 
 `@subject`, `@anonymous` and `@defined` are built-in values, written `@<identifier>` as described in [ADR 0009](0009-triggers.md). The full list of built-in values will be defined in a later ADR. Because the `@` prefix is reserved for them, they cannot clash with anything a program declares.
 
@@ -169,6 +175,7 @@ trigger PayInvoice on InvoicePaymentRequested
 - Who can do what is declared in the language, next to the entities and triggers it applies to, rather than in application code.
 - Authorization is enforced in one place, the interpreter, before any action runs, so an action never has to check its own caller.
 - Many mistakes in `auth` rules, such as a misspelled role or permission, are caught by the compiler rather than when a request is refused.
+- Because `auth` rules are ordinary expressions, they can use every operator, and the same predicates can be checked inside an action when a decision depends on more than the trigger.
 - Permissions are always scoped to a group, which suits multi-tenant programs but makes "global" permissions (for example, for site administrators) awkward to express.
 - Security depends on the entities ADR for membership, role assignment and fields, so it cannot be implemented until that ADR exists.
 - More contextual keywords make the grammar harder to read and the tokenizer harder to get right, since it has to know which block it is in.

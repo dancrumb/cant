@@ -1,7 +1,6 @@
 # 0009. Triggers
 
 - **Status:** Accepted
-- **Amended by:** [0010](0010-security.md) (authorization)
 - **Date:** 2026-11-14
 
 ## Context
@@ -45,48 +44,40 @@ TriggerArguments  = ArgumentsKeyword, ?indent?, {TriggerArgument | ?comment?}, ?
 TriggerArgument   = Identifier, ":=", Expression ;
 ```
 
-`arguments` lists the values passed to the action, one per line. The name on the left of each `:=` is one of the action's parameters ([ADR 0007](0007-actions.md)). Parameters are named, not positional, so arguments can be listed in any order.
+`arguments` lists the values passed to the action, one per line. The name on the left of each `:=` is one of the action's parameters ([ADR 0007](0007-actions.md)). Parameters are named, not positional, so arguments can be listed in any order. How arguments are checked against the action's parameters is described in [ADR 0020](0020-action-parameters.md).
 
 ### Authorization
 
 ```ebnf
-AuthBlock      = AuthKeyword, ?indent?, AuthRule, ?dedent? ;
-AuthRule       = AuthAnd, {"or", AuthAnd} ;
-AuthAnd        = AuthParens, {"and", AuthParens} ;
-AuthParens     = "(", AuthRule, ")" | AuthPredicate ;
-AuthPredicate  = Subject, ( CanKeyword, ConstantStringLiteral, [InKeyword, Identifier]
-                          | IsKeyword, (SubjectType | Identifier, InKeyword, Identifier) ) ;
-SubjectType    = Identifier | BuiltIn ;
-Subject        = "@subject" ;
-BuiltIn        = "@", Identifier ;
+AuthBlock  = AuthKeyword, ?indent?, Expression, ?dedent? ;
 ```
 
-`auth` holds a single rule that must hold for the trigger to run the action. `@subject` is whoever caused the trigger. A rule combines any number of predicates with `and`, `or` and parentheses, with `and` binding tighter than `or`:
+`auth` holds a single rule: a `BOOLEAN` expression that must be `true` for the trigger to run the action. A rule of any other type is a compile-time error. It can use any operator ([ADR 0019](0019-operators.md)), together with predicates about `@subject`, whoever caused the trigger:
 
 | Predicate | Meaning |
 | --- | --- |
 | `@subject can "<permission>"` | The subject has the permission |
-| `@subject can "<permission>" in <group>` | The subject has the permission within the group |
+| `@subject can "<permission>" within <group>` | The subject has the permission within the group |
 | `@subject is @anonymous` | The subject is not identified |
 | `@subject is @defined` | The subject is identified |
 | `@subject is <type>` | The subject is of the given type |
-| `@subject is <role> in <group>` | The subject has the role within the group |
+| `@subject is <role> within <group>` | The subject has the role within the group |
 
-`@subject`, `@anonymous` and `@defined` are **built-in values**. A built-in value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which a later ADR will define. This ADR uses only these three. As a `SubjectType`, only `@anonymous` and `@defined` are valid for now.
+`@subject`, `@anonymous` and `@defined` are **built-in values**. A built-in value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which a later ADR will define. This ADR uses only these three.
 
-[ADR 0010](0010-security.md) defines where subject types, roles, groups and permissions are declared, and how `auth` rules are checked.
+[ADR 0010](0010-security.md) defines the predicates' grammar, where subject types, roles, groups and permissions are declared, and how `auth` rules are checked.
 
 ```cant
 trigger GetInvoice on InvoiceRequested
     auth
-        @subject is @defined and (@subject can "invoices:read" or @subject is admin in billing)
+        @subject is @defined and (@subject can "invoices:read" or @subject is admin within billing)
     arguments
         invoiceId := event.invoiceId
 ```
 
 ### Keywords
 
-The setting names `arguments` and `auth`, and the words `can` and `is`, are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. `in` is already reserved.
+The setting names `arguments` and `auth` are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. The words used in predicates are described in [ADR 0010](0010-security.md).
 
 ## Consequences
 
