@@ -15,7 +15,7 @@ We need a security model that says:
 - which **permissions** a group or role grants;
 - how a trigger's **authorization** rules use all of the above.
 
-Subjects and groups are kinds of **entity**. Roles are not entities: they are declared on group entities, and represent roles in the application's security model. Entities will be fully described in a later ADR; this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `fields`) only to give examples context.
+Subjects and groups are kinds of **entity**. Roles are not entities: they are declared on group entities, and represent roles in the application's security model. Entities will be fully described in [ADR 0022](0022-entities.md); this ADR only defines the parts of an entity declaration that concern security, and shows the rest (such as `fields`) only to give examples context.
 
 ## Decision
 
@@ -75,7 +75,7 @@ For a subject entity, the identity is what an authenticated request is matched a
 
 `role` declares a role in the application's security model: one that a member can have within a group of this entity's kind. The role itself is not an entity; it is a name that `permissions` declarations and `auth` rules refer to. An entity can declare any number of roles, but only if it also has a `group` line. A `role` in an entity with no `group` is an error, since there would be no group for a member to hold the role in. Role names are scoped to their group kind, so two group kinds can both have an `admin` role.
 
-How subjects become members of groups, and how roles are assigned, is part of the entity model and is left to the entities ADR.
+How subjects become members of groups, and how roles are assigned, is part of the entity model and is left to [ADR 0022](0022-entities.md).
 
 ### Permissions
 
@@ -117,7 +117,7 @@ An `auth` block appears in a trigger ([ADR 0009](0009-triggers.md)) and holds on
 
 `auth` blocks are handled by the interpreter. Each time a trigger fires, the interpreter:
 
-1. authenticates the request, using an algorithm that a later ADR will define, and finds `@subject`, the subject that caused the trigger, by matching the authenticated request against the `identity` of each subject entity; if none matches, the subject is anonymous;
+1. authenticates the request, using an algorithm that [ADR 0032](0032-authentication.md) will define, and finds `@subject`, the subject that caused the trigger, by matching the authenticated request against the `identity` of each subject entity; if none matches, the subject is anonymous;
 2. resolves each `within <identifier>` in the rule to a group instance;
 3. evaluates the rule, and runs the action only if it is `true`.
 
@@ -168,7 +168,7 @@ trigger PayInvoice on InvoicePaymentRequested
 - `has`, in a `permissions` declaration;
 - `can`, `is` and `within`, in a predicate.
 
-`@subject`, `@anonymous` and `@defined` are built-in values, written `@<identifier>` as described in [ADR 0009](0009-triggers.md). The full list of built-in values will be defined in a later ADR. Because the `@` prefix is reserved for them, they cannot clash with anything a program declares.
+`@subject`, `@anonymous` and `@defined` are built-in values, written `@<identifier>` as described in [ADR 0009](0009-triggers.md). The full list of built-in values will be defined in [ADR 0024](0024-built-in-values.md). Because the `@` prefix is reserved for them, they cannot clash with anything a program declares.
 
 ## Consequences
 
@@ -177,5 +177,5 @@ trigger PayInvoice on InvoicePaymentRequested
 - Many mistakes in `auth` rules, such as a misspelled role or permission, are caught by the compiler rather than when a request is refused.
 - Because `auth` rules are ordinary expressions, they can use every operator, and the same predicates can be checked inside an action when a decision depends on more than the trigger.
 - Permissions are always scoped to a group, which suits multi-tenant programs but makes "global" permissions (for example, for site administrators) awkward to express.
-- Security depends on the entities ADR for membership, role assignment and fields, so it cannot be implemented until that ADR exists.
+- Security depends on entities ([ADR 0022](0022-entities.md)) for membership, role assignment and fields, so it cannot be implemented until that ADR is decided.
 - More contextual keywords make the grammar harder to read and the tokenizer harder to get right, since it has to know which block it is in.

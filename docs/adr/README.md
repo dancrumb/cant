@@ -31,3 +31,14 @@ Once the major version is released, records are immutable. If a decision changes
 | [0019](0019-operators.md) | Operators | Accepted |
 | [0020](0020-action-parameters.md) | Action parameters | Accepted |
 | [0021](0021-collections.md) | Collections | Proposed |
+| [0022](0022-entities.md) | Entities | Proposed |
+| [0023](0023-error-handling.md) | Error handling | Proposed |
+| [0024](0024-built-in-values.md) | Built-in values | Proposed |
+| [0025](0025-trigger-sources.md) | Trigger sources | Proposed |
+| [0026](0026-dates-and-times.md) | Dates and times | Proposed |
+| [0027](0027-object-shapes.md) | Object shapes | Proposed |
+| [0028](0028-extending-base-types.md) | Extending base types | Proposed |
+| [0029](0029-accessing-facets.md) | Accessing facets | Proposed |
+| [0030](0030-mutability.md) | Mutability | Proposed |
+| [0031](0031-module-resolution.md) | Module resolution | Proposed |
+| [0032](0032-authentication.md) | Authentication | Proposed |

@@ -28,7 +28,7 @@ import IO
 import cant::IO
 ```
 
-A symbolic identifier is resolved to a module by a resolution algorithm that is not yet defined. That algorithm will get its own ADR.
+A symbolic identifier is resolved to a module by a resolution algorithm that is not yet defined. That algorithm is the subject of [ADR 0031](0031-module-resolution.md).
 
 A **URL identifier** is written as a string. The string is resolved as a URL, with the location of the importing module as the base, and the resulting URL is resolved in the usual way:
 

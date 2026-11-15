@@ -147,7 +147,7 @@ action ParseStatus(code: TEXT): InvoiceStatus
         return code     // checked at runtime: an error if code is not a value of InvoiceStatus
 ```
 
-If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. What kind of error that is, and how a caller can handle it, is left to a future ADR on error handling.
+If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. What kind of error that is, and how a caller can handle it, is left to [ADR 0023](0023-error-handling.md).
 
 ### Inline enums
 

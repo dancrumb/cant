@@ -62,7 +62,7 @@ For now, access to files is controlled by triggers. A program can only receive a
 
 - A `FILE` can be passed around cheaply, by its URL, and the interpreter only reads its contents when code asks for the stream or blob facet.
 - Because programs cannot create files themselves or decide where they are stored, the interpreter can manage storage in one place. The cost is that programs have no control over where files live or how long they last.
-- A `FILE` has no facet for its name. Its blob facet follows JavaScript's `Blob`, which has a size and a media type, but how a program reads those depends on how facets are accessed, which is left to a future ADR ([ADR 0017](0017-faceted-types.md)).
+- A `FILE` has no facet for its name. Its blob facet follows JavaScript's `Blob`, which has a size and a media type, but how a program reads those depends on how facets are accessed, which is left to [ADR 0029](0029-accessing-facets.md).
 - With no `FILE` literal, files cannot appear in enums or as default values.
 - Relying on triggers for file security keeps the rules simple for now, but does not let a program restrict who can read a file once it has one. That may need revisiting alongside [ADR 0010](0010-security.md).
 - Until the built-in keywords and `cant::IO` are defined, programs can only receive files from triggers and pass them on.

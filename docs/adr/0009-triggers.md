@@ -31,7 +31,7 @@ trigger SendWelcome on UserCreated
         user := event.user
 ```
 
-The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. A later ADR will decide which sources exist and any settings that are specific to a source, such as an HTTP endpoint, a queue name or a schedule. Until then, the grammar accepts any identifier after `on`.
+The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. [ADR 0025](0025-trigger-sources.md) will decide which sources exist and any settings that are specific to a source, such as an HTTP endpoint, a queue name or a schedule. Until then, the grammar accepts any identifier after `on`.
 
 A trigger with no settings has no block, so the existing form `trigger SayHello on Start` stays valid.
 
@@ -63,7 +63,7 @@ AuthBlock  = AuthKeyword, ?indent?, Expression, ?dedent? ;
 | `@subject is <type>` | The subject is of the given type |
 | `@subject is <role> within <group>` | The subject has the role within the group |
 
-`@subject`, `@anonymous` and `@defined` are **built-in values**. A built-in value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which a later ADR will define. This ADR uses only these three.
+`@subject`, `@anonymous` and `@defined` are **built-in values**. A built-in value is written `@<identifier>`, with no space between the `@` and the identifier. The language has a fixed list of them, which [ADR 0024](0024-built-in-values.md) will define. This ADR uses only these three.
 
 [ADR 0010](0010-security.md) defines the predicates' grammar, where subject types, roles, groups and permissions are declared, and how `auth` rules are checked.
 

@@ -54,7 +54,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 
 - `/` divides and `%` gives the modulo. Both are new tokens.
 - `%` is a mathematical modulo: its result has the sign of the right operand, not the left. So `-7 % 3` is `2` and `7 % -3` is `-2`. This differs from JavaScript's `%`, which gives `-1` and `1`.
-- `%` only works on whole numbers. A fractional operand is an error: a compile-time error when the compiler can tell, as with `7.5 % 2`, and a runtime error otherwise. What a runtime error does is left to the future ADR on error handling.
+- `%` only works on whole numbers. A fractional operand is an error: a compile-time error when the compiler can tell, as with `7.5 % 2`, and a runtime error otherwise. What a runtime error does is left to [ADR 0023](0023-error-handling.md).
 - `\` is not an operator, and the tokenizer no longer recognises it as one. Inside a string, `\` still starts an escape ([ADR 0008](0008-strings.md)).
 - A comment starts with `//` ([ADR 0007](0007-actions.md)), so the tokenizer reads `//` as the start of a comment, never as two `/` operators.
 
@@ -131,7 +131,7 @@ So if the right-hand side is an action call, the action is not called unless its
 - **Mixed types.** An operator's operands must be of the same type. Combining operands of different types, such as `1 == "1"` or a `NUMBER` plus a `DATE_TIME`, is a compile-time error. The one exception is enums, which are compared by value, as above.
 - **Ordering text.** `TEXT` values are ordered lexicographically, by UTF-16 code unit, as JavaScript's `<` orders strings. So `"apple" < "banana"` and `"app" < "apple"`, and every uppercase ASCII letter comes before every lowercase one, so `"Z" < "a"`.
 - **What can be ordered.** `NUMBER`, `DATE_TIME` and `TEXT` values can be ordered with `<`, `<=`, `>` and `>=`, and so can enums whose value type can be. `BOOLEAN` and faceted values cannot be ordered, and ordering them is a compile-time error.
-- **Arithmetic.** The arithmetic operators, `+`, `-`, `*`, `/`, `%`, `**` and unary `-`, need operands of type `NUMBER`. Any other operand, including a `DATE_TIME`, is a compile-time error. Working with dates and times, such as finding the time between two `DATE_TIME`s or moving one by a duration, is left to a later ADR.
+- **Arithmetic.** The arithmetic operators, `+`, `-`, `*`, `/`, `%`, `**` and unary `-`, need operands of type `NUMBER`. Any other operand, including a `DATE_TIME`, is a compile-time error. Working with dates and times, such as finding the time between two `DATE_TIME`s or moving one by a duration, is left to [ADR 0026](0026-dates-and-times.md).
 - **Equality.** `==` and `!=` compare values, for every type except collections. Two `NUMBER`s, `TEXT`s, `BOOLEAN`s or `DATE_TIME`s are equal when their values are, so two `DATE_TIME`s are equal when they are the same instant. Collections are the exception: two arrays or maps are equal only if they are the same collection, not when their contents match, so `[1, 2] == [1, 2]` is `false` ([ADR 0021](0021-collections.md)).
 
 ### Grammar
@@ -190,7 +190,7 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 
 ## Deferred
 
-- **Arithmetic errors.** What happens on division by zero, modulo by zero, or a fractional operand to `%` at runtime is part of the future ADR on error handling. JavaScript gives `Infinity` or `NaN`, which no ADR says a `NUMBER` can hold ([ADR 0012](0012-base-types.md)).
+- **Arithmetic errors.** What happens on division by zero, modulo by zero, or a fractional operand to `%` at runtime is part of [ADR 0023](0023-error-handling.md). JavaScript gives `Infinity` or `NaN`, which no ADR says a `NUMBER` can hold ([ADR 0012](0012-base-types.md)).
 
 ## Consequences
 
@@ -199,6 +199,6 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - Some departures from JavaScript are deliberate and may surprise them: `orElse` binds much more tightly than `??`, comparisons cannot be chained, `%` is a mathematical modulo, `-2 ** 2` is `4` rather than an error, and `+` does not join text.
 - Types are strict. Operands must be of the same type, boolean operators need `BOOLEAN`s and there are no "truthy" values, so more mistakes are caught at compile time, at the cost of some explicit conversion and interpolation.
 - Cant leaves out several JavaScript operators: the conditional operator, `++` and `--`, and the bitwise operators. Programs use `if`, assignment and arithmetic instead.
-- There is no arithmetic on `DATE_TIME`s until a later ADR covers working with dates and times.
+- There is no arithmetic on `DATE_TIME`s until [ADR 0026](0026-dates-and-times.md) covers working with dates and times.
 - `auth` rules can use every operator, and the `can` and `is` predicates can be used in actions too. Because predicates now name groups with `within`, the `auth` examples in [ADR 0009](0009-triggers.md) and [ADR 0010](0010-security.md), which use `in`, are out of date.
 - The tokenizer now recognises `/`, `%` and `**`, no longer recognises `\`, and skips comments. The parser still has to be brought up to this grammar: it has no number or boolean literals, `isEmpty`, `orElse`, arithmetic or comparison yet, and it reads call arguments by position.

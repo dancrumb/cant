@@ -59,7 +59,7 @@ Every faceted type ([ADR 0017](0017-faceted-types.md)) converts to text as its i
 
 ### Extended types
 
-A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by a future ADR.
+A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by [ADR 0028](0028-extending-base-types.md).
 
 How arrays and maps ([ADR 0021](0021-collections.md)) are converted to text is not decided yet.
 

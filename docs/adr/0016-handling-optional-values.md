@@ -73,7 +73,7 @@ The same reasoning applies where a condition is `false`, such as in an `else` br
 
 #### Narrowing and constants
 
-For now, all identifiers are constants ([ADR 0018](0018-immutable-identifiers.md)): once an identifier is assigned, it cannot be assigned again. A narrowed identifier therefore cannot change, so its narrowing lasts for as long as it is in scope, including inside loops. How narrowing interacts with reassignment will be decided when Cant adds support for mutability.
+For now, all identifiers are constants ([ADR 0018](0018-immutable-identifiers.md)): once an identifier is assigned, it cannot be assigned again. A narrowed identifier therefore cannot change, so its narrowing lasts for as long as it is in scope, including inside loops. How narrowing interacts with reassignment will be decided if Cant adds support for mutability ([ADR 0030](0030-mutability.md)).
 
 #### Checking results directly
 

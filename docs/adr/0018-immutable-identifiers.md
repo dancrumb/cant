@@ -46,7 +46,7 @@ A shadowing identifier has its own type and its own narrowing ([ADR 0016](0016-h
 
 This is about identifiers, not the values they refer to. Whether a value itself can change, such as an entity's fields ([ADR 0010](0010-security.md)), is not decided here.
 
-Support for mutability will be added in a later ADR. That ADR will need to revisit where narrowing holds ([ADR 0016](0016-handling-optional-values.md)).
+Support for mutability is the subject of [ADR 0030](0030-mutability.md), which will need to revisit where narrowing holds ([ADR 0016](0016-handling-optional-values.md)).
 
 ## Consequences
 
