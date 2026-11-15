@@ -27,7 +27,7 @@ Action    = ActionKeyword, ActionSignature, ?indent?, {?comment?}, BodyKeyword, 
 ```cant
 action Greet(name: TEXT, greeting?: TEXT := "Hello, "): TEXT
     body
-        return greeting + name
+        return "${greeting}${name}"
 ```
 
 Blocks are delimited by indentation, not braces. This replaces the earlier `{ ... }` form, which is no longer valid.

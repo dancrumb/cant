@@ -1,6 +1,7 @@
 # 0010. Security
 
 - **Status:** Accepted
+- **Amended by:** [0019](0019-operators.md) (`auth` rules are `BOOLEAN` expressions that can use any operator, and predicates name their group with `within` instead of `in`)
 - **Date:** 2026-11-14
 
 ## Context

@@ -26,7 +26,7 @@ A base type is written as its name wherever a `TypeRef` is allowed:
 ```cant
 action Greet(name: TEXT, greeting?: TEXT := "Hello, "): TEXT
     body
-        return greeting + name
+        return "${greeting}${name}"
 
 action SayHello(): VOID
     body

@@ -73,7 +73,7 @@ test('reports positions in the source', () => {
 });
 
 test('tokenizes symbol operators, preferring the longest match', () => {
-  assert.deepEqual(describeTokens(':= < > <= >= + == != * - \\ ! .'), [
+  assert.deepEqual(describeTokens(':= < > <= >= + == != * / % - ! . **'), [
     'operator::=',
     'operator:<',
     'operator:>',
@@ -83,10 +83,12 @@ test('tokenizes symbol operators, preferring the longest match', () => {
     'operator:==',
     'operator:!=',
     'operator:*',
+    'operator:/',
+    'operator:%',
     'operator:-',
-    'operator:\\',
     'operator:!',
     'operator:.',
+    'operator:**',
   ]);
   assert.deepEqual(describeTokens('x:=a.b<=c'), [
     'identifier:x',
@@ -97,6 +99,16 @@ test('tokenizes symbol operators, preferring the longest match', () => {
     'operator:<=',
     'identifier:c',
   ]);
+});
+
+test('skips comments, without reading // as two division operators', () => {
+  assert.deepEqual(describeTokens('a / b // half of a\nc'), [
+    'identifier:a',
+    'operator:/',
+    'identifier:b',
+    'identifier:c',
+  ]);
+  assert.deepEqual(describeTokens('"a // b" // c'), ['string:"a // b"']);
 });
 
 test('tokenizes and and or as operators only when they are whole words', () => {

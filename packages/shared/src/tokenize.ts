@@ -39,7 +39,7 @@ const IMPORT_KEYWORDS = /(?:into|as)(?![A-Za-z0-9_])/;
 const WORD_OPERATORS = new Set(['and', 'or']);
 
 /** Operators spelled with symbols. Multi-character operators come first so they win over their prefixes. */
-const SYMBOL_OPERATORS = /::|:=|<=|>=|==|!=|[<>+*\-\\!.]/;
+const SYMBOL_OPERATORS = /::|:=|<=|>=|==|!=|\*\*|[<>+*\-/%!.]/;
 
 /**
  * One piece of a string's text (docs/adr/0008-strings.md): an ordinary character, an escape, or
@@ -73,6 +73,11 @@ const lexer = new Tokenizr()
   })
   .rule(CODE, /\s+/, (ctx) => {
     resetAtLineBreak(ctx);
+    ctx.ignore();
+  })
+  // A comment runs from `//` to the end of the line (docs/adr/0007-actions.md). It comes before
+  // the operators so that `//` is not read as two `/` operators.
+  .rule(CODE, /\/\/[^\r\n]*/, (ctx) => {
     ctx.ignore();
   })
   .rule('default #import, interpolation #import', IMPORT_KEYWORDS, (ctx) => {
@@ -119,7 +124,7 @@ const lexer = new Tokenizr()
   });
 
 /**
- * Split Cant source into tokens. Whitespace is skipped, and no token spans a line break.
+ * Split Cant source into tokens. Whitespace and comments are skipped, and no token spans a line break.
  *
  * A template string is split around its interpolations: `"a ${b} c"` is the string `"a `, the
  * punctuation `${`, the identifier `b`, the punctuation `}` and the string ` c"`.
