@@ -1,0 +1,27 @@
+"@dancrumb/cant-compiler@0.2.0":
+  dir: packages/compiler
+  intents:
+    - fine-wombats-see
+"@dancrumb/cant-shared@0.2.0":
+  dir: packages/shared
+  intents:
+    - brave-operators-shine
+    - comparison-operators
+    - division-modulo-exponent
+    - drop-enqueue
+    - drop-queue-keyword
+    - indented-actions-template-strings
+    - quiet-parsers-grow
+    - scoped-namespaces-land
+    - tidy-imports-parse
+    - witty-hornets-pay
+cant-vscode@0.2.0:
+  dir: packages/vscode
+  intents:
+    - brave-operators-shine
+    - indented-blocks-in-vscode
+    - witty-hornets-pay
+cant@0.2.0:
+  dir: ""
+  intents:
+    - free-geese-carry
