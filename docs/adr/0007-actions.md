@@ -73,7 +73,7 @@ A type is one of:
 ```ebnf
 Block        = ?indent?, {Statement | ?comment?}, ?dedent? ;
 Statement    = AssignmentStatement | ExpressionStatement | ReturnStatement | BreakStatement
-             | ContinueStatement | ForStatement | WhileStatement | IfStatement | EnqueueStatement ;
+             | ContinueStatement | ForStatement | WhileStatement | IfStatement ;
 AssignmentStatement = Identifier, ":=", Expression ;
 ```
 
@@ -86,7 +86,6 @@ AssignmentStatement = Identifier, ":=", Expression ;
 | For | `for <identifier> in <expression>` followed by a block |
 | While | `while <expression>` followed by a block |
 | If | `if <expression>` followed by a block, then optionally `else` and either a block or another `if` |
-| Enqueue | `enqueue <queue> with <message>` |
 
 ### Comments
 

@@ -159,7 +159,6 @@ Statement
   / ForStatement
   / WhileStatement
   / IfStatement
-  / EnqueueStatement
   / ExpressionStatement
 
 ExpressionStatement
@@ -198,11 +197,6 @@ IfStatement
         branches.push(Array.isArray(alternate) ? toBlock(alternate) : alternate);
       }
       return u('if', { test, position: toPosition(location()) }, branches);
-    }
-
-EnqueueStatement
-  = EnqueueKeyword __ queue:Identifier __ WithKeyword __ message:Identifier {
-      return u('enqueue', { queue, message, position: toPosition(location()) });
     }
 
 // ----- Triggers -----
@@ -305,8 +299,6 @@ Keyword
   / WhileKeyword
   / IfKeyword
   / ElseKeyword
-  / EnqueueKeyword
-  / WithKeyword
   / EnumKeyword
 
 ImportKeyword    = "import"    !IdentifierPart
@@ -323,8 +315,6 @@ InKeyword        = "in"        !IdentifierPart
 WhileKeyword     = "while"     !IdentifierPart
 IfKeyword        = "if"        !IdentifierPart
 ElseKeyword      = "else"      !IdentifierPart
-EnqueueKeyword   = "enqueue"   !IdentifierPart
-WithKeyword      = "with"      !IdentifierPart
 EnumKeyword      = "enum"      !IdentifierPart
 
 // Contextual keywords: reserved only inside `import`, so not listed in Keyword.

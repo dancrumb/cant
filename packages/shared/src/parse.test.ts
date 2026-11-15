@@ -245,16 +245,6 @@ test('parses if, else if and else', () => {
   ]);
 });
 
-test('parses enqueue statements', () => {
-  assert.deepEqual(parseBody('enqueue Emails with message'), [
-    {
-      type: 'enqueue',
-      queue: identifier('Emails'),
-      message: identifier('message'),
-    },
-  ]);
-});
-
 test('spans a block from its first statement to its last', () => {
   const [ifStatement] = parseAction(
     'action A():VOID\n  body\n    if a\n      f()\n      g()',

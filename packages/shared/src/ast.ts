@@ -142,14 +142,6 @@ export interface IfStatement extends Parent {
   children: [Block] | [Block, Block | IfStatement];
 }
 
-/** `enqueue queue with message` */
-export interface EnqueueStatement extends Node {
-  type: 'enqueue';
-  position: Position;
-  queue: Identifier;
-  message: Identifier;
-}
-
 export type Statement =
   | ExpressionStatement
   | ReturnStatement
@@ -157,8 +149,7 @@ export type Statement =
   | ContinueStatement
   | ForStatement
   | WhileStatement
-  | IfStatement
-  | EnqueueStatement;
+  | IfStatement;
 
 // ----- Declarations -----
 
