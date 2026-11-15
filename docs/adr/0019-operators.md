@@ -27,7 +27,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | Operator | Form | Meaning | Source |
 | --- | --- | --- | --- |
 | `::` | `namespace::name` | The symbol `name` in the namespace `namespace` | [ADR 0005](0005-module-namespaces.md) |
-| `.` | `value.member` | A member of a value, such as a field. Also names an enum member (`InvoiceStatus.paid`) | [ADR 0013](0013-enums.md); objects to come |
+| `.` | `value.member` | A member of a value, such as a field. Also names an enum member (`InvoiceStatus.paid`), the one place `.` is used on a type | [ADR 0013](0013-enums.md); objects to come |
 | `( … )` | `action(arguments)` | Calls an action | [ADR 0007](0007-actions.md) |
 | `orElse` | `a orElse b` | The value inside the optional `a`, or `b` if `a` is empty | [ADR 0016](0016-handling-optional-values.md) |
 | `isEmpty` | `isEmpty a` | Whether the optional `a` holds `NOTHING`. `a` must be an optional | [ADR 0016](0016-handling-optional-values.md), amended here |
@@ -44,6 +44,10 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | `( … )` | `(a)` | Grouping | [ADR 0009](0009-triggers.md) |
 
 `:=` is not an expression operator. It gives a name its value in an assignment, a default value ([ADR 0007](0007-actions.md)), a trigger argument ([ADR 0009](0009-triggers.md)) or an enum member ([ADR 0013](0013-enums.md)), and it does not produce a value of its own.
+
+### `::` and `.`
+
+`::` names a symbol in a namespace, and `.` reaches a member of a value. Enums are the one exception: an enum member is written with `.` after the enum's name, as in `InvoiceStatus.paid` ([ADR 0013](0013-enums.md)), even though the enum is a type, not a value. So `billing::InvoiceStatus.paid` uses `::` to find the enum and `.` to pick its member.
 
 ### Precedence
 
@@ -106,7 +110,6 @@ These need answers before this ADR is accepted:
 - **Ordering.** Which types can be ordered with `<`? `NUMBER` and `DATE_TIME` seem natural. What about `TEXT`, which needs a collation, and `BOOLEAN`, enums and faceted values?
 - **Boolean operands.** Must the operands of `and`, `or` and `!` be `BOOLEAN`, or can other values be used as conditions?
 - **Arithmetic errors.** What happens on division by zero, and on overflow or loss of precision in `NUMBER`, which [ADR 0012](0012-base-types.md) says is represented without losing precision? Runtime errors are left to the future ADR on error handling.
-- **Enum members and `.`.** `.` is for members of a value, but `InvoiceStatus.paid` uses it on a type. Should enum members be written `InvoiceStatus::paid` instead, or are enums an exception?
 - **Operators in `auth` rules.** `auth` rules ([ADR 0010](0010-security.md)) have their own grammar using `and`, `or` and parentheses. Are they expressions, so that every operator here can be used in them, or do they stay a separate, smaller language?
 
 ## Consequences

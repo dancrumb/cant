@@ -33,7 +33,7 @@ action SayHello(): VOID
         IO::stdout.write("Hello World!")
 ```
 
-There is a single `NUMBER` type, rather than separate integer and decimal types.
+There is a single `NUMBER` type, rather than separate integer and decimal types. A `NUMBER` with a fractional part is a 64-bit IEEE 754 double, as in JavaScript, so fractional arithmetic can lose precision: `0.1 + 0.2` is `0.30000000000000004`.
 
 `VOID` means that there is no value. When an action's return type is `VOID`, a call to it produces nothing that can be assigned to an identifier. Assigning the result of such a call, for example with `:=`, is an error:
 
@@ -71,7 +71,7 @@ ReturnType  = VoidKeyword | TypeRef, ["?"] ;
 ## Consequences
 
 - A small, fixed set of base types keeps the language easy to learn, and upper-case names make them easy to tell apart from declared types such as `User`.
-- With one `NUMBER` type, programs do not have to choose between integers and decimals, but the interpreter has to represent both without losing precision.
+- With one `NUMBER` type, programs do not have to choose between integers and decimals. Because fractional numbers are doubles, they match JavaScript and are fast, but they are not suitable for values that need exact decimals, such as money.
 - Because the names are reserved, a program cannot shadow a base type, but adding a base type later reserves another name and can break programs that already use it.
 - `FILE` and `DATE_TIME` are built in, so programs that store documents or timestamps do not need to define their own types for them.
 - Examples in other ADRs that use `String` have to use `TEXT` instead.

@@ -8,7 +8,7 @@
 
 Strings ([ADR 0008](0008-strings.md)) can contain interpolations, written `${ … }`. When a string is evaluated, each interpolated expression is evaluated and its result is inserted into the text. If the result is not `TEXT`, it has to be converted to text first.
 
-Enum values ([ADR 0013](0013-enums.md)) can also be used where `TEXT` is expected, whatever their value type, and are converted in the same way.
+Enum values ([ADR 0013](0013-enums.md)) can be interpolated too, whatever their value type, and are converted in the same way.
 
 The values that need converting are those of the base types ([ADR 0012](0012-base-types.md)), the `NOTHING` value, and enum values. Composite values, such as lists and objects, are not defined yet.
 

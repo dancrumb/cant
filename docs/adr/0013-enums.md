@@ -89,11 +89,11 @@ action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
 
 action CopyQuote(quoteId: TEXT, status: QuoteStatus): VOID
     body
-        SetStatus(quoteId, status)  // valid: every QuoteStatus value is an InvoiceStatus value
+        SetStatus(invoiceId := quoteId, status)  // valid: every QuoteStatus value is an InvoiceStatus value
 
 action CopyPayment(paymentId: TEXT, status: PaymentStatus): VOID
     body
-        SetStatus(paymentId, status)  // error: "refunded" is not an InvoiceStatus value
+        SetStatus(invoiceId := paymentId, status)  // error: "refunded" is not an InvoiceStatus value
 ```
 
 Compatibility goes in one direction only. `QuoteStatus` is compatible with `InvoiceStatus`, but `InvoiceStatus` is not compatible with `QuoteStatus`, because `"paid"` is not a `QuoteStatus` value. Two enums with the same values are compatible with each other in both directions.
@@ -107,12 +107,12 @@ This is checked at compile time. At runtime, an enum value is just its member's 
 A program refers to one value of a named enum by writing the enum's name, a `.`, and the member's name: `InvoiceStatus.paid` or `Status.InProgress`. From another namespace, the enum's name is qualified as usual: `billing::InvoiceStatus.paid`.
 
 ```cant
-SetStatus(invoiceId, InvoiceStatus.paid)
+SetStatus(invoiceId, status := InvoiceStatus.paid)
 ```
 
 When types are checked at runtime, a member is equivalent to its value. `InvoiceStatus.paid` is equivalent to `"paid"`, `Status.InProgress` is equivalent to `"In Progress"`, and `Priority.High` is equivalent to `3`. The runtime does not record which enum a value came from, so `InvoiceStatus.draft` and `QuoteStatus.draft` are the same value at runtime.
 
-An enum value can be used where its value type is expected, so a `Priority` value can be used where a `NUMBER` is. It can also be used where `TEXT` is expected, whatever its value type. How a value is converted to text is decided by [ADR 0011](0011-converting-values-to-text.md).
+An enum value can be used wherever its value type is expected, and only there. A `Status` value can be used where `TEXT` is expected, and a `Priority` value where a `NUMBER` is, but a `Priority` value cannot be used where `TEXT` is expected. Interpolating an enum value into a string still works, because interpolation converts any value to text ([ADR 0011](0011-converting-values-to-text.md)).
 
 ```cant
 action Describe(label: TEXT): VOID
@@ -134,10 +134,10 @@ In both places the parameter or return type names the enum, so the value takes t
 The check is made by the compiler where it can be, such as for a string literal, and at runtime as well:
 
 ```cant
-SetStatus(invoiceId, "paid")      // valid: "paid" is a value of InvoiceStatus
-SetStatus(invoiceId, "refunded")  // compile-time error: "refunded" is not a value of InvoiceStatus
-SetTone("warm")                   // valid: "warm" is a value of enum("warm", "dry")
-SetPriority(taskId, 3)            // valid: 3 is a value of Priority
+SetStatus(invoiceId, status := "paid")      // valid: "paid" is a value of InvoiceStatus
+SetStatus(invoiceId, status := "refunded")  // compile-time error: "refunded" is not a value of InvoiceStatus
+SetTone("warm")                             // valid: "warm" is a value of enum("warm", "dry")
+SetPriority(taskId, priority := 3)          // valid: 3 is a value of Priority
 
 action DefaultStatus(): InvoiceStatus
     body

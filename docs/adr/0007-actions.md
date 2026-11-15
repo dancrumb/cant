@@ -1,7 +1,7 @@
 # 0007. Actions
 
 - **Status:** Accepted
-- **Amended by:** [0012](0012-base-types.md) (built-in types and `VOID` return types), [0013](0013-enums.md) (inline enum values), [0014](0014-optionals.md) (optional parameters, defaults and `ReturnType`)
+- **Amended by:** [0012](0012-base-types.md) (built-in types and `VOID` return types), [0013](0013-enums.md) (inline enum values), [0014](0014-optionals.md) (optional parameters, defaults and `ReturnType`), [0020](0020-action-parameters.md) (a default can be any expression)
 - **Date:** 2026-11-14
 
 ## Context

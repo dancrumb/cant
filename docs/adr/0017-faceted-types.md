@@ -61,6 +61,8 @@ Being faceted does not erase an entity's type. Each entity also carries its spec
 
 An entity's `@id` is not the same as the fields it names in its `identity` ([ADR 0010](0010-security.md)). The identifier facet is always `@id`, whatever the entity's `identity` fields are, and whether or not it has any.
 
+`@id` is provided by the Cant interpreter, not by the program, and it cannot be named in an entity's `identity`. `@id` and the `identity` fields are each unique within an entity type, so they cannot conflict: each picks out exactly one entity, and both pick out the same one.
+
 ### `FILE`
 
 The `FILE` base type ([ADR 0012](0012-base-types.md)) is a faceted type. A `FILE` value can be used as a URL that points to the file, as a stream that reads it, or as a blob that holds its contents. Its identifier facet is its URL.

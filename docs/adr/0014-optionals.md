@@ -63,7 +63,7 @@ action Hello(greeting?: TEXT := "Hello"): VOID
         // ...
 
 Hello()           // valid: greeting is "Hello"
-Hello(NOTHING)    // compile-time error: NOTHING cannot be passed as an argument
+Hello(greeting := NOTHING)    // compile-time error: NOTHING cannot be passed as an argument
 ```
 
 ```cant
@@ -83,7 +83,7 @@ action Notify(user?: User): VOID
 action Welcome(email: TEXT): VOID
     body
         found := FindUser(email)
-        Notify(found)  // valid: found is a User? and Notify's parameter is optional
+        Notify(user := found)  // valid: found is a User? and Notify's parameter is optional
         Greet(found)   // compile-time error: found might be NOTHING
 ```
 
