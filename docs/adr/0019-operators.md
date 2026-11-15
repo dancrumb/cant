@@ -43,7 +43,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | `or` | `a or b` | Boolean or, short-circuiting | [ADR 0009](0009-triggers.md), [ADR 0016](0016-handling-optional-values.md) |
 | `( … )` | `(a)` | Grouping | [ADR 0009](0009-triggers.md) |
 
-`:=` is not an expression operator. It gives a name its value in an assignment, a default value ([ADR 0007](0007-actions.md)), a trigger argument ([ADR 0009](0009-triggers.md)) or an enum member ([ADR 0013](0013-enums.md)), and it does not produce a value of its own.
+`:=` is not an expression operator, and it does not produce a value of its own. It gives a value to a name in an assignment, to a default value ([ADR 0007](0007-actions.md)), to a trigger argument ([ADR 0009](0009-triggers.md)) or to an enum member ([ADR 0013](0013-enums.md)), and it gives a new value to an element or member of a collection ([ADR 0021](0021-collections.md)).
 
 ### `::` and `.`
 

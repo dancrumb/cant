@@ -1,7 +1,7 @@
 # 0007. Actions
 
 - **Status:** Accepted
-- **Amended by:** [0012](0012-base-types.md) (built-in types and `VOID` return types), [0013](0013-enums.md) (inline enum values), [0014](0014-optionals.md) (optional parameters, defaults and `ReturnType`), [0020](0020-action-parameters.md) (a default can be any expression)
+- **Amended by:** [0012](0012-base-types.md) (built-in types and `VOID` return types), [0013](0013-enums.md) (inline enum values), [0014](0014-optionals.md) (optional parameters, defaults and `ReturnType`), [0020](0020-action-parameters.md) (a default can be any expression), [0021](0021-collections.md) (assigning to and deleting elements and members of a collection)
 - **Date:** 2026-11-14
 
 ## Context
@@ -72,12 +72,14 @@ A type is one of:
 
 ```ebnf
 Block        = ?indent?, {Statement | ?comment?}, ?dedent? ;
-Statement    = ExpressionStatement | ReturnStatement | BreakStatement | ContinueStatement
-             | ForStatement | WhileStatement | IfStatement | EnqueueStatement ;
+Statement    = AssignmentStatement | ExpressionStatement | ReturnStatement | BreakStatement
+             | ContinueStatement | ForStatement | WhileStatement | IfStatement | EnqueueStatement ;
+AssignmentStatement = Identifier, ":=", Expression ;
 ```
 
 | Statement | Form |
 | --- | --- |
+| Assignment | `<identifier> := <expression>`, which gives a name a value |
 | Expression | An `Expression` on its own |
 | Return | `return <expression>` |
 | Break / continue | `break`, `continue` |

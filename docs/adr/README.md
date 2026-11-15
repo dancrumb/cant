@@ -28,3 +28,4 @@ Records are not edited once they are accepted. If a decision changes, write a ne
 | [0018](0018-immutable-identifiers.md) | Immutable identifiers | Accepted |
 | [0019](0019-operators.md) | Operators | Proposed |
 | [0020](0020-action-parameters.md) | Action parameters | Accepted |
+| [0021](0021-collections.md) | Collections | Proposed |

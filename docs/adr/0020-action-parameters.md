@@ -1,6 +1,7 @@
 # 0020. Action parameters
 
 - **Status:** Accepted
+- **Amended by:** [0021](0021-collections.md) (no variable numbers of arguments)
 - **Date:** 2026-11-14
 
 ## Context
