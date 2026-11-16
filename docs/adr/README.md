@@ -44,3 +44,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0032](0032-authentication.md) | Authentication | Proposed |
 | [0033](0033-unknown-type.md) | The `UNKNOWN` type | Accepted |
 | [0034](0034-top-level-constants.md) | Top-level constants | Accepted |
+| [0035](0035-entity-relationships.md) | Entity relationships | Proposed |

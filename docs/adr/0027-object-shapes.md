@@ -148,6 +148,7 @@ Earlier ADRs also apply to objects of a model's type:
 - Object values are written `{ name := value, … }`, with comma-separated items, free layout and trailing commas ([ADR 0021](0021-collections.md)).
 - Duplicate member names are a compile-time error ([ADR 0021](0021-collections.md)).
 - Objects are passed by reference, and are equal only when they are the same object ([ADR 0019](0019-operators.md), [ADR 0021](0021-collections.md)).
+- An object is converted to text as its fields, written `name: value` and joined with `", "`, one layer deep ([ADR 0011](0011-converting-values-to-text.md)).
 
 ## Deferred
 

@@ -368,6 +368,10 @@ Panics are handled by the interpreter, not by the program. A program cannot catc
 
 Cant has no transactions. When an action raises an error, passes one along or panics, nothing it has already done is undone.
 
+### Errors that reach a trigger
+
+An error raised or passed by the action a trigger runs goes back to the trigger's source, which may handle it or pass it on to the interpreter ([ADR 0025](0025-trigger-sources.md)).
+
 ### Built-in errors
 
 The language has a fixed set of **built-in errors** for the runtime errors that earlier ADRs leave to this one. Every built-in error is an `ERROR`, like a declared error, and none of them has `data`:

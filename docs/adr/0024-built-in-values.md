@@ -17,6 +17,7 @@ Not decided yet. Earlier ADRs already constrain it:
 
 - The grammar is `BuiltIn = "@", Identifier`, with no space after the `@` ([ADR 0009](0009-triggers.md)). The `@` prefix is reserved, so built-in values cannot clash with anything a program declares ([ADR 0010](0010-security.md)).
 - `@subject` is always defined: it is the subject that caused the trigger, or `@anonymous` when there is none ([ADR 0010](0010-security.md)).
+- `@subject` has an unnamed built-in type with the fields `entityName: TEXT` and `identityFields: [TEXT]`, and `@subject is <type>` narrows it to that subject entity ([ADR 0010](0010-security.md)).
 - `@anonymous` and `@defined` are the only built-in values that can be a `SubjectType` ([ADR 0009](0009-triggers.md)).
 - `@id` is provided by the interpreter for every entity ([ADR 0017](0017-faceted-types.md)).
 

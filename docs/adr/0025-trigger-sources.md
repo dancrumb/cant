@@ -57,6 +57,10 @@ Neither rule applies to `@subject`, which always exists ([ADR 0010](0010-securit
 
 How a trigger source is implemented, such as how it listens for HTTP requests or keeps time for a schedule, is not part of the language. It is up to the interpreter, or whatever provides the source.
 
+### Errors that reach a trigger
+
+When the action a trigger runs ends by raising an error or passing one along ([ADR 0023](0023-error-handling.md)), the error goes back to the trigger's source. What happens next is up to the source. It may handle the error itself, or pass it on to the interpreter, which then decides what happens. A trigger has no way to handle an error of its own, so the program has no say in either case.
+
 Earlier ADRs already constrain trigger sources:
 
 - A trigger has an optional block of settings, `arguments` and `auth`, and source-specific settings must be added without breaking them ([ADR 0009](0009-triggers.md)). The `parameters` block is added alongside them.
@@ -75,4 +79,5 @@ Earlier ADRs already constrain trigger sources:
 - Parameters are named, typed and checked at compile time, and must be constant expressions, so a misconfigured trigger is caught before the program runs.
 - Source built-ins are confined to the trigger, so actions do not depend on how they were started, and can be reused by other triggers and called by other actions. The cost is that every value an action needs from a request or event has to be passed through `arguments`.
 - Implementations are left to the interpreter, so the language stays small, but a program's behaviour depends on the sources its interpreter provides.
+- An error that reaches a trigger is dealt with by its source or the interpreter, not the program. So the same error can be reported differently by different sources, and a program that needs a particular outcome, such as a particular reply, has to handle the error in the action itself.
 - Where sources are defined, which sources Cant comes with, how a source's reply, such as an HTTP response, is formed, how events are declared and raised, and which sources have a subject are left open. Until they are decided, the grammar accepts any identifier after `on`.

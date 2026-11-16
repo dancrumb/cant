@@ -70,7 +70,7 @@ Earlier ADRs already fix these:
 - **Membership and roles.** How subjects become members of groups, and how roles are assigned, is left to [ADR 0032](0032-authentication.md).
 - **Creating, updating and deleting entities.** Entities will be created, updated and deleted with Cant keywords that are not specified yet. That includes how a program gives a hidden field a value, such as a password hash, and whether an object of the entity's model can be used to create or update an entity. `delete` is not one of them for now: it removes collection members ([ADR 0021](0021-collections.md)) and clears optional fields of models and entities ([ADR 0027](0027-object-shapes.md)), but does not delete a stored entity.
 - **Querying entities.** Finding entities, by `@id`, by `identity` fields or by other conditions, and paging and ordering the results, will also be done with Cant keywords that are not specified yet.
-- **Relations.** How one entity refers to another, and how one-to-many and many-to-many relations are declared, will be decided in a separate ADR.
+- **Relationships.** How one entity refers to another, and how one-to-many and many-to-many relationships are declared, are left to [ADR 0035](0035-entity-relationships.md).
 - **Using `@id`.** Whether and how a program reads an entity's `@id`, and how an `EntityId` is converted to text, are left to [ADR 0024](0024-built-in-values.md), along with the other built-in values.
 - **Entities made of several models.** How an entity aggregates more than one model, and how fields with the same name in different models are told apart, is left for later.
 

@@ -80,6 +80,8 @@ entity Membership
         @all
 ```
 
+`MembershipRecord`'s fields hold entities, which makes `Membership` a relationship between an `Organization` and a `User`. How relationships between entities work is left to [ADR 0035](0035-entity-relationships.md).
+
 For a subject entity, the identity is what an authenticated request is matched against to find the subject, so every subject entity must have an `identity`.
 
 #### `group`
@@ -174,6 +176,30 @@ trigger PayInvoice on InvoicePaymentRequested
     auth
         @subject is User and (@subject can "invoices:write" within org or @subject is admin within org)
 ```
+
+#### The type of `@subject`
+
+`@subject` has a built-in type with two fields:
+
+| Field | Type | Holds |
+| --- | --- | --- |
+| `entityName` | `TEXT` | The name of the subject entity the subject is an instance of, such as `"User"`. When the subject is anonymous, it is `"@anonymous"`. |
+| `identityFields` | `[TEXT]` | The names of the fields on that entity's `identity` line, in the order the line lists them, such as `["email"]`. When the subject is anonymous, it is `[]`. |
+
+```cant
+"Signed in as a ${@subject.entityName}"  // "Signed in as a User"
+```
+
+The type has no name, so it cannot be written in a program, as a parameter's, field's or return type, for example.
+
+`@subject is <type>` narrows `@subject` to that subject entity where it is `true`, as `instanceOf` narrows a value ([ADR 0033](0033-unknown-type.md)). There, `@subject` can be used as an instance of that entity, and its fields can be read:
+
+```cant
+if @subject is User
+    Greet(name := @subject.name)
+```
+
+The same rules apply as for `instanceOf`: narrowing follows the logic of the whole condition, so it also holds on the right of an `and`, as in `@subject is User and @subject.name == "Ada"`, and holds after an early return ([ADR 0016](0016-handling-optional-values.md)). The other predicates, such as `@subject is @defined` or a role predicate, do not narrow `@subject`.
 
 ### Keywords
 

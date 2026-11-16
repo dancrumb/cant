@@ -9,7 +9,7 @@ Strings ([ADR 0008](0008-strings.md)) can contain interpolations, written `${ â€
 
 Enum values ([ADR 0013](0013-enums.md)) can be interpolated too, whatever their value type, and are converted in the same way.
 
-The values that need converting are those of the base types ([ADR 0012](0012-base-types.md)), the `NOTHING` value, enum values and faceted values ([ADR 0017](0017-faceted-types.md)). Text can only be joined by interpolation, since `+` does not join text ([ADR 0019](0019-operators.md)).
+The values that need converting are those of the base types ([ADR 0012](0012-base-types.md)), the `NOTHING` value, enum values, faceted values ([ADR 0017](0017-faceted-types.md)), collections ([ADR 0021](0021-collections.md)) and objects of a model's type, named or anonymous ([ADR 0027](0027-object-shapes.md)). Text can only be joined by interpolation, since `+` does not join text ([ADR 0019](0019-operators.md)).
 
 ## Decision
 
@@ -30,6 +30,7 @@ A value is converted to text according to its type:
 | An array | Each element converted to text, joined with `", "`, skipping empty slots ([ADR 0021](0021-collections.md)) |
 | A set | Each element converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
 | A map | Each member written as `name: value`, with the value converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
+| A model, named or anonymous | Each field written as `name: value`, joined with `", "`, one layer deep (see below) |
 
 ### Numbers
 
@@ -61,6 +62,33 @@ The rules for numbers apply to enum values whose value type is `NUMBER` too. Enu
 
 Every faceted type ([ADR 0017](0017-faceted-types.md)) converts to text as its identifier facet, and that identifier is then converted by the rules above for its own type. A `FILE` becomes its URL ([ADR 0015](0015-files.md)), which may be a `data:` URL, and an entity becomes its `@id`.
 
+### Models
+
+An object of a model's type, whether the model is named or anonymous ([ADR 0027](0027-object-shapes.md)), is converted to text by writing each field as its name, `": "` and its value converted to text, and joining the fields with `", "`, as a map's members are ([ADR 0021](0021-collections.md)). Field names are written as they are, without quotes.
+
+```cant
+model Customer
+    name: TEXT
+    age: NUMBER
+    nickname?: TEXT
+    address: Address
+    tags: [TEXT]
+
+"${customer}"  // "name: Ada, age: 36, address: Address, tags: collection"
+```
+
+Conversion goes only one layer deep. A field's value is converted by the rules above, except when it is itself a model or a collection:
+
+- A field that holds an object of a named model is written as the model's name, as `address: Address` is above.
+- A field that holds an object of an anonymous model is written as `model`.
+- A field that holds a collection (an array, map or set) is written as `collection`.
+
+An optional field with no value is left out, so `NOTHING` never appears in the text. In the example, `nickname` has no value.
+
+Fields are written in the order the model declares them or, for an anonymous model, the order the object value lists them in.
+
+Fields that hold an entity, an enum value or a `FILE` are converted by the rules above, so an entity is written as its `@id`.
+
 ### Extended types
 
 A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by [ADR 0028](0028-extending-base-types.md).
@@ -73,6 +101,7 @@ Arrays and maps are converted as [ADR 0021](0021-collections.md) describes: an a
 - Numbers are never written with an exponent, so very large or very small numbers can produce long text. In exchange, the text is always plain digits that people and other systems can read without knowing scientific notation.
 - Because every `DATE_TIME` is written in UTC, the text does not show the time zone a value came from, but the same moment always produces the same text. Because the fractional seconds always have three digits, every `DATE_TIME` is written at the same length.
 - `true` and `false` are written in lower case, matching how they are written in programs.
+- A model's text shows only its top layer of fields. Nested models and collections are written as a placeholder, so the text stays short, but it does not show everything the object holds.
 - Enum values are written as their values, not their member names, so the text matches the data a program stores and sends.
 - `NOTHING` never appears silently in text, as `null` or an empty string might, so a missing value cannot slip into a message unnoticed. The cost is that programs have to handle missing values before interpolating them.
 - `DATE_TIME` values are written in a standard form that other systems can parse, but not one that is friendly to read. Formatting dates for people needs something other than interpolation, such as an extended type with its own conversion.
