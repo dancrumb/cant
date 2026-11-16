@@ -15,12 +15,20 @@
     - scoped-namespaces-land
     - tidy-imports-parse
     - witty-hornets-pay
+"@dancrumb/cant-shared@0.3.0":
+  dir: packages/shared
+  intents:
+    - parser-aligned-with-adrs
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
     - brave-operators-shine
     - indented-blocks-in-vscode
     - witty-hornets-pay
+cant-vscode@0.3.0:
+  dir: packages/vscode
+  intents:
+    - parser-aligned-with-adrs
 cant@0.2.0:
   dir: ""
   intents:
