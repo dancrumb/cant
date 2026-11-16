@@ -86,7 +86,16 @@ Statement    = AssignmentStatement | DeleteStatement | ExpressionStatement | Ret
 AssignmentStatement = AssignmentTarget, ":=", Expression ;
 AssignmentTarget    = Identifier | Postfix ;
 DeleteStatement     = DeleteKeyword, Postfix ;
+ExpressionStatement = Expression ;
+ReturnStatement     = ReturnKeyword, [Expression] ;
+BreakStatement      = BreakKeyword ;
+ContinueStatement   = ContinueKeyword ;
+ForStatement        = ForKeyword, Identifier, InKeyword, Expression, Block ;
+WhileStatement      = WhileKeyword, Expression, Block ;
+IfStatement         = IfKeyword, Expression, Block, [ElseKeyword, (IfStatement | Block)] ;
 ```
+
+`RaiseStatement`, `PassStatement`, `AssertStatement` and `IgnoredStatement` are defined in [ADR 0023](0023-error-handling.md).
 
 | Statement | Form |
 | --- | --- |
@@ -94,7 +103,7 @@ DeleteStatement     = DeleteKeyword, Postfix ;
 | Assignment to a member | `<collection>[<index>] := <expression>` or `<collection>.<name> := <expression>`, which changes an element or member of a collection ([ADR 0021](0021-collections.md)) |
 | Delete | `delete <value>[<index>]` or `delete <value>.<name>`, which removes an element or member of a collection ([ADR 0021](0021-collections.md)), or clears an optional field of a model or an entity ([ADR 0027](0027-object-shapes.md), [ADR 0022](0022-entities.md)) |
 | Expression | An `Expression` on its own |
-| Return | `return <expression>` |
+| Return | `return <expression>`, or a bare `return` in an action whose return type is `VOID` |
 | Raise | `raise <error>`, with optional `data`, which ends the action with an error ([ADR 0023](0023-error-handling.md)) |
 | Pass | `pass <expression>`, which passes an error along ([ADR 0023](0023-error-handling.md)) |
 | Assert | `assert <condition>`, with an optional message, which panics if the condition is `false` ([ADR 0023](0023-error-handling.md)) |
@@ -103,6 +112,11 @@ DeleteStatement     = DeleteKeyword, Postfix ;
 | For | `for <identifier> in <expression>` followed by a block |
 | While | `while <expression>` followed by a block |
 | If | `if <expression>` followed by a block, then optionally `else` and either a block or another `if` |
+
+- **`return`.** In an action whose return type is `VOID`, `return` has no expression, and ends the action. In any other action, `return` must have an expression, whose type is compatible with the return type. A bare `return` in a non-`VOID` action, or a `return` with an expression in a `VOID` action, is a compile-time error.
+- **Conditions.** The condition of an `if` or a `while` must be a `BOOLEAN` ([ADR 0019](0019-operators.md)).
+- **`else`.** `else` starts its own line, at the same indentation as the `if` it belongs to, and is followed either by a block or by another `if` on the same line, as in `else if`.
+- **`break` and `continue`.** `break` ends the innermost `for` or `while` loop, and `continue` moves on to its next pass. Either one outside a loop is a compile-time error.
 
 In an assignment to a member and in a `delete`, the `Postfix` ([ADR 0019](0019-operators.md)) must end in a member, `.name`, or an index, `[ … ]`. `delete` only applies to collections and to the fields of models and entities.
 

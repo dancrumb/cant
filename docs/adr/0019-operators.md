@@ -130,7 +130,7 @@ So if the right-hand side is an action call, the action is not called unless its
 - **`+` does not join text.** `+` is not defined on `TEXT`, so `greeting + name` is a compile-time error. Text is joined with interpolation instead, as in `"${greeting}${name}"` ([ADR 0008](0008-strings.md)).
 - **Boolean operands.** The operands of `and`, `or` and `!` must be `BOOLEAN`. Any other operand, such as a `NUMBER` or a `TEXT`, is a compile-time error, so there are no "truthy" or "falsy" values.
 - **Faceted values.** Two faceted values are equal if they have the same specific type and their identifiers match ([ADR 0017](0017-faceted-types.md)).
-- **Mixed types.** An operator's operands must be of the same type. Combining operands of different types, such as `1 == "1"` or a `NUMBER` plus a `DATE_TIME`, is a compile-time error. The one exception is enums, which are compared by value, as above.
+- **Mixed types.** The operands of an arithmetic, comparison or boolean operator must be of the same type. Combining operands of different types, such as `1 == "1"` or a `NUMBER` plus a `DATE_TIME`, is a compile-time error. The exceptions are enums, which are compared by value, as above, and `UNKNOWN`, which can be compared with `==` and `!=` against any value ([ADR 0033](0033-unknown-type.md)). `in` and `instanceOf` take different kinds of operand by design: `in` takes a value and a collection of that value's type ([ADR 0021](0021-collections.md)), and `instanceOf` takes a value and a type ([ADR 0033](0033-unknown-type.md)).
 - **Ordering text.** `TEXT` values are ordered lexicographically, by UTF-16 code unit, as JavaScript's `<` orders strings. So `"apple" < "banana"` and `"app" < "apple"`, and every uppercase ASCII letter comes before every lowercase one, so `"Z" < "a"`.
 - **What can be ordered.** `NUMBER`, `DATE_TIME` and `TEXT` values can be ordered with `<`, `<=`, `>` and `>=`, and so can enums whose value type can be. `BOOLEAN` and faceted values cannot be ordered, and ordering them is a compile-time error.
 - **Arithmetic.** The arithmetic operators, `+`, `-`, `*`, `/`, `%`, `**` and unary `-`, need operands of type `NUMBER`. Any other operand, including a `DATE_TIME`, is a compile-time error. Working with dates and times, such as finding the time between two `DATE_TIME`s or moving one by a duration, is left to [ADR 0026](0026-dates-and-times.md).
@@ -146,8 +146,9 @@ Expression          = OrExpression ;
 OrExpression        = AndExpression, {"or", AndExpression} ;
 AndExpression       = Comparison, {"and", Comparison} ;
 Comparison          = AuthPredicate
-                    | Additive, InstanceOfKeyword, TypeRef, ["?"]
+                    | Additive, InstanceOfKeyword, InstanceOfType
                     | Additive, [ComparisonOperator, Additive] ;
+InstanceOfType      = TypeRef, ["?"] | ErrorTypeKeyword ;
 ComparisonOperator  = "==" | "!=" | "<" | "<=" | ">" | ">=" | InKeyword ;
 Additive            = Multiplicative, {("+" | "-"), Multiplicative} ;
 Multiplicative      = Power, {("*" | "/" | "%"), Power} ;
@@ -183,6 +184,7 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - A number literal is never negative. `-1` is unary `-` applied to the literal `1`, as in JavaScript.
 - JavaScript's `BigInt` literals, such as `10n`, are not supported, since Cant has a single `NUMBER` type ([ADR 0012](0012-base-types.md)). `NaN` and `Infinity` are not literals in JavaScript either, and Cant has no names for them.
 
+- `instanceOf` takes a type on its right ([ADR 0033](0033-unknown-type.md)): a `TypeRef`, optionally marked `?`, or `ERROR`, written with `ErrorTypeKeyword` to tell it apart from the `error` keyword that declares an error ([ADR 0023](0023-error-handling.md)). A declared error's name is an `Identifier` or `QualifiedIdentifier`, so it is a `TypeRef` here, although an error type cannot be used as a `TypeRef` anywhere else.
 - `Comparison` has at most one operator, which makes comparisons non-associative. `AuthPredicate` is the `can` and `is` predicate defined above, at the same level.
 - `Power`'s operands are `Prefix` expressions, so a prefix operator applies to the operand, not the whole power: `-2 ** 2` is `(-2) ** 2`, and `2 ** -1` is allowed. Its right operand is itself a `Power`, which makes `**` right-associative.
 - `orElse`'s right operand can be negated, so `count orElse -1` and `offset orElse -step` are allowed, even though unary `-` otherwise binds more loosely than `orElse`. No other prefix operator is allowed there.

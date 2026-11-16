@@ -87,7 +87,7 @@ An optional parameter is left out by not naming it.
 There are two shorter forms:
 
 - **Matching identifier.** If the value is an identifier with the same name as the parameter, the identifier on its own is enough. `SetStatus(invoiceId, status)` means `SetStatus(invoiceId := invoiceId, status := status)`.
-- **One required parameter.** If an action has exactly one required parameter, and a call passes only that one argument, its name can be left out. `Greet(FindUser(email))` passes the result to `Greet`'s one required parameter, whatever it is called. A call that passes any other argument must name every argument, using `<name> := <value>` or the matching-identifier form.
+- **One required parameter.** If an action has exactly one required parameter, and a call passes only that one argument, its name can be left out. `Greet(FindUser(email) orElse guest)` passes the result to `Greet`'s one required parameter, whatever it is called. A call that passes any other argument must name every argument, using `<name> := <value>` or the matching-identifier form.
 
 ```cant
 action Greet(user: User, greeting?: TEXT := "Hello"): VOID
