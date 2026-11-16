@@ -5,7 +5,8 @@ allowBuilds:
 versioning:
   # Release all the packages together at one shared version.
   fixed:
-    - - '@dancrumb/cant-compiler'
+    - - 'cant'
+      - '@dancrumb/cant-compiler'
       - '@dancrumb/cant-interpreter'
       - '@dancrumb/cant-lsp'
       - '@dancrumb/cant-shared'
