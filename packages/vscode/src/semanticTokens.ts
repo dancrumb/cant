@@ -5,7 +5,7 @@ import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 
 /** The semantic token types this extension reports, in legend order. */
-export const TOKEN_TYPES = ['keyword', 'string', 'variable', 'operator'] as const;
+export const TOKEN_TYPES = ['keyword', 'string', 'variable', 'operator', 'number'] as const;
 
 export type TokenType = (typeof TOKEN_TYPES)[number];
 
@@ -27,6 +27,9 @@ const TOKEN_TYPE_BY_KIND: Partial<Record<TokenKind, TokenType>> = {
   string: 'string',
   identifier: 'variable',
   operator: 'operator',
+  number: 'number',
+  // Built-in values, such as `@subject`, are values the language provides.
+  builtin: 'variable',
 };
 
 const cantTokens = (source: string, sourceOffset: number): SemanticToken[] =>

@@ -1,7 +1,14 @@
 import { Tokenizr } from 'tokenizr';
 import type { Position } from 'unist';
 
-export type TokenKind = 'keyword' | 'identifier' | 'operator' | 'string' | 'punctuation';
+export type TokenKind =
+  | 'keyword'
+  | 'identifier'
+  | 'operator'
+  | 'string'
+  | 'number'
+  | 'builtin'
+  | 'punctuation';
 
 export interface Token {
   kind: TokenKind;
@@ -12,13 +19,18 @@ export interface Token {
   position: Position;
 }
 
+/**
+ * Words reserved everywhere. A program cannot use them as names. Each comes from the ADR that
+ * introduced it, in docs/adr.
+ */
 const KEYWORDS = new Set([
+  // 0005, 0006
   'import',
   'namespace',
+  'export',
+  // 0007
   'action',
   'body',
-  'trigger',
-  'on',
   'return',
   'break',
   'continue',
@@ -27,17 +39,58 @@ const KEYWORDS = new Set([
   'while',
   'if',
   'else',
+  // 0009
+  'trigger',
+  'on',
+  // 0010
+  'entity',
+  'permissions',
+  // 0012, 0019
+  'TEXT',
+  'NUMBER',
+  'BOOLEAN',
+  'DATE_TIME',
+  'FILE',
+  'VOID',
+  'NOTHING',
+  'true',
+  'false',
+  // 0013
   'enum',
+  // 0021
+  'SET',
+  'delete',
+  // 0023
+  'error',
+  'ERROR',
+  'raise',
+  'pass',
+  'assert',
+  // 0027
+  'model',
+  // 0033
+  'UNKNOWN',
+  // 0034
+  'const',
 ]);
 
-/** Words that are keywords only inside an `import` (docs/adr/0006-imports.md). */
-const IMPORT_KEYWORDS = /(?:into|as)(?![A-Za-z0-9_])/;
-
-/** Operators spelled as words; they are matched as whole words only. */
-const WORD_OPERATORS = new Set(['and', 'or']);
+/** Operators spelled as words; they are matched as whole words only (0016, 0019, 0023, 0033). */
+const WORD_OPERATORS = new Set(['and', 'or', 'orElse', 'isEmpty', 'instanceOf', 'ignore']);
 
 /** Operators spelled with symbols. Multi-character operators come first so they win over their prefixes. */
 const SYMBOL_OPERATORS = /::|:=|<=|>=|==|!=|\*\*|[<>+*\-/%!.]/;
+
+/** A JavaScript number literal (docs/adr/0019-operators.md). It never starts with a sign. */
+const NUMBER = new RegExp(
+  [
+    String.raw`0[xX][0-9A-Fa-f](?:_?[0-9A-Fa-f])*`,
+    String.raw`0[oO][0-7](?:_?[0-7])*`,
+    String.raw`0[bB][01](?:_?[01])*`,
+    String.raw`(?:(?:0|[1-9](?:_?[0-9])*)(?:\.(?:[0-9](?:_?[0-9])*)?)?|\.[0-9](?:_?[0-9])*)(?:[eE][+-]?[0-9](?:_?[0-9])*)?`,
+  ]
+    .map((alternative) => `(?:${alternative})`)
+    .join('|') + '(?![A-Za-z0-9_])',
+);
 
 /**
  * One piece of a string's text (docs/adr/0008-strings.md): an ordinary character, an escape, or
@@ -53,18 +106,16 @@ const wordKind = (word: string): TokenKind => {
 };
 
 /** Abandon any strings and interpolations that a line break has left unfinished. */
-const resetAtLineBreak = (ctx: { state(): string; pop(): string; untag(tag: string): unknown }) => {
+const resetAtLineBreak = (ctx: { state(): string; pop(): string }) => {
   while (ctx.state() !== 'default') ctx.pop();
-  ctx.untag('import');
 };
 
 // Tokenizing uses a stack of states:
 // - `default` is ordinary code;
 // - `string` is the text of a template string after an interpolation has started;
 // - `interpolation` is the code inside `${ ... }`, which may itself contain strings.
-// The `import` tag is set from an `import` keyword to the end of its line.
 // Rules are tried in order, and the first one that matches wins.
-const CODE = 'default, default #import, interpolation, interpolation #import';
+const CODE = 'default, interpolation';
 const lexer = new Tokenizr()
   .rule(CODE, /[ \t]+/, (ctx) => {
     ctx.ignore();
@@ -78,12 +129,15 @@ const lexer = new Tokenizr()
   .rule(CODE, /\/\/[^\r\n]*/, (ctx) => {
     ctx.ignore();
   })
-  .rule('default #import, interpolation #import', IMPORT_KEYWORDS, (ctx) => {
-    ctx.accept('keyword');
-  })
   .rule(CODE, /[A-Za-z_][A-Za-z0-9_]*/, (ctx, match) => {
-    if (match[0] === 'import') ctx.tag('import');
     ctx.accept(wordKind(match[0]));
+  })
+  // A built-in value, such as `@subject` (docs/adr/0009-triggers.md).
+  .rule(CODE, /@[A-Za-z_][A-Za-z0-9_]*/, (ctx) => {
+    ctx.accept('builtin');
+  })
+  .rule(CODE, NUMBER, (ctx) => {
+    ctx.accept('number');
   })
   // A string that is interrupted by an interpolation continues in the `string` state.
   .rule(CODE, new RegExp(`"${TEXT}*(?=\\$\\{)`), (ctx) => {
@@ -94,7 +148,7 @@ const lexer = new Tokenizr()
   .rule(CODE, new RegExp(`"${TEXT}*"?`), (ctx) => {
     ctx.accept('string');
   })
-  .rule('interpolation, interpolation #import', /\}/, (ctx) => {
+  .rule('interpolation', /\}/, (ctx) => {
     ctx.accept('punctuation');
     ctx.pop();
   })
@@ -105,44 +159,160 @@ const lexer = new Tokenizr()
   .rule(CODE, /./, (ctx) => {
     ctx.accept('punctuation');
   })
-  .rule('string, string #import', /\$\{/, (ctx) => {
+  .rule('string', /\$\{/, (ctx) => {
     ctx.accept('punctuation');
     ctx.push('interpolation');
   })
-  .rule('string, string #import', new RegExp(`${TEXT}+(?=\\$\\{)`), (ctx) => {
+  .rule('string', new RegExp(`${TEXT}+(?=\\$\\{)`), (ctx) => {
     ctx.accept('string');
   })
-  .rule('string, string #import', new RegExp(`${TEXT}*"|${TEXT}+`), (ctx) => {
+  .rule('string', new RegExp(`${TEXT}*"|${TEXT}+`), (ctx) => {
     ctx.accept('string');
     ctx.pop();
   })
-  .rule('string, string #import', /\r?\n/, (ctx) => {
+  .rule('string', /\r?\n/, (ctx) => {
     resetAtLineBreak(ctx);
     ctx.ignore();
   });
+
+interface RawToken {
+  kind: TokenKind;
+  text: string;
+  line: number;
+  column: number;
+  offset: number;
+}
+
+/** Block headers that stand alone on their line, and the declaration whose block they are in. */
+const BLOCK_HEADERS: Record<string, Set<string>> = {
+  trigger: new Set(['arguments', 'auth', 'parameters']), // 0009, 0025
+  entity: new Set(['subject', 'models', 'expose', 'hide']), // 0010, 0022
+  error: new Set(['data']), // 0023
+};
+
+/** Lines inside a declaration's block that start with a contextual keyword followed by more. */
+const LINE_STARTS: Record<string, Set<string>> = {
+  entity: new Set(['identity', 'group', 'role']), // 0010
+  error: new Set(['data']), // 0023
+};
+
+const isWord = (token: RawToken | undefined, ...words: string[]): boolean =>
+  token?.kind === 'identifier' && words.includes(token.text);
+
+const markKeyword = (token: RawToken | undefined): void => {
+  if (token !== undefined) token.kind = 'keyword';
+};
+
+/**
+ * Mark the words that are keywords only in one place, such as `into` in an import or `auth` in
+ * a trigger's block. Elsewhere they stay identifiers. Each line is looked at with the
+ * declaration it belongs to: the one started by the last line that begins in the first column.
+ */
+const markContextualKeywords = (tokens: RawToken[]): void => {
+  let declaration = '';
+  // The column of the declaration's block: the indentation of its first indented line.
+  let blockColumn: number | undefined;
+
+  const lines = new Map<number, RawToken[]>();
+  for (const token of tokens) {
+    const line = lines.get(token.line);
+    if (line === undefined) lines.set(token.line, [token]);
+    else line.push(token);
+  }
+
+  for (const line of lines.values()) {
+    const [first] = line;
+    if (first === undefined) continue;
+
+    if (first.column === 1) {
+      const head = first.text === 'export' ? line[1] : first;
+      declaration = head?.kind === 'keyword' ? head.text : '';
+      blockColumn = undefined;
+    } else {
+      blockColumn ??= first.column;
+    }
+
+    // 0006: `into` and `as` on an import line.
+    if (first.text === 'import' && first.kind === 'keyword') {
+      for (const token of line.slice(1)) if (isWord(token, 'into', 'as')) markKeyword(token);
+    }
+
+    if (first.column === 1) {
+      // 0023: `raises` and `passes` after an action's parameter list.
+      if (declaration === 'action') {
+        let depth = 0;
+        let closed = false;
+        for (const token of line) {
+          if (token.text === '(') depth += 1;
+          if (token.text === ')') {
+            depth -= 1;
+            if (depth === 0) closed = true;
+          }
+          if (closed && depth === 0 && isWord(token, 'raises', 'passes')) markKeyword(token);
+        }
+      }
+      // 0010: `permissions <group> has <role>`.
+      if (declaration === 'permissions' && isWord(line[2], 'has')) markKeyword(line[2]);
+    } else if (first.column === blockColumn) {
+      if (line.length === 1 && BLOCK_HEADERS[declaration]?.has(first.text) === true) {
+        markKeyword(first);
+      }
+      if (line.length > 1 && LINE_STARTS[declaration]?.has(first.text) === true) {
+        markKeyword(first);
+      }
+    } else if (declaration === 'entity' && line.length === 3 && isWord(line[1], 'as')) {
+      // 0022: `field as name` in an entity's `expose` block.
+      markKeyword(line[1]);
+    }
+
+    for (const [index, token] of line.entries()) {
+      // 0023: `raise <error> with <value>`.
+      if (token.text === 'raise' && token.kind === 'keyword') {
+        const name = line[index + 1]?.text === '::' ? index + 3 : index + 1;
+        if (isWord(line[name + 1], 'with')) markKeyword(line[name + 1]);
+      }
+      // 0010: `@subject can ...` and `@subject is ...`, each with an optional `within`.
+      if (token.text === '@subject' && isWord(line[index + 1], 'can', 'is')) {
+        markKeyword(line[index + 1]);
+        for (const later of line.slice(index + 2, index + 5)) {
+          if (isWord(later, 'within')) markKeyword(later);
+        }
+      }
+    }
+  }
+};
 
 /**
  * Split Cant source into tokens. Whitespace and comments are skipped, and no token spans a line break.
  *
  * A template string is split around its interpolations: `"a ${b} c"` is the string `"a `, the
  * punctuation `${`, the identifier `b`, the punctuation `}` and the string ` c"`.
+ *
+ * Words that are keywords only in one place, such as `auth` in a trigger's block, are keywords
+ * there and identifiers elsewhere.
  */
 export function tokenize(source: string): Token[] {
-  return lexer
+  const tokens: RawToken[] = lexer
     .reset()
     .input(source)
     .tokens()
     .filter((token) => token.type !== 'EOF')
     .map((token) => ({
       kind: token.type as TokenKind,
-      // No token spans a line break, so the token ends on the line it starts on.
-      position: {
-        start: { line: token.line, column: token.column, offset: token.pos },
-        end: {
-          line: token.line,
-          column: token.column + token.text.length,
-          offset: token.pos + token.text.length,
-        },
-      },
+      text: token.text,
+      line: token.line,
+      column: token.column,
+      offset: token.pos,
     }));
+
+  markContextualKeywords(tokens);
+
+  return tokens.map(({ kind, text, line, column, offset }) => ({
+    kind,
+    // No token spans a line break, so the token ends on the line it starts on.
+    position: {
+      start: { line, column, offset },
+      end: { line, column: column + text.length, offset: offset + text.length },
+    },
+  }));
 }

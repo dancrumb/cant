@@ -71,3 +71,13 @@ test('reports operators', () => {
     'variable:b',
   ]);
 });
+
+test('reports numbers and built-in values', () => {
+  assert.deepEqual(describeTokens('total := 1.5 and @subject', 'cant'), [
+    'variable:total',
+    'operator::=',
+    'number:1.5',
+    'operator:and',
+    'variable:@subject',
+  ]);
+});

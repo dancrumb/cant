@@ -1,6 +1,9 @@
 // Grammar for Cant. `peggy` compiles this into src/generated/parser.js; see ./parse.ts
 // for the typed entry point and ./ast.ts for the shape of the tree it builds.
 // The language is described in docs/adr; each section below names the ADR it follows.
+//
+// The parser checks syntax only. Rules that need types or names, such as which errors an
+// action may raise, are left to later passes.
 
 {{
   import { u } from 'unist-builder';
@@ -13,38 +16,41 @@
     };
   }
 
-  // A block node spans its statements, not the line breaks and indentation around them.
-  function toBlock(statements) {
-    return u(
-      'block',
-      {
-        position: {
-          start: statements[0].position.start,
-          end: statements[statements.length - 1].position.end,
-        },
-      },
-      statements,
-    );
+  // The position from the start of one node to the end of another.
+  function span(first, last) {
+    return { start: first.position.start, end: last.position.end };
   }
 
-  // Fold a primary expression and its `.property` / `(args)` suffixes into a tree.
+  // A block node spans its statements, not the line breaks and indentation around them.
+  function toBlock(statements) {
+    return u('block', { position: span(statements[0], statements.at(-1)) }, statements);
+  }
+
+  // Fold a primary expression and its `.member`, `(arguments)` and `[index]` suffixes into a tree.
   function applySuffixes(head, suffixes) {
-    return suffixes.reduce(
-      (object, { suffix, position }) =>
-        suffix.kind === 'member'
-          ? u('member', {
-              object,
-              property: suffix.property,
-              position: { start: object.position.start, end: position.end },
-            })
-          : u('call', {
-              callee: object,
-              arguments: suffix.arguments,
-              position: { start: object.position.start, end: position.end },
-            }),
+    return suffixes.reduce((object, { suffix, position }) => {
+      const spanned = { start: object.position.start, end: position.end };
+      if (suffix.kind === 'member') {
+        return u('member', { object, property: suffix.property, position: spanned });
+      }
+      if (suffix.kind === 'index') {
+        return u('index', { object, index: suffix.index, position: spanned });
+      }
+      return u('call', { callee: object, arguments: suffix.arguments, position: spanned });
+    }, head);
+  }
+
+  // Fold `head op right op right ...` into left-associative binary expressions.
+  function leftAssociative(head, tail) {
+    return tail.reduce(
+      (left, [operator, right]) =>
+        u('binary', { operator, left, right, position: span(left, right) }),
       head,
     );
   }
+
+  const ASSIGNABLE = new Set(['identifier', 'member', 'index']);
+  const MEMBER_OR_INDEX = new Set(['member', 'index']);
 }}
 
 {
@@ -55,20 +61,32 @@
   const currentIndent = () => indents[indents.length - 1];
 }
 
+// ----- Programs: docs/adr/0006-imports.md -----
+
 Program
-  = BlankLines children:DeclarationList? BlankLines _ {
+  = BlankLines children:TopLevelList? BlankLines _ Comment? {
       return u('program', { position: toPosition(location()) }, children ?? []);
     }
 
-// Top-level declarations start in the first column, one after another.
-DeclarationList
-  = head:Declaration tail:(Newline Samedent @Declaration)* { return [head, ...tail]; }
+// Top-level constructs start in the first column, one after another.
+TopLevelList
+  = head:TopLevel tail:(Newline Samedent @TopLevel)* { return [head, ...tail]; }
 
-Declaration
+TopLevel
   = Import
   / Namespace
-  / Action
   / Trigger
+  / Permissions
+  / ExportableDeclaration
+
+// Triggers and `permissions` declarations cannot be exported.
+ExportableDeclaration
+  = exported:(@ExportKeyword __)?
+    declaration:(Action / EnumDeclaration / ModelDeclaration / Entity / ErrorDeclaration / ConstDeclaration) {
+      return exported === null
+        ? declaration
+        : { ...declaration, exported: true, position: toPosition(location()) };
+    }
 
 // ----- Namespaces: docs/adr/0005-module-namespaces.md -----
 
@@ -107,17 +125,30 @@ Action
       return u('action', { ...signature, position: toPosition(location()) }, body);
     }
 
+// `VOID?` is a syntax error (docs/adr/0014-optionals.md).
 ActionSignature
-  = name:Identifier _ "(" _ parameters:ParameterList? _ ")" _ ":" _ returnType:TypeRef
-    nullable:(_ "?")? {
-      return { name, parameters: parameters ?? [], returnType, nullable: nullable !== null };
+  = name:Identifier _ "(" _ parameters:ParameterList? _ ")" _ ":" _ returnType:ReturnType
+    optional:(_ @"?")? &{ return !(returnType.type === 'voidType' && optional !== null); }
+    clauses:ErrorClauses? {
+      return {
+        name,
+        parameters: parameters ?? [],
+        returnType,
+        optional: optional !== null,
+        raises: clauses?.raises ?? [],
+        passes: clauses?.passes ?? [],
+      };
     }
+
+ReturnType
+  = VoidType
+  / TypeRef
 
 ParameterList
   = head:Parameter tail:(_ "," _ @Parameter)* { return [head, ...tail]; }
 
 Parameter
-  = name:Identifier optional:(_ "?")? _ ":" _ valueType:TypeRef defaultValue:DefaultValue? {
+  = name:Identifier optional:(_ "?")? _ ":" !"=" _ valueType:TypeRef defaultValue:DefaultValue? {
       return u('parameter', {
         name,
         optional: optional !== null,
@@ -128,37 +159,128 @@ Parameter
     }
 
 DefaultValue
-  = _ ":=" _ @Value
+  = _ ":=" _ @Expression
 
-// Values are not defined by an ADR yet; strings are the only kind so far.
-Value
-  = StringLiteral
+// `raises` and `passes`, in either order, each at most once (docs/adr/0023-error-handling.md).
+ErrorClauses
+  = __ first:ErrorClause second:(__ @ErrorClause)?
+    &{ return second === null || second.kind !== first.kind; } {
+      const clauses = { raises: [], passes: [] };
+      for (const clause of [first, second]) if (clause) clauses[clause.kind] = clause.names;
+      return clauses;
+    }
 
-// A built-in type is written as an identifier, so it parses as one.
+ErrorClause
+  = RaisesKeyword __ names:NameList { return { kind: 'raises', names }; }
+  / PassesKeyword __ names:PassedErrorList { return { kind: 'passes', names }; }
+
+NameList
+  = head:Name tail:(_ "," _ @Name)* { return [head, ...tail]; }
+
+PassedErrorList
+  = head:PassedError tail:(_ "," _ @PassedError)* { return [head, ...tail]; }
+
+PassedError
+  = AllBuiltIn
+  / Name
+
+// ----- Types: docs/adr/0007-actions.md, docs/adr/0012-base-types.md, docs/adr/0021-collections.md -----
+
 TypeRef
-  = Enum
-  / QualifiedIdentifier
-  / Identifier
+  = BaseType
+  / UnknownType
+  / SetType
+  / Enum
+  / ArrayType
+  / MapType
+  / Name
 
+BaseType "type"
+  = name:$("TEXT" / "NUMBER" / "BOOLEAN" / "DATE_TIME" / "FILE") !IdentifierPart {
+      return u('baseType', { name, position: toPosition(location()) });
+    }
+
+VoidType
+  = VoidKeyword { return u('voidType', { position: toPosition(location()) }); }
+
+UnknownType
+  = UnknownKeyword { return u('unknownType', { position: toPosition(location()) }); }
+
+ArrayType
+  = "[" _ elementType:TypeRef _ "]" {
+      return u('arrayType', { elementType, position: toPosition(location()) });
+    }
+
+MapType
+  = "{" _ valueType:TypeRef _ "}" {
+      return u('mapType', { valueType, position: toPosition(location()) });
+    }
+
+SetType
+  = SetKeyword _ "(" _ elementType:TypeRef _ ")" {
+      return u('setType', { elementType, position: toPosition(location()) });
+    }
+
+// An inline enum (docs/adr/0013-enums.md).
 Enum "enum"
-  = EnumKeyword _ "(" _ head:ConstantStringLiteral tail:(_ "," _ @ConstantStringLiteral)* _ ")" {
+  = EnumKeyword _ "(" _ head:ConstantValue tail:(_ "," _ @ConstantValue)* _ ")" {
       return u('enum', { values: [head, ...tail], position: toPosition(location()) });
     }
 
-// An indented run of statements, one per line. Returns the statements.
+ConstantValue
+  = ConstantStringLiteral
+  / NumberLiteral
+  / BooleanLiteral
+
+Name
+  = QualifiedIdentifier
+  / Identifier
+
+// ----- Statements: docs/adr/0007-actions.md -----
+
+// An indented run of statements, one per line. Returns the statements. A block can hold
+// only comments, as in `// ...`, and then it has no statements.
 Block
   = Newline Indent first:(Samedent @Statement)? rest:(Newline Samedent @Statement)* Dedent
     &{ return first !== null; } {
       return [first, ...rest];
     }
+  / CommentBlock
+
+// Lines that are blank or hold only a comment, at least one of them a comment indented
+// further than the enclosing block. It stops before the line break that ends its last line.
+CommentBlock
+  = _ Comment? lines:(LineBreak @CommentOnlyLine)+ &{ return lines.some(Boolean); } {
+      return [];
+    }
+
+// Whether the line holds a comment indented further than the enclosing block.
+CommentOnlyLine
+  = indent:$[ \t]* comment:Comment? &(LineBreak / !.) {
+      return comment !== null && indent.length > currentIndent();
+    }
+
+// A branch of an `if`, as a `block` node.
+Branch
+  = statements:Block {
+      return statements.length > 0
+        ? toBlock(statements)
+        : u('block', { position: toPosition(location()) }, []);
+    }
 
 Statement
   = ReturnStatement
+  / RaiseStatement
+  / PassStatement
+  / AssertStatement
   / BreakStatement
   / ContinueStatement
   / ForStatement
   / WhileStatement
   / IfStatement
+  / DeleteStatement
+  / IgnoredStatement
+  / AssignmentStatement
   / ExpressionStatement
 
 ExpressionStatement
@@ -166,9 +288,47 @@ ExpressionStatement
       return u('expressionStatement', { expression, position: toPosition(location()) });
     }
 
+// The target is an identifier, or ends in a member or an index.
+AssignmentStatement
+  = target:Postfix &{ return ASSIGNABLE.has(target.type); } _ ":=" _ value:Expression {
+      return u('assignment', { target, value, position: toPosition(location()) });
+    }
+
+DeleteStatement
+  = DeleteKeyword __ target:Postfix &{ return MEMBER_OR_INDEX.has(target.type); } {
+      return u('delete', { target, position: toPosition(location()) });
+    }
+
+// `ignore` before an assignment or a `delete` (docs/adr/0023-error-handling.md). Before
+// anything else, `ignore` is the prefix operator in an expression statement.
+IgnoredStatement
+  = IgnoreKeyword __ statement:(DeleteStatement / AssignmentStatement) {
+      return u('ignoredStatement', { statement, position: toPosition(location()) });
+    }
+
+// A bare `return` is for actions that return `VOID`; `NOTHING` can only be written here.
 ReturnStatement
-  = ReturnKeyword __ argument:Expression {
-      return u('return', { argument, position: toPosition(location()) });
+  = ReturnKeyword argument:(__ @(Nothing / Expression))? {
+      return u('return', { ...(argument && { argument }), position: toPosition(location()) });
+    }
+
+RaiseStatement
+  = RaiseKeyword __ error:Name
+    data:(
+      _ "(" _ args:ArgumentList? _ ")" { return { arguments: args ?? [] }; }
+      / __ WithKeyword __ value:Expression { return { data: value }; }
+    )? {
+      return u('raise', { error, ...data, position: toPosition(location()) });
+    }
+
+PassStatement
+  = PassKeyword __ argument:Expression {
+      return u('pass', { argument, position: toPosition(location()) });
+    }
+
+AssertStatement
+  = AssertKeyword __ test:Expression message:(_ "," _ @Expression)? {
+      return u('assert', { test, ...(message && { message }), position: toPosition(location()) });
     }
 
 BreakStatement
@@ -190,41 +350,307 @@ WhileStatement
 // The branches are `block` nodes: the consequent first, then the alternate if there is one.
 // `else if` makes the alternate another `if` node.
 IfStatement
-  = IfKeyword __ test:Expression consequent:Block
-    alternate:(Newline Samedent ElseKeyword @(__ @IfStatement / Block))? {
-      const branches = [toBlock(consequent)];
-      if (alternate !== null) {
-        branches.push(Array.isArray(alternate) ? toBlock(alternate) : alternate);
-      }
-      return u('if', { test, position: toPosition(location()) }, branches);
+  = IfKeyword __ test:Expression consequent:Branch
+    alternate:(Newline Samedent ElseKeyword @(__ @IfStatement / Branch))? {
+      return u('if', { test, position: toPosition(location()) }, alternate === null ? [consequent] : [consequent, alternate]);
     }
 
-// ----- Triggers -----
+// ----- Triggers: docs/adr/0009-triggers.md, docs/adr/0025-trigger-sources.md -----
 
 Trigger
-  = TriggerKeyword __ action:Identifier __ OnKeyword __ event:Identifier {
-      return u('trigger', { action, event, position: toPosition(location()) });
+  = TriggerKeyword __ action:Name __ OnKeyword __ source:Identifier
+    settings:(
+      Newline Indent first:(Samedent @TriggerSetting)? rest:(Newline Samedent @TriggerSetting)* Dedent
+      &{ return first !== null; } { return [first, ...rest]; }
+    )? {
+      const fields = {};
+      for (const { kind, value } of settings ?? []) {
+        if (kind in fields) error(`A trigger can only have one \`${kind}\` block.`);
+        fields[kind] = value;
+      }
+      return u('trigger', { action, source, ...fields, position: toPosition(location()) });
     }
 
-// ----- Expressions (not yet described by an ADR) -----
+TriggerSetting
+  = AuthKeyword Newline Indent rule:(Samedent @Expression)? Dedent &{ return rule !== null; } {
+      return { kind: 'auth', value: rule };
+    }
+  / ArgumentsKeyword value:NamedValueBlock { return { kind: 'arguments', value }; }
+  / ParametersKeyword value:NamedValueBlock { return { kind: 'parameters', value }; }
 
+NamedValueBlock
+  = Newline Indent first:(Samedent @NamedValue)? rest:(Newline Samedent @NamedValue)* Dedent
+    &{ return first !== null; } {
+      return [first, ...rest];
+    }
+
+NamedValue
+  = name:Identifier _ ":=" _ value:Expression {
+      return u('namedValue', { name, value, position: toPosition(location()) });
+    }
+
+// ----- Permissions: docs/adr/0010-security.md -----
+
+Permissions
+  = PermissionsKeyword __ group:Identifier role:(__ HasKeyword __ @Identifier)?
+    permissions:(
+      Newline Indent first:(Samedent @ConstantStringLiteral)?
+      rest:(Newline Samedent @ConstantStringLiteral)* Dedent
+      &{ return first !== null; } { return [first, ...rest]; }
+    )? {
+      return u('permissions', {
+        group,
+        ...(role && { role }),
+        permissions: permissions ?? [],
+        position: toPosition(location()),
+      });
+    }
+
+// ----- Enums: docs/adr/0013-enums.md -----
+
+// An enum has at least one member.
+EnumDeclaration
+  = EnumKeyword __ name:Identifier
+    Newline Indent first:(Samedent @EnumMember)? rest:(Newline Samedent @EnumMember)* Dedent
+    &{ return first !== null; } {
+      return u('enumDeclaration', { name, members: [first, ...rest], position: toPosition(location()) });
+    }
+
+EnumMember
+  = name:Identifier value:(_ ":=" _ @ConstantValue)? {
+      return u('enumMember', { name, ...(value && { value }), position: toPosition(location()) });
+    }
+
+// ----- Models: docs/adr/0027-object-shapes.md -----
+
+ModelDeclaration
+  = ModelKeyword __ name:Identifier fields:FieldBlock? {
+      return u('model', { name, fields: fields ?? [], position: toPosition(location()) });
+    }
+
+FieldBlock
+  = Newline Indent first:(Samedent @Field)? rest:(Newline Samedent @Field)* Dedent
+    &{ return first !== null; } {
+      return [first, ...rest];
+    }
+
+Field
+  = name:Identifier optional:(_ "?")? _ ":" !"=" _ valueType:TypeRef defaultValue:DefaultValue? {
+      return u('field', {
+        name,
+        optional: optional !== null,
+        valueType,
+        ...(defaultValue && { defaultValue }),
+        position: toPosition(location()),
+      });
+    }
+
+// ----- Entities: docs/adr/0022-entities.md, docs/adr/0010-security.md -----
+
+Entity
+  = EntityKeyword __ name:Identifier
+    lines:(
+      Newline Indent first:(Samedent @EntityLine)? rest:(Newline Samedent @EntityLine)* Dedent
+      &{ return first !== null; } { return [first, ...rest]; }
+    )? {
+      return u('entity', { name, lines: lines ?? [], position: toPosition(location()) });
+    }
+
+EntityLine
+  = SubjectLine
+  / IdentityLine
+  / GroupLine
+  / RoleLine
+  / ModelsBlock
+  / ExposeBlock
+  / HideBlock
+
+SubjectLine
+  = "subject" !IdentifierPart { return u('subjectLine', { position: toPosition(location()) }); }
+
+IdentityLine
+  = "identity" !IdentifierPart __ head:Identifier tail:(_ "," _ @Identifier)* {
+      return u('identityLine', { fields: [head, ...tail], position: toPosition(location()) });
+    }
+
+GroupLine
+  = "group" !IdentifierPart __ name:Identifier {
+      return u('groupLine', { name, position: toPosition(location()) });
+    }
+
+RoleLine
+  = "role" !IdentifierPart __ name:Identifier {
+      return u('roleLine', { name, position: toPosition(location()) });
+    }
+
+ModelsBlock
+  = "models" !IdentifierPart
+    Newline Indent first:(Samedent @Name)? rest:(Newline Samedent @Name)* Dedent
+    &{ return first !== null; } {
+      return u('modelsBlock', { models: [first, ...rest], position: toPosition(location()) });
+    }
+
+ExposeBlock
+  = "expose" !IdentifierPart
+    Newline Indent first:(Samedent @ExposeItem)? rest:(Newline Samedent @ExposeItem)* Dedent
+    &{ return first !== null; } {
+      return u('exposeBlock', { items: [first, ...rest], position: toPosition(location()) });
+    }
+
+ExposeItem
+  = AllBuiltIn
+  / field:Identifier as:(__ AsKeyword __ @Identifier)? {
+      return u('exposedField', { field, ...(as && { as }), position: toPosition(location()) });
+    }
+
+HideBlock
+  = "hide" !IdentifierPart
+    Newline Indent first:(Samedent @HideItem)? rest:(Newline Samedent @HideItem)* Dedent
+    &{ return first !== null; } {
+      return u('hideBlock', { items: [first, ...rest], position: toPosition(location()) });
+    }
+
+HideItem
+  = AllBuiltIn
+  / Identifier
+
+// ----- Errors: docs/adr/0023-error-handling.md -----
+
+ErrorDeclaration
+  = ErrorKeyword __ name:Identifier
+    data:(Newline Indent item:(Samedent @ErrorData)? Dedent &{ return item !== null; } { return item; })? {
+      return u('errorDeclaration', { name, ...(data && { data }), position: toPosition(location()) });
+    }
+
+// A named `data` model on the same line, or an anonymous one as an indented block of fields.
+ErrorData
+  = DataKeyword __ @Name
+  / DataKeyword @FieldBlock
+
+// ----- Constants: docs/adr/0034-top-level-constants.md -----
+
+ConstDeclaration
+  = ConstKeyword __ name:Identifier valueType:(_ ":" !"=" _ @TypeRef)? _ ":=" _ value:Expression {
+      return u('const', { name, ...(valueType && { valueType }), value, position: toPosition(location()) });
+    }
+
+// ----- Expressions: docs/adr/0019-operators.md -----
+
+// One rule per level of precedence, from the loosest to the tightest.
 Expression
+  = OrExpression
+
+OrExpression
+  = head:AndExpression tail:(_ OrKeyword _ right:AndExpression { return ['or', right]; })* {
+      return leftAssociative(head, tail);
+    }
+
+AndExpression
+  = head:Comparison tail:(_ AndKeyword _ right:Comparison { return ['and', right]; })* {
+      return leftAssociative(head, tail);
+    }
+
+// Comparisons have at most one operator, so they are not associative.
+Comparison
+  = AuthPredicate
+  / value:Additive _ InstanceOfKeyword _ target:InstanceOfType {
+      return u('instanceOf', { value, ...target, position: toPosition(location()) });
+    }
+  / head:Additive tail:(_ @ComparisonOperator _ @Additive)? {
+      return tail === null ? head : leftAssociative(head, [tail]);
+    }
+
+// `instanceOf` takes a type, optionally marked `?`, or `ERROR`.
+InstanceOfType
+  = ErrorTypeKeyword {
+      return { target: u('errorType', { position: toPosition(location()) }), optional: false };
+    }
+  / target:TypeRef optional:(_ "?")? { return { target, optional: optional !== null }; }
+
+ComparisonOperator
+  = $("==" / "!=" / "<=" / ">=" / "<" / ">")
+  / InKeyword { return 'in'; }
+
+Additive
+  = head:Multiplicative tail:(_ @$("+" / "-") _ @Multiplicative)* {
+      return leftAssociative(head, tail);
+    }
+
+// `//` starts a comment, so it is never two `/` operators.
+Multiplicative
+  = head:Power tail:(_ @$("*" !"*" / "/" !"/" / "%") _ @Power)* {
+      return leftAssociative(head, tail);
+    }
+
+// `**` is right-associative, and its operands are prefix expressions, so `-2 ** 2` is `(-2) ** 2`.
+Power
+  = base:Prefix exponent:(_ "**" _ @Power)? {
+      return exponent === null ? base : leftAssociative(base, [['**', exponent]]);
+    }
+
+Prefix
+  = operator:PrefixOperator _ argument:Prefix {
+      return u('unary', { operator, argument, position: toPosition(location()) });
+    }
+  / Fallback
+
+PrefixOperator
+  = IsEmptyKeyword { return 'isEmpty'; }
+  / IgnoreKeyword { return 'ignore'; }
+  / "!" !"=" { return '!'; }
+  / "-" { return '-'; }
+
+// `orElse` binds more tightly than the prefix operators. Its right operand can be negated.
+Fallback
+  = head:Postfix tail:(_ OrElseKeyword _ right:FallbackOperand { return ['orElse', right]; })* {
+      return leftAssociative(head, tail);
+    }
+
+FallbackOperand
+  = "-" _ argument:Postfix {
+      return u('unary', { operator: '-', argument, position: toPosition(location()) });
+    }
+  / Postfix
+
+Postfix
   = head:Primary suffixes:(_ @Suffix)* { return applySuffixes(head, suffixes); }
 
 Suffix
-  = suffix:(MemberSuffix / CallSuffix) { return { suffix, position: toPosition(location()) }; }
+  = suffix:(MemberSuffix / CallSuffix / IndexSuffix) {
+      return { suffix, position: toPosition(location()) };
+    }
 
+// A member's name can be a keyword, as in `request.body`.
 MemberSuffix
-  = "." _ property:Identifier { return { kind: 'member', property }; }
+  = "." _ property:MemberName { return { kind: 'member', property }; }
 
 CallSuffix
   = "(" _ args:ArgumentList? _ ")" { return { kind: 'call', arguments: args ?? [] }; }
 
+IndexSuffix
+  = "[" _ index:Expression _ "]" { return { kind: 'index', index }; }
+
+// Arguments are named, except in the short forms of docs/adr/0020-action-parameters.md.
 ArgumentList
-  = head:Expression tail:(_ "," _ @Expression)* { return [head, ...tail]; }
+  = head:Argument tail:(_ "," _ @Argument)* { return [head, ...tail]; }
+
+Argument
+  = name:Identifier _ ":=" _ value:Expression {
+      return u('argument', { name, value, position: toPosition(location()) });
+    }
+  / value:Expression {
+      return u('argument', { value, position: toPosition(location()) });
+    }
 
 Primary
-  = StringLiteral
+  = NumberLiteral
+  / BooleanLiteral
+  / StringLiteral
+  / BuiltIn
+  / ArrayValue
+  / ObjectValue
+  / SetValue
+  / "(" _ @Expression _ ")"
   / QualifiedIdentifier
   / Identifier
 
@@ -233,6 +659,109 @@ QualifiedIdentifier
   = namespace:Identifier "::" name:Identifier {
       return u('qualifiedIdentifier', { namespace, name, position: toPosition(location()) });
     }
+
+Nothing
+  = NothingKeyword { return u('nothing', { position: toPosition(location()) }); }
+
+// ----- Security predicates: docs/adr/0010-security.md -----
+
+AuthPredicate
+  = subject:SubjectBuiltIn __ CanKeyword __ permission:ConstantStringLiteral
+    group:(__ WithinKeyword __ @Identifier)? {
+      return u('canPredicate', {
+        subject,
+        permission,
+        ...(group && { group }),
+        position: toPosition(location()),
+      });
+    }
+  / subject:SubjectBuiltIn __ IsKeyword __ role:Identifier __ WithinKeyword __ group:Identifier {
+      return u('rolePredicate', { subject, role, group, position: toPosition(location()) });
+    }
+  / subject:SubjectBuiltIn __ IsKeyword __ subjectType:(BuiltIn / Identifier) {
+      return u('isPredicate', { subject, subjectType, position: toPosition(location()) });
+    }
+
+SubjectBuiltIn
+  = "@subject" !IdentifierPart { return u('builtIn', { name: 'subject', position: toPosition(location()) }); }
+
+// ----- Built-in values: docs/adr/0009-triggers.md -----
+
+BuiltIn "built-in value"
+  = "@" name:$([A-Za-z_] IdentifierPart*) {
+      return u('builtIn', { name, position: toPosition(location()) });
+    }
+
+AllBuiltIn
+  = "@all" !IdentifierPart { return u('builtIn', { name: 'all', position: toPosition(location()) }); }
+
+// ----- Collections: docs/adr/0021-collections.md -----
+
+// Inside brackets, braces and a set's parentheses, layout is free: line breaks, indentation
+// and comments do not open or close blocks.
+ArrayValue
+  = "[" Layout elements:ExpressionItems? Layout "]" {
+      return u('array', { elements: elements ?? [], position: toPosition(location()) });
+    }
+
+SetValue
+  = SetKeyword _ "(" Layout elements:ExpressionItems? Layout ")" {
+      return u('set', { elements: elements ?? [], position: toPosition(location()) });
+    }
+
+ExpressionItems
+  = head:Expression tail:(Layout "," Layout @Expression)* (Layout ",")? { return [head, ...tail]; }
+
+ObjectValue
+  = "{" Layout items:ObjectItems? Layout "}" {
+      return u('object', { items: items ?? [], position: toPosition(location()) });
+    }
+
+ObjectItems
+  = head:ObjectItem tail:(Layout "," Layout @ObjectItem)* (Layout ",")? { return [head, ...tail]; }
+
+// A member's name can be an identifier, a keyword such as `body`, or a string.
+ObjectItem
+  = name:(MemberName / StringLiteral) _ ":=" _ value:Expression {
+      return u('objectItem', { name, value, position: toPosition(location()) });
+    }
+
+Layout
+  = ([ \t] / LineBreak / Comment)*
+
+// ----- Numbers and booleans: docs/adr/0019-operators.md -----
+
+NumberLiteral "number"
+  = raw:$(HexLiteral / OctalLiteral / BinaryLiteral / DecimalLiteral) !IdentifierPart {
+      return u('number', { value: Number(raw.replaceAll('_', '')), position: toPosition(location()) });
+    }
+
+DecimalLiteral
+  = (DecimalInteger ("." Digits?)? / "." Digits) Exponent?
+
+// A decimal literal cannot start with `0` followed by another digit.
+DecimalInteger
+  = "0" ![0-9_]
+  / [1-9] ("_"? Digits)?
+
+Digits
+  = [0-9] ("_"? [0-9])*
+
+Exponent
+  = [eE] [+-]? Digits
+
+HexLiteral
+  = "0" [xX] [0-9A-Fa-f] ("_"? [0-9A-Fa-f])*
+
+OctalLiteral
+  = "0" [oO] [0-7] ("_"? [0-7])*
+
+BinaryLiteral
+  = "0" [bB] [01] ("_"? [01])*
+
+BooleanLiteral
+  = TrueKeyword { return u('boolean', { value: true, position: toPosition(location()) }); }
+  / FalseKeyword { return u('boolean', { value: false, position: toPosition(location()) }); }
 
 // ----- Strings: docs/adr/0008-strings.md -----
 
@@ -281,16 +810,22 @@ Identifier "identifier"
       return u('identifier', { value, position: toPosition(location()) });
     }
 
+// A name after `.`, or in an object value, which can be a keyword.
+MemberName "name"
+  = value:$([A-Za-z_] IdentifierPart*) {
+      return u('identifier', { value, position: toPosition(location()) });
+    }
+
 IdentifierPart
   = [A-Za-z0-9_]
 
+// Words reserved everywhere, so they cannot be identifiers.
 Keyword
   = ImportKeyword
   / NamespaceKeyword
+  / ExportKeyword
   / ActionKeyword
   / BodyKeyword
-  / TriggerKeyword
-  / OnKeyword
   / ReturnKeyword
   / BreakKeyword
   / ContinueKeyword
@@ -299,42 +834,106 @@ Keyword
   / WhileKeyword
   / IfKeyword
   / ElseKeyword
+  / TriggerKeyword
+  / OnKeyword
+  / EntityKeyword
+  / PermissionsKeyword
+  / BaseType
+  / VoidKeyword
+  / NothingKeyword
+  / TrueKeyword
+  / FalseKeyword
   / EnumKeyword
+  / SetKeyword
+  / DeleteKeyword
+  / ErrorKeyword
+  / ErrorTypeKeyword
+  / RaiseKeyword
+  / PassKeyword
+  / AssertKeyword
+  / ModelKeyword
+  / UnknownKeyword
+  / ConstKeyword
+  / AndKeyword
+  / OrKeyword
+  / OrElseKeyword
+  / IsEmptyKeyword
+  / InstanceOfKeyword
+  / IgnoreKeyword
 
-ImportKeyword    = "import"    !IdentifierPart
-NamespaceKeyword = "namespace" !IdentifierPart
-ActionKeyword    = "action"    !IdentifierPart
-BodyKeyword      = "body"      !IdentifierPart
-TriggerKeyword   = "trigger"   !IdentifierPart
-OnKeyword        = "on"        !IdentifierPart
-ReturnKeyword    = "return"    !IdentifierPart
-BreakKeyword     = "break"     !IdentifierPart
-ContinueKeyword  = "continue"  !IdentifierPart
-ForKeyword       = "for"       !IdentifierPart
-InKeyword        = "in"        !IdentifierPart
-WhileKeyword     = "while"     !IdentifierPart
-IfKeyword        = "if"        !IdentifierPart
-ElseKeyword      = "else"      !IdentifierPart
-EnumKeyword      = "enum"      !IdentifierPart
+ImportKeyword      = "import"      !IdentifierPart
+NamespaceKeyword   = "namespace"   !IdentifierPart
+ExportKeyword      = "export"      !IdentifierPart
+ActionKeyword      = "action"      !IdentifierPart
+BodyKeyword        = "body"        !IdentifierPart
+ReturnKeyword      = "return"      !IdentifierPart
+BreakKeyword       = "break"       !IdentifierPart
+ContinueKeyword    = "continue"    !IdentifierPart
+ForKeyword         = "for"         !IdentifierPart
+InKeyword          = "in"          !IdentifierPart
+WhileKeyword       = "while"       !IdentifierPart
+IfKeyword          = "if"          !IdentifierPart
+ElseKeyword        = "else"        !IdentifierPart
+TriggerKeyword     = "trigger"     !IdentifierPart
+OnKeyword          = "on"          !IdentifierPart
+EntityKeyword      = "entity"      !IdentifierPart
+PermissionsKeyword = "permissions" !IdentifierPart
+VoidKeyword        = "VOID"        !IdentifierPart
+NothingKeyword     = "NOTHING"     !IdentifierPart
+TrueKeyword        = "true"        !IdentifierPart
+FalseKeyword       = "false"       !IdentifierPart
+EnumKeyword        = "enum"        !IdentifierPart
+SetKeyword         = "SET"         !IdentifierPart
+DeleteKeyword      = "delete"      !IdentifierPart
+ErrorKeyword       = "error"       !IdentifierPart
+ErrorTypeKeyword   = "ERROR"       !IdentifierPart
+RaiseKeyword       = "raise"       !IdentifierPart
+PassKeyword        = "pass"        !IdentifierPart
+AssertKeyword      = "assert"      !IdentifierPart
+ModelKeyword       = "model"       !IdentifierPart
+UnknownKeyword     = "UNKNOWN"     !IdentifierPart
+ConstKeyword       = "const"       !IdentifierPart
+AndKeyword         = "and"         !IdentifierPart
+OrKeyword          = "or"          !IdentifierPart
+OrElseKeyword      = "orElse"      !IdentifierPart
+IsEmptyKeyword     = "isEmpty"     !IdentifierPart
+InstanceOfKeyword  = "instanceOf"  !IdentifierPart
+IgnoreKeyword      = "ignore"      !IdentifierPart
 
-// Contextual keywords: reserved only inside `import`, so not listed in Keyword.
-IntoKeyword      = "into"      !IdentifierPart
-AsKeyword        = "as"        !IdentifierPart
+// Contextual keywords: special only where they are used, so not listed in Keyword.
+IntoKeyword        = "into"        !IdentifierPart  // in an import
+AsKeyword          = "as"          !IdentifierPart  // in an import, and in an entity's expose block
+RaisesKeyword      = "raises"      !IdentifierPart  // in an action's signature
+PassesKeyword      = "passes"      !IdentifierPart  // in an action's signature
+WithKeyword        = "with"        !IdentifierPart  // in a raise statement
+DataKeyword        = "data"        !IdentifierPart  // in an error declaration
+AuthKeyword        = "auth"        !IdentifierPart  // in a trigger's block
+ArgumentsKeyword   = "arguments"   !IdentifierPart  // in a trigger's block
+ParametersKeyword  = "parameters"  !IdentifierPart  // in a trigger's block
+HasKeyword         = "has"         !IdentifierPart  // in a permissions declaration
+CanKeyword         = "can"         !IdentifierPart  // in a predicate
+IsKeyword          = "is"          !IdentifierPart  // in a predicate
+WithinKeyword      = "within"      !IdentifierPart  // in a predicate
 
-// ----- Whitespace and indentation -----
+// ----- Whitespace, comments and indentation -----
 
 // Spaces and tabs within a line.
 _  "whitespace" = [ \t]*
 __ "whitespace" = [ \t]+
 
+// A comment runs from `//` to the end of the line (docs/adr/0007-actions.md).
+Comment "comment"
+  = "//" [^\r\n]*
+
 LineBreak
   = "\r\n"
   / "\n"
 
-// The end of a line, after any trailing whitespace.
+// The end of a line, after any trailing whitespace and comment.
 EndOfLine
-  = _ LineBreak
+  = _ Comment? LineBreak
 
+// Lines that are empty or hold only a comment.
 BlankLines
   = EndOfLine*
 

@@ -97,11 +97,11 @@ The only type an object can have for now is a **map**:
 - Maps and arrays can be nested in each other: `{[TEXT]}` is a map of arrays, and `[{TEXT}]` is an array of maps.
 
 ```cant
-action Respond(body: TEXT, headers?: {TEXT}): VOID
+action Respond(content: TEXT, headers?: {TEXT}): VOID
     body
         // ...
 
-Respond(body := page, headers := { "Content-Type" := "text/html" })
+Respond(content := page, headers := { "Content-Type" := "text/html" })
 ```
 
 Types for objects with a fixed set of members, of different types, are deferred (see below).

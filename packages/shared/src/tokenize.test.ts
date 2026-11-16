@@ -21,7 +21,7 @@ test('tokenizes keywords, identifiers and punctuation', () => {
     'punctuation:(',
     'punctuation:)',
     'punctuation::',
-    'identifier:VOID',
+    'keyword:VOID',
     'punctuation:{',
     'punctuation:}',
   ]);
@@ -151,25 +151,141 @@ test('leaves a lone colon or equals sign as punctuation', () => {
   ]);
 });
 
-test('tokenizes the keywords from the actions ADR', () => {
+test('tokenizes the keywords reserved by the ADRs', () => {
+  const keywords = [
+    'import', 'namespace', 'export', 'action', 'body', 'return', 'break', 'continue', 'for', 'in',
+    'while', 'if', 'else', 'trigger', 'on', 'entity', 'permissions', 'TEXT', 'NUMBER', 'BOOLEAN',
+    'DATE_TIME', 'FILE', 'VOID', 'NOTHING', 'true', 'false', 'enum', 'SET', 'delete', 'error',
+    'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const',
+  ];
   assert.deepEqual(
-    describeTokens(
-      'action body return break continue for in while if else enum',
-    ),
-    [
-      'keyword:action',
-      'keyword:body',
-      'keyword:return',
-      'keyword:break',
-      'keyword:continue',
-      'keyword:for',
-      'keyword:in',
-      'keyword:while',
-      'keyword:if',
-      'keyword:else',
-      'keyword:enum',
-    ],
+    describeTokens(keywords.join(' ')),
+    keywords.map((keyword) => `keyword:${keyword}`),
   );
+});
+
+test('tokenizes word operators', () => {
+  assert.deepEqual(describeTokens('a orElse b; isEmpty c; d instanceOf T; ignore e; orElsewhere'), [
+    'identifier:a',
+    'operator:orElse',
+    'identifier:b',
+    'punctuation:;',
+    'operator:isEmpty',
+    'identifier:c',
+    'punctuation:;',
+    'identifier:d',
+    'operator:instanceOf',
+    'identifier:T',
+    'punctuation:;',
+    'operator:ignore',
+    'identifier:e',
+    'punctuation:;',
+    'identifier:orElsewhere',
+  ]);
+});
+
+test('tokenizes number literals', () => {
+  assert.deepEqual(describeTokens('42 3.14 .5 5. 1e3 2.5E-4 1_000 0xFF 0o17 0b1010 -1 a[0]'), [
+    'number:42',
+    'number:3.14',
+    'number:.5',
+    'number:5.',
+    'number:1e3',
+    'number:2.5E-4',
+    'number:1_000',
+    'number:0xFF',
+    'number:0o17',
+    'number:0b1010',
+    'operator:-',
+    'number:1',
+    'identifier:a',
+    'punctuation:[',
+    'number:0',
+    'punctuation:]',
+  ]);
+});
+
+test('tokenizes built-in values', () => {
+  assert.deepEqual(describeTokens('@subject is @anonymous; @event.user'), [
+    'builtin:@subject',
+    'keyword:is',
+    'builtin:@anonymous',
+    'punctuation:;',
+    'builtin:@event',
+    'operator:.',
+    'identifier:user',
+  ]);
+});
+
+test('tokenizes contextual keywords only where they are special', () => {
+  const source = [
+    'action A(raises: TEXT): VOID raises X passes @all',
+    '    body',
+    '        raise X with data',
+    '        with := auth',
+    'trigger A on Start',
+    '    auth',
+    '        @subject can "a" within org or @subject is admin within org',
+    '    arguments',
+    '        parameters := 1',
+    '    parameters',
+    '        auth := 2',
+    'permissions org has admin',
+    '    "a"',
+    'entity User',
+    '    subject',
+    '    identity email',
+    '    group org',
+    '    role admin',
+    '    models',
+    '        models',
+    '    expose',
+    '        email as contactEmail',
+    '    hide',
+    '        passwordHash',
+    'error E',
+    '    data',
+    '        data: TEXT',
+    'error F',
+    '    data FData',
+  ].join('\n');
+
+  const keywords = describeTokens(source).filter((token) => token.startsWith('keyword:'));
+  assert.deepEqual(keywords, [
+    'keyword:action',
+    'keyword:TEXT',
+    'keyword:VOID',
+    'keyword:raises',
+    'keyword:passes',
+    'keyword:body',
+    'keyword:raise',
+    'keyword:with',
+    'keyword:trigger',
+    'keyword:on',
+    'keyword:auth',
+    'keyword:can',
+    'keyword:within',
+    'keyword:is',
+    'keyword:within',
+    'keyword:arguments',
+    'keyword:parameters',
+    'keyword:permissions',
+    'keyword:has',
+    'keyword:entity',
+    'keyword:subject',
+    'keyword:identity',
+    'keyword:group',
+    'keyword:role',
+    'keyword:models',
+    'keyword:expose',
+    'keyword:as',
+    'keyword:hide',
+    'keyword:error',
+    'keyword:data',
+    'keyword:TEXT',
+    'keyword:error',
+    'keyword:data',
+  ]);
 });
 
 test('tokenizes into and as as keywords only on an import line', () => {
