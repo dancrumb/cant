@@ -34,7 +34,7 @@ Once the major version is released, records are immutable. If a decision changes
 | [0022](0022-entities.md) | Entities | Accepted |
 | [0023](0023-error-handling.md) | Error handling | Accepted |
 | [0024](0024-built-in-values.md) | Built-in values | Proposed |
-| [0025](0025-trigger-sources.md) | Trigger sources | Proposed |
+| [0025](0025-trigger-sources.md) | Trigger sources | Accepted |
 | [0026](0026-dates-and-times.md) | Dates and times | Proposed |
 | [0027](0027-object-shapes.md) | Object shapes | Accepted |
 | [0028](0028-extending-base-types.md) | Extending base types | Proposed |
@@ -43,3 +43,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0031](0031-module-resolution.md) | Module resolution | Proposed |
 | [0032](0032-authentication.md) | Authentication | Proposed |
 | [0033](0033-unknown-type.md) | The `UNKNOWN` type | Accepted |
+| [0034](0034-top-level-constants.md) | Top-level constants | Proposed |

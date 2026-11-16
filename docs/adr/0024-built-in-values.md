@@ -26,7 +26,7 @@ These need answers before this ADR is accepted:
 
 - **The full list.** Which built-in values exist, and what is each one's type?
 - **Where they can be used.** `@subject` is available in any action, and `@id` belongs to an entity. Is `@id` written `user.@id`, or some other way? Are some built-in values only available in certain places, such as inside a trigger?
-- **Request and event data.** Trigger arguments such as `user := event.user` ([ADR 0009](0009-triggers.md)) refer to data from the request or event. Is `event` a built-in value, written `@event`, or something else?
+- **Request and event data.** Trigger sources provide built-ins such as `@request`, `@event` and `@message`, usable only in triggers ([ADR 0025](0025-trigger-sources.md)). Should this ADR list them, or leave them to the sources that define them?
 - **Other candidates.** Should the current time, the current request or the program's configuration be built-in values?
 - **`@id`.** Can a program read an entity's `@id`, whose type, `EntityId`, is internal ([ADR 0022](0022-entities.md))? If so, what can it do with it, and how is an `EntityId` converted to text, given that an entity converts to text as its `@id` ([ADR 0011](0011-converting-values-to-text.md))?
 - **Programs.** Can a program, or a module, define built-in values of its own?

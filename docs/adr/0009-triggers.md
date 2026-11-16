@@ -20,7 +20,7 @@ A trigger names an action, the source that triggers it, and optionally an indent
 ```ebnf
 Trigger         = TriggerKeyword, (QualifiedIdentifier | Identifier), OnKeyword, Identifier,
                   [?indent?, {TriggerSetting}, ?dedent?] ;
-TriggerSetting  = AuthBlock | TriggerArguments | ?comment? ;
+TriggerSetting  = AuthBlock | TriggerArguments | SourceParameters | ?comment? ;
 ```
 
 ```cant
@@ -28,10 +28,10 @@ trigger SayHello on Start
 
 trigger SendWelcome on UserCreated
     arguments
-        user := event.user
+        user := @event.user
 ```
 
-The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. [ADR 0025](0025-trigger-sources.md) will decide which sources exist and any settings that are specific to a source, such as an HTTP endpoint, a queue name or a schedule. Until then, the grammar accepts any identifier after `on`.
+The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. A source is configured by its parameters, such as an HTTP endpoint, a queue name or a schedule, which a trigger gives in a `parameters` block ([ADR 0025](0025-trigger-sources.md)). Which sources exist is not decided yet, so the grammar accepts any identifier after `on`.
 
 A trigger with no settings has no block, so the existing form `trigger SayHello on Start` stays valid.
 
@@ -45,6 +45,8 @@ TriggerArgument   = Identifier, ":=", Expression ;
 ```
 
 `arguments` lists the values passed to the action, one per line. The name on the left of each `:=` is one of the action's parameters ([ADR 0007](0007-actions.md)). Parameters are named, not positional, so arguments can be listed in any order. How arguments are checked against the action's parameters is described in [ADR 0020](0020-action-parameters.md).
+
+A trigger leaves out `arguments` when it would be empty, such as when the action has no parameters, or only optional ones that the trigger does not set. The same applies to a source's `parameters` ([ADR 0025](0025-trigger-sources.md)).
 
 ### Authorization
 
@@ -72,12 +74,12 @@ trigger GetInvoice on InvoiceRequested
     auth
         @subject is @defined and (@subject can "invoices:read" or @subject is admin within billing)
     arguments
-        invoiceId := event.invoiceId
+        invoiceId := @event.invoiceId
 ```
 
 ### Keywords
 
-The setting names `arguments` and `auth` are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. The words used in predicates are described in [ADR 0010](0010-security.md).
+The setting names `arguments`, `auth` and `parameters` ([ADR 0025](0025-trigger-sources.md)) are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. The words used in predicates are described in [ADR 0010](0010-security.md).
 
 ## Consequences
 
