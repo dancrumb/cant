@@ -1,5 +1,11 @@
 # @dancrumb/cant-shared
 
+## 0.3.2
+
+### Patch Changes
+
+- Keep an interpolation open past an object or other braces written inside it, so that only the `}` matching `${` ends it.
+
 ## 0.3.1
 
 ## 0.3.0

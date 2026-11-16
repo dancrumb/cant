@@ -19,6 +19,10 @@
   dir: packages/shared
   intents:
     - parser-aligned-with-adrs
+"@dancrumb/cant-shared@0.3.2":
+  dir: packages/shared
+  intents:
+    - interpolation-braces
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
