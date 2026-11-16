@@ -33,3 +33,7 @@ cant@0.2.0:
   dir: ""
   intents:
     - free-geese-carry
+cant@0.3.1:
+  dir: ""
+  intents:
+    - root-in-fixed-group

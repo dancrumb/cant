@@ -1,5 +1,7 @@
 # @dancrumb/cant-lsp
 
+## 0.3.1
+
 ## 0.3.0
 
 ### Patch Changes
