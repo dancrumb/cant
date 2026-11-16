@@ -69,8 +69,7 @@ entity Organization
 
 ```cant
 model MembershipRecord
-    organization: Organization
-    user: User
+    joined: DATE_TIME
 
 entity Membership
     identity organization, user
@@ -78,9 +77,12 @@ entity Membership
         MembershipRecord
     expose
         @all
+
+relation Organization[memberships] 1 --- 0..* Membership[organization]
+relation User[memberships] 1 --- 0..* Membership[user]
 ```
 
-`MembershipRecord`'s fields hold entities, which makes `Membership` a relationship between an `Organization` and a `User`. How relationships between entities work is left to [ADR 0035](0035-entity-relationships.md).
+`organization` and `user` are navigation fields, which the two relations add to `Membership` ([ADR 0035](0035-entity-relationships.md)). Each reaches exactly one entity, so an identity can name it.
 
 For a subject entity, the identity is what an authenticated request is matched against to find the subject, so every subject entity must have an `identity`.
 

@@ -386,6 +386,7 @@ The language has a fixed set of **built-in errors** for the runtime errors that 
 | `DefaultUnavailable` | A model field's default value cannot be worked out when an object is created ([ADR 0027](0027-object-shapes.md)) |
 | `RequiredField` | A required field, named by an expression, is deleted ([ADR 0027](0027-object-shapes.md)) |
 | `UnknownField` | A value is assigned to a field that the model does not have, named by an expression ([ADR 0027](0027-object-shapes.md)) |
+| `CardinalityViolation` | A change to a relationship, or a delete, would break a relation's cardinality ([ADR 0035](0035-entity-relationships.md)) |
 
 Built-in errors are handled like any other error: they can be checked with `instanceOf`, passed, ignored or used. Each comes from a construct that already has a way to give an error:
 
@@ -394,6 +395,7 @@ Built-in errors are handled like any other error: they can be checked with `inst
   - When an argument is converted, it is part of the call's result, as if the action listed it in `raises`.
   - When a `return` converts its value, the error is raised from the action, as statements raise theirs (below), so the action must list `InvalidEnumValue` in its `raises` clause. Leaving it out is a compile-time error. A `return` cannot be ignored, so, unlike a statement, there is no way around listing it.
 - `FacetUnavailable` is part of the result of an access that has to derive a facet ([ADR 0017](0017-faceted-types.md)), such as reading an entity's contents from its `@id`. The result must be handled like an operator's.
+- `CardinalityViolation` is raised from the action when a change to a relationship, or a delete, would break a cardinality ([ADR 0035](0035-entity-relationships.md)), as statements raise their errors (below): the action must list it in `raises`, unless the change is ignored.
 - `DefaultUnavailable` is raised from the action when an object is created and a default cannot be worked out ([ADR 0027](0027-object-shapes.md)), as `IndexBeforeStart`, `RequiredField` and `UnknownField` are raised by statements (below): the action must list it in `raises`, unless the creation is ignored.
 
 A program can also raise a built-in error itself, if it lists it in `raises`, as with a declared error.

@@ -65,7 +65,8 @@ Without `as`, the module is treated as Cant source.
 
 ```ebnf
 Module       = {TopLevel | ?comment?} ;
-TopLevel     = Import | Namespace | Trigger | Permissions | [ExportKeyword], Declaration | ReExport ;
+TopLevel     = Import | Namespace | Trigger | Permissions | Relation
+             | [ExportKeyword], Declaration | ReExport ;
 Declaration  = Action | EnumDeclaration | ModelDeclaration | Entity
              | ErrorDeclaration | ConstDeclaration ;
 ReExport     = ExportKeyword, (Identifier | QualifiedIdentifier), [AsKeyword, Identifier] ;
@@ -81,7 +82,7 @@ export action FindUser(email: TEXT): User raises UserNotFound
         // ...
 ```
 
-`Declaration` lists the top-level constructs that can be exported: actions ([ADR 0007](0007-actions.md)), enums ([ADR 0013](0013-enums.md)), models ([ADR 0027](0027-object-shapes.md)), entities ([ADR 0022](0022-entities.md)), errors ([ADR 0023](0023-error-handling.md)) and constants ([ADR 0034](0034-top-level-constants.md)). Triggers ([ADR 0009](0009-triggers.md)) and `permissions` declarations ([ADR 0010](0010-security.md)) are top-level too, but cannot be exported, since nothing refers to them by name. `Import` is an import as above, and `Namespace` is a `namespace` line ([ADR 0005](0005-module-namespaces.md)).
+`Declaration` lists the top-level constructs that can be exported: actions ([ADR 0007](0007-actions.md)), enums ([ADR 0013](0013-enums.md)), models ([ADR 0027](0027-object-shapes.md)), entities ([ADR 0022](0022-entities.md)), errors ([ADR 0023](0023-error-handling.md)) and constants ([ADR 0034](0034-top-level-constants.md)). Triggers ([ADR 0009](0009-triggers.md)), `permissions` declarations ([ADR 0010](0010-security.md)) and relations ([ADR 0035](0035-entity-relationships.md)) are top-level too, but cannot be exported, since nothing refers to them by name. `Import` is an import as above, and `Namespace` is a `namespace` line ([ADR 0005](0005-module-namespaces.md)).
 
 A construct that is not exported is private to its module: a module that imports it cannot see or use it. `export` starts a top-level construct, so it is a keyword reserved everywhere.
 
