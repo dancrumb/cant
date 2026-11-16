@@ -206,12 +206,12 @@ test('tokenizes number literals', () => {
 });
 
 test('tokenizes built-in values', () => {
-  assert.deepEqual(describeTokens('@subject is @anonymous; @event.user'), [
+  assert.deepEqual(describeTokens('@subject is @anonymous; @message.user'), [
     'builtin:@subject',
     'keyword:is',
     'builtin:@anonymous',
     'punctuation:;',
-    'builtin:@event',
+    'builtin:@message',
     'operator:.',
     'identifier:user',
   ]);

@@ -45,7 +45,7 @@ Each source provides values to the built-ins that describe what caused the trigg
 | Source | Built-in values it provides |
 | --- | --- |
 | HTTP requests | `@request`, the request that arrived |
-| Events | `@event`, the event that occurred |
+| Events | `@message`, the message that describes the event that occurred |
 | Queues | `@message`, the message taken from the queue |
 | Program start | None |
 

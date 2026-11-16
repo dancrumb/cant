@@ -610,7 +610,7 @@ test('parses members, indexes and calls on any value', () => {
 });
 
 test('parses built-in values', () => {
-  assert.deepEqual(parseExpression('@event.user'), member(builtIn('event'), 'user'));
+  assert.deepEqual(parseExpression('@message.user'), member(builtIn('message'), 'user'));
 });
 
 test('parses security predicates', () => {

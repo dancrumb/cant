@@ -28,7 +28,7 @@ trigger SayHello on Start
 
 trigger SendWelcome on UserCreated
     arguments
-        user := @event.user
+        user := @message.user
 ```
 
 The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. A source is configured by its parameters, such as an HTTP endpoint, a queue name or a schedule, which a trigger gives in a `parameters` block ([ADR 0025](0025-trigger-sources.md)). Which sources exist is not decided yet, so the grammar accepts any identifier after `on`.
@@ -74,7 +74,7 @@ trigger GetInvoice on InvoiceRequested
     auth
         @subject is @defined and (@subject can "invoices:read" or @subject is admin within billing)
     arguments
-        invoiceId := @event.invoiceId
+        invoiceId := @message.invoiceId
 ```
 
 ### Keywords

@@ -128,7 +128,7 @@ These are compile-time errors, in a call or in a trigger's `arguments`:
 
 ### Trigger arguments that may be missing
 
-A trigger argument can draw on request or event data that may be missing, as in `user := @event.user`. An expression whose value may be missing is optional, so, like any optional value, it can only be passed to an optional parameter. If it is missing, the parameter is treated as left out.
+A trigger argument can draw on request or event data that may be missing, as in `user := @message.user`. An expression whose value may be missing is optional, so, like any optional value, it can only be passed to an optional parameter. If it is missing, the parameter is treated as left out.
 
 ## Consequences
 
