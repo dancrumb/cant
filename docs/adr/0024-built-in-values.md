@@ -1,6 +1,6 @@
 # 0024. Built-in values
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-15
 
 ## Context
@@ -13,15 +13,16 @@ A **built-in value** is written `@<identifier>` ([ADR 0009](0009-triggers.md)). 
 
 ## Decision
 
-Not decided yet. Earlier ADRs already constrain it:
+Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@all`, `@result`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
 
 - The grammar is `BuiltIn = "@", Identifier`, with no space after the `@` ([ADR 0009](0009-triggers.md)). The `@` prefix is reserved, so built-in values cannot clash with anything a program declares ([ADR 0010](0010-security.md)).
 - `@subject` is always defined: it is the subject that caused the trigger, or `@anonymous` when there is none ([ADR 0010](0010-security.md)).
 - `@subject` has an unnamed built-in type with the fields `entityName: TEXT` and `identityFields: [TEXT]`, and `@subject is <type>` narrows it to that subject entity ([ADR 0010](0010-security.md)).
 - `@anonymous` stands for no subject, and `@defined` is its opposite, for any subject that is not anonymous. So `@subject is @defined` is `true` exactly when `@subject is @anonymous` is `false` ([ADR 0010](0010-security.md)).
 - `@anonymous` and `@defined` are the only built-in values that can be a `SubjectType` ([ADR 0009](0009-triggers.md)).
-- `@id` is provided by the interpreter for every entity ([ADR 0017](0017-faceted-types.md)).
-- `@result` is defined in every trigger, whatever its source, and holds what the action the trigger runs returned ([ADR 0009](0009-triggers.md)). Where in a trigger it can be used is left for later.
+- `@id` is provided by the interpreter for every entity ([ADR 0017](0017-faceted-types.md)). It cannot be read in Cant code: a program has no way to write `@id` to get an entity's identifier, so `user.@id` is an error. The interpreter still uses it, to compare entities and to load their contents ([ADR 0017](0017-faceted-types.md)).
+  - An `EntityId` is a `TEXT` under the covers. It stays an internal type that a program cannot name or read ([ADR 0022](0022-entities.md)), but when an entity is converted to text, it is written as that `TEXT` ([ADR 0011](0011-converting-values-to-text.md)).
+- `@result` is defined in every trigger, whatever its source, and holds what the action the trigger runs returned ([ADR 0009](0009-triggers.md)).
   - Its type is always an error return type ([ADR 0023](0023-error-handling.md)). If the action has an error return type, `@result` has that type, and holds either the action's value or the error it raised or passed. Otherwise, `@result` has an error return type whose value type is the action's return type and which has no errors, so it always holds the value the action returned.
   - When the action's return type is `VOID`, the value `@result` holds is `NOTHING`. So for an action declared `: VOID raises SaveFailed`, `@result` holds either `NOTHING` or a `SaveFailed`.
 - `@request` is provided by the HTTP request source, so it can only be used in a trigger on that source ([ADR 0025](0025-trigger-sources.md)). It has four parts:
@@ -47,18 +48,30 @@ Not decided yet. Earlier ADRs already constrain it:
           page := @request.query.page
   ```
 
-## Open questions
+### Where they can be used
 
-These need answers before this ADR is accepted:
+| Built-in value | Where it can be used |
+| --- | --- |
+| `@subject` | Anywhere: in any trigger and any action ([ADR 0010](0010-security.md), [ADR 0025](0025-trigger-sources.md)) |
+| `@anonymous`, `@defined` | Only in an `is` predicate about `@subject`, as its `SubjectType` ([ADR 0009](0009-triggers.md)) |
+| `@all` | Only in an entity's `expose` and `hide` blocks ([ADR 0022](0022-entities.md)), and in `passes @all` ([ADR 0023](0023-error-handling.md)) |
+| `@result` | Only in a trigger, whatever its source |
+| `@request`, `@message` | Only in a trigger on a source that provides them ([ADR 0025](0025-trigger-sources.md)) |
+| `@id` | Nowhere: it cannot be read in Cant code |
 
-- **The full list.** Which built-in values exist, and what is each one's type?
-- **Where they can be used.** `@subject` is available in any action, and `@id` belongs to an entity. Is `@id` written `user.@id`, or some other way? Are some built-in values only available in certain places, such as inside a trigger?
-- **Request and event data.** Trigger sources provide built-ins such as `@request` and `@message`, usable only in triggers ([ADR 0025](0025-trigger-sources.md)). Should this ADR list them, or leave them to the sources that define them?
-- **Other candidates.** Should the current time, the current request or the program's configuration be built-in values?
-- **`@id`.** Can a program read an entity's `@id`, whose type, `EntityId`, is internal ([ADR 0022](0022-entities.md))? If so, what can it do with it, and how is an `EntityId` converted to text, given that an entity converts to text as its `@id` ([ADR 0011](0011-converting-values-to-text.md))?
-- **Programs.** Can a program, or a module, define built-in values of its own?
-- **`@request.body`.** How does a trigger declare the model of the request's body? How is the JSON body matched to that model, and what happens when it does not match, such as when a required field is missing or has the wrong type?
+Using a built-in value anywhere else is a compile-time error.
+
+## Deferred
+
+- **`@request.body`.** How a trigger declares the model of the request's body, how the JSON body is matched to that model, and what happens when it does not match, such as when a required field is missing or has the wrong type, will be decided with the HTTP request trigger source.
+- **Where `@result` is used.** Which of a trigger's settings can use `@result`, such as one that forms the source's reply, is left for later.
+- **Custom built-ins.** A future ADR may let programs or modules define built-in values of their own.
 
 ## Consequences
 
-TODO
+- Every built-in value is listed in one place, with its type and where it can be used, so the compiler can reject any other `@` name, and any built-in used in the wrong place.
+- The list is closed, so a program cannot add built-ins of its own, and new ones, such as the current time, need an ADR.
+- `@subject` can be used anywhere, but source built-ins only in triggers, so actions get request and message data only through their parameters.
+- `@id` cannot be read, so a program never handles entity identifiers directly, and cannot build an entity from one. An entity still converts to text as its identifier, so a program can show one, but not use it.
+- `@result` always has an error return type, so whatever reads it handles a successful result and an error in the same way, even for actions that cannot raise errors.
+- The model of `@request.body` is still to be decided, so request bodies cannot be used until the HTTP request source is defined.

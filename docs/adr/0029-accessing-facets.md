@@ -20,10 +20,10 @@ Not decided yet. Earlier ADRs already constrain it:
 
 These need answers before this ADR is accepted:
 
-- **Syntax.** How does a program ask for a facet: with a member such as `file.url`, a built-in value such as `entity.@id`, a conversion, or something else?
+- **Syntax.** How does a program ask for a facet: with a member such as `file.url`, a conversion, or something else? An entity's `@id` is never one of them, since it cannot be read in Cant code ([ADR 0024](0024-built-in-values.md)).
 - **What a facet gives.** The stream and blob types cannot be named. What can a program do with a facet it cannot name? Can it read a blob's size and media type ([ADR 0015](0015-files.md))?
-- **Creating values.** When can a program create a faceted value itself, such as a `FILE` from text, or an entity from an `@id`?
-- **Identifiers as values.** Can an entity's `@id`, or a `FILE`'s URL, be used where the faceted type is expected?
+- **Creating values.** When can a program create a faceted value itself, such as a `FILE` from text? A program cannot create an entity from an `@id`, since it can never hold one.
+- **Identifiers as values.** Can a `FILE`'s URL be used where a `FILE` is expected? An entity's `@id` cannot, since a program can never hold one.
 - **Cost.** Since deriving a facet can be expensive, should the syntax make that cost visible?
 
 ## Consequences

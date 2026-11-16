@@ -33,7 +33,7 @@ Once the major version is released, records are immutable. If a decision changes
 | [0021](0021-collections.md) | Collections | Accepted |
 | [0022](0022-entities.md) | Entities | Accepted |
 | [0023](0023-error-handling.md) | Error handling | Accepted |
-| [0024](0024-built-in-values.md) | Built-in values | Proposed |
+| [0024](0024-built-in-values.md) | Built-in values | Accepted |
 | [0025](0025-trigger-sources.md) | Trigger sources | Accepted |
 | [0026](0026-dates-and-times.md) | Dates and times | Proposed |
 | [0027](0027-object-shapes.md) | Object shapes | Accepted |
