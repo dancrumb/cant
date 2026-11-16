@@ -113,9 +113,11 @@ const resetAtLineBreak = (ctx: { state(): string; pop(): string }) => {
 // Tokenizing uses a stack of states:
 // - `default` is ordinary code;
 // - `string` is the text of a template string after an interpolation has started;
-// - `interpolation` is the code inside `${ ... }`, which may itself contain strings.
+// - `interpolation` is the code inside `${ ... }`, which may itself contain strings;
+// - `braces` is the code inside a `{ ... }` within an interpolation, such as an object value,
+//   whose `}` closes the braces rather than the interpolation.
 // Rules are tried in order, and the first one that matches wins.
-const CODE = 'default, interpolation';
+const CODE = 'default, interpolation, braces';
 const lexer = new Tokenizr()
   .rule(CODE, /[ \t]+/, (ctx) => {
     ctx.ignore();
@@ -148,7 +150,12 @@ const lexer = new Tokenizr()
   .rule(CODE, new RegExp(`"${TEXT}*"?`), (ctx) => {
     ctx.accept('string');
   })
-  .rule('interpolation', /\}/, (ctx) => {
+  // Inside an interpolation, braces nest, and only the `}` that matches `${` ends it.
+  .rule('interpolation, braces', /\{/, (ctx) => {
+    ctx.accept('punctuation');
+    ctx.push('braces');
+  })
+  .rule('interpolation, braces', /\}/, (ctx) => {
     ctx.accept('punctuation');
     ctx.pop();
   })

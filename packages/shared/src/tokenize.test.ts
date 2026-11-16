@@ -336,6 +336,43 @@ test('splits template strings around their interpolations', () => {
   ]);
 });
 
+test('ends an interpolation at its own closing brace, not one inside it', () => {
+  assert.deepEqual(describeTokens('"a ${f({ b: { c: "${d}" } })} e" x'), [
+    'string:"a ',
+    'punctuation:${',
+    'identifier:f',
+    'punctuation:(',
+    'punctuation:{',
+    'identifier:b',
+    'punctuation::',
+    'punctuation:{',
+    'identifier:c',
+    'punctuation::',
+    'string:"',
+    'punctuation:${',
+    'identifier:d',
+    'punctuation:}',
+    'string:"',
+    'punctuation:}',
+    'punctuation:}',
+    'punctuation:)',
+    'punctuation:}',
+    'string: e"',
+    'identifier:x',
+  ]);
+  assert.deepEqual(describeTokens('"${ { a: 1 }"\nx'), [
+    'string:"',
+    'punctuation:${',
+    'punctuation:{',
+    'identifier:a',
+    'punctuation::',
+    'number:1',
+    'punctuation:}',
+    'string:"',
+    'identifier:x',
+  ]);
+});
+
 test('ends unfinished template strings and interpolations at the end of the line', () => {
   assert.deepEqual(describeTokens('"a ${b} c\nimport x\n"d ${e\nf'), [
     'string:"a ',
