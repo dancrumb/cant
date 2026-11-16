@@ -161,5 +161,5 @@ Earlier ADRs also apply to objects of a model's type:
 - An anonymous model's type is fixed where it is made, so a field set on the object by an action it is passed to cannot be read through it by name in the caller's scope, even though the object has it.
 - Fields are mutable and objects are passed by reference, as collections are, so an action can change an object its caller holds.
 - `delete` clears an optional field, or resets it to its default, which is worked out once when the object is created. A program has to know that a field with a default can never be empty.
-- Reading a field by an expression that is not a literal gives an `UNKNOWN?` on a model whose fields have different types, which a program cannot use until [ADR 0033](0033-unknown-type.md) decides how to check an `UNKNOWN`.
-- `model` becomes a keyword reserved everywhere, models, enums and entities share one set of type names in each namespace, and the parser needs model declarations and field access by name and by expression.
+- Reading a field by an expression that is not a literal gives an `UNKNOWN?` on a model whose fields have different types, which a program has to check with `instanceOf` before using it as a specific type ([ADR 0033](0033-unknown-type.md)).
+- `model` becomes a keyword reserved everywhere, models, enums, entities and errors share one set of type names in each namespace, along with constants ([ADR 0023](0023-error-handling.md), [ADR 0034](0034-top-level-constants.md)), and the parser needs model declarations and field access by name and by expression.

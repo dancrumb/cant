@@ -216,7 +216,7 @@ delete headers["Content-Type"]
 `delete` is a keyword.
 
 - Deleting an element of an array leaves a slot with no element, like the gaps in a sparse array. Later elements keep their indexes, and the array keeps its length. Reading the slot gives an empty `T?`, and `for` skips it.
-- `delete` is only for collections. It cannot be applied to an identifier or used to delete a stored entity, as the source EBNF's `delete invoice` did.
+- `delete` is for collections and for the fields of models and entities, where it clears an optional field ([ADR 0027](0027-object-shapes.md), [ADR 0022](0022-entities.md)). It cannot be applied to an identifier or used to delete a stored entity, as the source EBNF's `delete invoice` did.
 - Deleting is idempotent. Deleting a member a map does not have, an empty slot, or an index outside an array does nothing, and is not an error.
 
 ### Sharing
@@ -316,7 +316,6 @@ for name in Collections::keys(headers)
 ## Deferred
 
 - **Transforming collections.** Actions such as `map`, `filter` and `reduce` are deferred until Cant has lambdas or functions that can be passed to an action.
-- **Object shapes.** Types for objects with a fixed set of members, each with its own type, such as a user with a `TEXT` name and a `NUMBER` age, are left to [ADR 0027](0027-object-shapes.md), which will need to decide whether such types are declared, perhaps alongside entities, or are given by the members an object has.
 
 ## Consequences
 

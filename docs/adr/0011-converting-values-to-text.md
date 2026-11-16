@@ -51,9 +51,9 @@ A `DATE_TIME` is written in ISO 8601 form in UTC, with `Z` at the end to show it
 "Status: ${status}"  // "Status: paid", when status is InvoiceStatus.paid
 ```
 
-An enum value is converted by taking the member's value ([ADR 0013](0013-enums.md)) and applying the rule for that value's type. A `TEXT` value is used unchanged, so `InvoiceStatus.paid` becomes `"paid"`. A `NUMBER` value is written as a number, so `Priority.High`, whose value is `3`, becomes `"3"`. A `BOOLEAN` or `DATE_TIME` value follows its rule in the same way. The member's name is never used, so `Status.InProgress` becomes `"In Progress"`, not `"InProgress"`.
+An enum value is converted by taking the member's value ([ADR 0013](0013-enums.md)) and applying the rule for that value's type. A `TEXT` value is used unchanged, so `InvoiceStatus.paid` becomes `"paid"`. A `NUMBER` value is written as a number, so `Priority.High`, whose value is `3`, becomes `"3"`. A `BOOLEAN` value follows its rule in the same way. The member's name is never used, so `Status.InProgress` becomes `"In Progress"`, not `"InProgress"`.
 
-The rules for numbers, dates and times apply to enum values of those types too.
+The rules for numbers apply to enum values whose value type is `NUMBER` too. Enums cannot have `DATE_TIME` values, since there are no `DATE_TIME` literals ([ADR 0013](0013-enums.md)).
 
 `VOID` and `NOTHING` cannot be converted, because there is no value to write. `VOID` is not a value at all ([ADR 0012](0012-base-types.md)), and `NOTHING` stands for a missing one. A program that wants to show a missing value has to check for `NOTHING` and choose the text itself. How interpolating `NOTHING`, or a value that might be `NOTHING`, is reported is decided by [ADR 0014](0014-optionals.md).
 

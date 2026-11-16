@@ -9,7 +9,7 @@ Actions ([ADR 0007](0007-actions.md)) refer to types in their parameters and ret
 
 ## Decision
 
-Cant has six base types. Their names are written in upper case, with words separated by underscores:
+Cant has five base types, `TEXT`, `NUMBER`, `BOOLEAN`, `DATE_TIME` and `FILE`, and `VOID`, which can only be a return type (below). Their names are written in upper case, with words separated by underscores:
 
 | Type | Values |
 | --- | --- |
@@ -42,6 +42,8 @@ There is a single `NUMBER` type, rather than separate integer and decimal types.
 SayHello()              // valid
 greeting := SayHello()  // error: SayHello returns VOID
 ```
+
+The one exception is an action whose return type is `VOID` but which can return an error ([ADR 0023](0023-error-handling.md)). Its result can be assigned, so that the program can check it for an error, but it never holds a value, so using it as a value is a compile-time error.
 
 `VOID` can only be used as an action's return type. It cannot be the type of a parameter, a field or anything else, since nothing could ever be given to or stored in it.
 

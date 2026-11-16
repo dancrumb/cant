@@ -197,6 +197,17 @@ action Welcome(email: TEXT): TEXT
 - `result instanceOf ERROR` is `true` when `result` holds any error.
 - Once every error the action can return has been ruled out, the identifier is narrowed to the value type, here `User`.
 
+The value type can be `VOID` ([ADR 0012](0012-base-types.md)). The result of an action declared `: VOID raises SaveFailed` holds either an error or no value at all. Unlike the result of an action that returns `VOID` and no errors, it can be assigned to an identifier, so that the program can check it, pass it or ignore it. Once every error has been ruled out there is nothing left to use, and using the result as a value, including after narrowing, is a compile-time error:
+
+```cant
+result := SaveInvoice(invoice)       // valid: SaveInvoice is VOID raises SaveFailed
+if result instanceOf SaveFailed
+    return "Could not save"
+notice := "Saved: ${result}"         // compile-time error: result has no value to use
+```
+
+Since such a result cannot be used, it is handled by checking, passing or ignoring it (see Unhandled errors).
+
 The value type can be an optional ([ADR 0014](0014-optionals.md)), as in an action declared `: User? raises UserNotFound`. Its result holds an error, a `User` or `NOTHING`. Once every error has been ruled out, the identifier is narrowed to `User?`, and the program then checks it with `isEmpty` as for any optional ([ADR 0016](0016-handling-optional-values.md)).
 
 Narrowing follows the same rules as for `isEmpty` and other uses of `instanceOf` ([ADR 0016](0016-handling-optional-values.md)): it follows the logic of the whole condition, holds after an early return, and only narrows an identifier, not an expression such as a call.
@@ -381,10 +392,10 @@ Built-in errors are handled like any other error: they can be checked with `inst
 
 A program can also raise a built-in error itself, if it lists it in `raises`, as with a declared error.
 
-The built-in errors live in a module, `cant::Errors`, which a program imports like any other module ([ADR 0006](0006-imports.md)), as it does `cant::Collections` ([ADR 0021](0021-collections.md)). A program must import `cant::Errors` before it can name a built-in error, such as in `raises`, `raise` or `instanceOf`. An operator or statement can still raise a built-in error in a program that has not imported it, and the program can still handle it with `instanceOf ERROR`, `pass` with `passes @all`, `ignore`, or by using it. Their names are not reserved, so a program can declare its own error with the same name in its own namespace:
+The built-in errors live in a module, `cant::Errors`, which a program imports like any other module ([ADR 0006](0006-imports.md)), as it does `cant::Collections` ([ADR 0021](0021-collections.md)). A program must import `cant::Errors` before it can name a built-in error, such as in `raises`, `raise` or `instanceOf`. An operator or statement can still raise a built-in error in a program that has not imported it, and the program can still handle it with `instanceOf ERROR`, `pass` with `passes @all`, `ignore`, or by using it. The examples here import it `into Errors`, so its errors are named as in `Errors::DivisionByZero`; without `into`, they would be placed in the current namespace. Their names are not reserved, so a program can declare its own error with the same name in its own namespace:
 
 ```cant
-import cant::Errors
+import cant::Errors into Errors
 
 action Average(total: NUMBER, count: NUMBER): NUMBER raises Errors::DivisionByZero
     body
@@ -397,7 +408,7 @@ action Average(total: NUMBER, count: NUMBER): NUMBER raises Errors::DivisionByZe
 `IndexBeforeStart`, `RequiredField` and `UnknownField` come from assignment and `delete` statements ([ADR 0007](0007-actions.md)), which give no result that a program could check. When such a statement fails, the error is raised from the action, as if the action had a `raise` statement at that point, unless the statement is ignored with `ignore`. As with `raise`, an action whose statement can raise such an error must list it in its `raises` clause, unless the statement is ignored. Otherwise it is a compile-time error:
 
 ```cant
-import cant::Errors
+import cant::Errors into Errors
 
 action SetField(customer: Customer, field: TEXT, value: TEXT): VOID raises Errors::UnknownField
     body

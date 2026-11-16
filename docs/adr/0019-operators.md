@@ -32,6 +32,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 | `[ … ]` | `a[i]` | An element of an array, or a member of a map | [ADR 0021](0021-collections.md) |
 | `orElse` | `a orElse b` | The value inside the optional `a`, or `b` if `a` is empty | [ADR 0016](0016-handling-optional-values.md) |
 | `isEmpty` | `isEmpty a` | Whether the optional `a` holds `NOTHING`. `a` must be an optional | [ADR 0016](0016-handling-optional-values.md) |
+| `ignore` | `ignore a` | Marks a potential error in `a` as deliberately not handled | [ADR 0023](0023-error-handling.md) |
 | `!` | `!a` | Boolean not | Used in [ADR 0016](0016-handling-optional-values.md) |
 | `-` | `-a` | Negation | This ADR |
 | `**` | `a ** b` | Exponentiation: `a` to the power `b` | This ADR |
@@ -133,6 +134,7 @@ So if the right-hand side is an action call, the action is not called unless its
 - **Ordering text.** `TEXT` values are ordered lexicographically, by UTF-16 code unit, as JavaScript's `<` orders strings. So `"apple" < "banana"` and `"app" < "apple"`, and every uppercase ASCII letter comes before every lowercase one, so `"Z" < "a"`.
 - **What can be ordered.** `NUMBER`, `DATE_TIME` and `TEXT` values can be ordered with `<`, `<=`, `>` and `>=`, and so can enums whose value type can be. `BOOLEAN` and faceted values cannot be ordered, and ordering them is a compile-time error.
 - **Arithmetic.** The arithmetic operators, `+`, `-`, `*`, `/`, `%`, `**` and unary `-`, need operands of type `NUMBER`. Any other operand, including a `DATE_TIME`, is a compile-time error. Working with dates and times, such as finding the time between two `DATE_TIME`s or moving one by a duration, is left to [ADR 0026](0026-dates-and-times.md).
+- **Arithmetic errors.** Division and modulo by zero raise the built-in error `DivisionByZero`, and a fractional operand to `%` raises `FractionalModulo`, rather than giving `Infinity` or `NaN` as JavaScript does. The result of `/` or `%` must be handled like any result that may hold an error, unless the right-hand side is a non-zero constant expression ([ADR 0023](0023-error-handling.md)).
 - **Equality.** `==` and `!=` compare values, for every type except collections. Two `NUMBER`s, `TEXT`s, `BOOLEAN`s or `DATE_TIME`s are equal when their values are, so two `DATE_TIME`s are equal when they are the same instant. Collections are the exception: two arrays or maps are equal only if they are the same collection, not when their contents match, so `[1, 2] == [1, 2]` is `false` ([ADR 0021](0021-collections.md)).
 
 ### Grammar
@@ -190,10 +192,6 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - `StringLiteral` comes from [ADR 0008](0008-strings.md), `BuiltIn` from [ADR 0009](0009-triggers.md), and `ArrayValue`, `ObjectValue` and `SetValue` from [ADR 0021](0021-collections.md). `NumberLiteral` and `BooleanLiteral` are defined above.
 - `NOTHING` is not a `Primary`, since it can only be written in a `return` ([ADR 0016](0016-handling-optional-values.md)).
 
-## Deferred
-
-- **Arithmetic errors.** Division and modulo by zero raise the built-in error `DivisionByZero`, and a fractional operand to `%` raises `FractionalModulo`, rather than giving `Infinity` or `NaN` as JavaScript does. The result of `/` or `%` must be handled like any result that may hold an error, unless the right-hand side is a non-zero constant expression ([ADR 0023](0023-error-handling.md)).
-
 ## Consequences
 
 - Every operator, its meaning and its precedence are defined in one place, and one expression grammar serves action bodies, defaults, trigger arguments and `auth` rules.
@@ -202,5 +200,5 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - Types are strict. Operands must be of the same type, boolean operators need `BOOLEAN`s and there are no "truthy" values, so more mistakes are caught at compile time, at the cost of some explicit conversion and interpolation.
 - Cant leaves out several JavaScript operators: the conditional operator, `++` and `--`, and the bitwise operators. Programs use `if`, assignment and arithmetic instead.
 - There is no arithmetic on `DATE_TIME`s until [ADR 0026](0026-dates-and-times.md) covers working with dates and times.
-- `auth` rules can use every operator, and the `can` and `is` predicates can be used in actions too. Because predicates now name groups with `within`, the `auth` examples in [ADR 0009](0009-triggers.md) and [ADR 0010](0010-security.md), which use `in`, are out of date.
+- `auth` rules can use every operator, and the `can` and `is` predicates can be used in actions too. Predicates name groups with `within`, so `in` only ever tests membership of a collection.
 - The tokenizer now recognises `/`, `%` and `**`, no longer recognises `\`, and skips comments. The parser still has to be brought up to this grammar: it has no number or boolean literals, `isEmpty`, `orElse`, arithmetic or comparison yet, and it reads call arguments by position.

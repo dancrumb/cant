@@ -92,7 +92,7 @@ DeleteStatement     = DeleteKeyword, Postfix ;
 | --- | --- |
 | Assignment | `<identifier> := <expression>`, which gives a name its value. Every identifier is a constant, so a name can only be assigned once in a block ([ADR 0018](0018-immutable-identifiers.md)) |
 | Assignment to a member | `<collection>[<index>] := <expression>` or `<collection>.<name> := <expression>`, which changes an element or member of a collection ([ADR 0021](0021-collections.md)) |
-| Delete | `delete <collection>[<index>]` or `delete <collection>.<name>`, which removes an element or member of a collection ([ADR 0021](0021-collections.md)) |
+| Delete | `delete <value>[<index>]` or `delete <value>.<name>`, which removes an element or member of a collection ([ADR 0021](0021-collections.md)), or clears an optional field of a model or an entity ([ADR 0027](0027-object-shapes.md), [ADR 0022](0022-entities.md)) |
 | Expression | An `Expression` on its own |
 | Return | `return <expression>` |
 | Raise | `raise <error>`, with optional `data`, which ends the action with an error ([ADR 0023](0023-error-handling.md)) |
@@ -104,7 +104,7 @@ DeleteStatement     = DeleteKeyword, Postfix ;
 | While | `while <expression>` followed by a block |
 | If | `if <expression>` followed by a block, then optionally `else` and either a block or another `if` |
 
-In an assignment to a member and in a `delete`, the `Postfix` ([ADR 0019](0019-operators.md)) must end in a member, `.name`, or an index, `[ … ]`. `delete` only applies to collections.
+In an assignment to a member and in a `delete`, the `Postfix` ([ADR 0019](0019-operators.md)) must end in a member, `.name`, or an index, `[ … ]`. `delete` only applies to collections and to the fields of models and entities.
 
 ### Comments
 

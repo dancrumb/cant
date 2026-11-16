@@ -26,7 +26,7 @@ Optional values use the `Optional<T>` pattern. An `Optional<T>` holds either a v
 
 `Optional<T>` is an internal type. The compiler uses it, but a program cannot write it: there is no `Optional` keyword or type name. A program gets an `Optional<T>` by marking a type as optional with `?`, and this ADR writes `T?` to mean `Optional<T>`.
 
-An optional type can be declared in two places, with `?` in the positions [ADR 0007](0007-actions.md) gives it: after the name for a parameter (`includeDeleted?: BOOLEAN`), and after the type for a return type (`User?`). A parameter's type cannot itself be marked `?`, so `includeDeleted: BOOLEAN?` is a syntax error.
+An optional type can be declared with `?` in the positions [ADR 0007](0007-actions.md) gives it: after the name for a parameter (`includeDeleted?: BOOLEAN`), and after the type for a return type (`User?`). A model's field is marked optional in the same way as a parameter, after its name ([ADR 0027](0027-object-shapes.md)). A parameter's type cannot itself be marked `?`, so `includeDeleted: BOOLEAN?` is a syntax error.
 
 - **Parameters.** A parameter marked `?` with no default, such as `includeDeleted?: BOOLEAN`, has the type `Optional<BOOLEAN>` inside the action. If the caller passes no value for it, it is still an `Optional<BOOLEAN>`, holding `NOTHING`.
 
@@ -112,7 +112,7 @@ Interpolating `NOTHING` itself is also a compile-time error, since `NOTHING` can
 `VOID` already means there is no value, so it cannot also be optional. `VOID?` is a syntax error. The return type in an action's signature ([ADR 0007](0007-actions.md)) is either `VOID` on its own or another type with an optional `?`:
 
 ```ebnf
-ActionSignature  = Identifier, "(", [ParameterList], ")", ":", ReturnType ;
+ActionSignature  = Identifier, "(", [ParameterList], ")", ":", ReturnType, [ErrorClauses] ;
 ReturnType       = VoidKeyword | TypeRef, ["?"] ;
 ```
 
@@ -130,6 +130,6 @@ action SayHello(): VOID?    // syntax error
 - Keeping `Optional<T>` internal means programs only ever write `?`, which keeps the syntax small. Making it explicit later, for example as a field type, would not break programs that use `?`.
 - An optional parameter with a default needs no check inside the action, so giving a parameter a default is the simplest way to avoid handling `NOTHING`.
 - Because an `Optional<T>` holding `NOTHING` behaves like a missing argument, a caller can pass an optional value straight through without checking it first. Because `NOTHING` itself cannot be passed, leaving an argument out is the only way to write "no value" in a call.
-- `NOTHING` cannot be passed or assigned, so an optional only ever comes from an action's optional return or an optional parameter. Every `NOTHING` in a running program can be traced back to one of those.
+- `NOTHING` cannot be passed or assigned, so an optional only ever comes from an action's optional return, an optional parameter, an optional model field ([ADR 0027](0027-object-shapes.md)), or reading an element or member of a collection ([ADR 0021](0021-collections.md)). Every `NOTHING` in a running program can be traced back to one of those.
 - Returning a `T` from an action that returns `T?` does not narrow the result, so callers always have to check, even when an action never actually returns `NOTHING`.
 - A program checks an optional with `isEmpty`, or supplies a fallback with `orElse`, as [ADR 0016](0016-handling-optional-values.md) describes.
