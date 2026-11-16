@@ -55,7 +55,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 
 - `/` divides and `%` gives the modulo. Both are new tokens.
 - `%` is a mathematical modulo: its result has the sign of the right operand, not the left. So `-7 % 3` is `2` and `7 % -3` is `-2`. This differs from JavaScript's `%`, which gives `-1` and `1`.
-- `%` only works on whole numbers. A fractional operand is an error: a compile-time error when the compiler can tell, as with `7.5 % 2`, and a runtime error otherwise. What a runtime error does is left to [ADR 0023](0023-error-handling.md).
+- `%` only works on whole numbers. A fractional operand is an error: a compile-time error when the compiler can tell, as with `7.5 % 2`, and a runtime error otherwise. At runtime it raises the built-in error `FractionalModulo` ([ADR 0023](0023-error-handling.md)).
 - `\` is not an operator, and the tokenizer no longer recognises it as one. Inside a string, `\` still starts an escape ([ADR 0008](0008-strings.md)).
 - A comment starts with `//` ([ADR 0007](0007-actions.md)), so the tokenizer reads `//` as the start of a comment, never as two `/` operators.
 
@@ -83,7 +83,7 @@ Operators are listed from the most tightly binding to the least.
 | 1 | `::` | Left | Settled ([ADR 0016](0016-handling-optional-values.md)) |
 | 2 | `.`, calls, `[ … ]` | Left | Settled ([ADR 0016](0016-handling-optional-values.md), [ADR 0021](0021-collections.md)) |
 | 3 | `orElse` | Left | Settled ([ADR 0016](0016-handling-optional-values.md)) |
-| 4 | `isEmpty`, `!`, unary `-` | Right (prefix) | Settled |
+| 4 | `isEmpty`, `ignore`, `!`, unary `-` | Right (prefix) | Settled ([ADR 0023](0023-error-handling.md) adds `ignore`) |
 | 5 | `**` | Right | Settled |
 | 6 | `*`, `/`, `%` | Left | Settled |
 | 7 | `+`, `-` | Left | Settled |
@@ -150,7 +150,7 @@ ComparisonOperator  = "==" | "!=" | "<" | "<=" | ">" | ">=" | InKeyword ;
 Additive            = Multiplicative, {("+" | "-"), Multiplicative} ;
 Multiplicative      = Power, {("*" | "/" | "%"), Power} ;
 Power               = Prefix, ["**", Power] ;
-Prefix              = (IsEmptyKeyword | "!" | "-"), Prefix
+Prefix              = (IsEmptyKeyword | IgnoreKeyword | "!" | "-"), Prefix
                     | Fallback ;
 Fallback            = Postfix, {OrElseKeyword, ["-"], Postfix} ;
 Postfix             = Primary, {Suffix} ;
@@ -185,14 +185,14 @@ BinaryLiteral       = "0", ("b" | "B"), BinaryDigit, {["_"], BinaryDigit} ;
 - `Power`'s operands are `Prefix` expressions, so a prefix operator applies to the operand, not the whole power: `-2 ** 2` is `(-2) ** 2`, and `2 ** -1` is allowed. Its right operand is itself a `Power`, which makes `**` right-associative.
 - `orElse`'s right operand can be negated, so `count orElse -1` and `offset orElse -step` are allowed, even though unary `-` otherwise binds more loosely than `orElse`. No other prefix operator is allowed there.
 - `Prefix` contains `Fallback`, so `isEmpty a orElse b` and `!a orElse b` apply the prefix operator to the result of `orElse`.
-- The three `Suffix` forms are member access ([ADR 0021](0021-collections.md)), calls ([ADR 0020](0020-action-parameters.md)) and indexing ([ADR 0021](0021-collections.md)). `Prefix` includes `isEmpty` ([ADR 0016](0016-handling-optional-values.md)).
+- The three `Suffix` forms are member access ([ADR 0021](0021-collections.md)), calls ([ADR 0020](0020-action-parameters.md)) and indexing ([ADR 0021](0021-collections.md)). `Prefix` includes `isEmpty` ([ADR 0016](0016-handling-optional-values.md)) and `ignore` ([ADR 0023](0023-error-handling.md)).
 - `QualifiedIdentifier` is a name in a namespace, `namespace::name` ([ADR 0005](0005-module-namespaces.md)), so `::` binds before any other operator.
 - `StringLiteral` comes from [ADR 0008](0008-strings.md), `BuiltIn` from [ADR 0009](0009-triggers.md), and `ArrayValue`, `ObjectValue` and `SetValue` from [ADR 0021](0021-collections.md). `NumberLiteral` and `BooleanLiteral` are defined above.
 - `NOTHING` is not a `Primary`, since it can only be written in a `return` ([ADR 0016](0016-handling-optional-values.md)).
 
 ## Deferred
 
-- **Arithmetic errors.** What happens on division by zero, modulo by zero, or a fractional operand to `%` at runtime is part of [ADR 0023](0023-error-handling.md). JavaScript gives `Infinity` or `NaN`, which no ADR says a `NUMBER` can hold ([ADR 0012](0012-base-types.md)).
+- **Arithmetic errors.** Division and modulo by zero raise the built-in error `DivisionByZero`, and a fractional operand to `%` raises `FractionalModulo`, rather than giving `Infinity` or `NaN` as JavaScript does. The result of `/` or `%` must be handled like any result that may hold an error, unless the right-hand side is a non-zero constant expression ([ADR 0023](0023-error-handling.md)).
 
 ## Consequences
 

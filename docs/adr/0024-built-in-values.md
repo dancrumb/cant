@@ -9,7 +9,7 @@ A **built-in value** is written `@<identifier>` ([ADR 0009](0009-triggers.md)). 
 
 - `@subject`, `@anonymous` and `@defined` in `auth` rules and predicates ([ADR 0009](0009-triggers.md), [ADR 0010](0010-security.md)).
 - `@id`, an entity's identifier facet ([ADR 0017](0017-faceted-types.md)).
-- `@all`, which exposes or hides all of a model's fields in an entity ([ADR 0022](0022-entities.md)).
+- `@all`, which exposes or hides all of a model's fields in an entity ([ADR 0022](0022-entities.md)), and, in `passes @all`, lets an action pass along any error ([ADR 0023](0023-error-handling.md)).
 
 ## Decision
 

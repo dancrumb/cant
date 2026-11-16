@@ -39,7 +39,7 @@ Blocks are delimited by indentation, not braces. This replaces the earlier `{ ..
 ### Signatures
 
 ```ebnf
-ActionSignature    = Identifier, "(", [ParameterList], ")", ":", ReturnType ;
+ActionSignature    = Identifier, "(", [ParameterList], ")", ":", ReturnType, [ErrorClauses] ;
 ReturnType         = VoidKeyword | TypeRef, ["?"] ;
 ParameterList      = Parameter, {",", Parameter} ;
 Parameter          = Identifier, "?", ":", TypeRef, [DefaultValue]
@@ -54,6 +54,7 @@ DefaultValue       = ":=", Expression ;
 - A default value can be any expression whose type is compatible with the parameter's ([ADR 0020](0020-action-parameters.md)).
 - A default value follows `:=`, the assignment operator. The source EBNF calls it `?assign?`. `:=` gives a name its value, as it also does in a trigger's `arguments` ([ADR 0009](0009-triggers.md)), and the tokenizer classes it as an operator.
 - How parameters behave inside an action, and how callers pass arguments to them, is described in [ADR 0020](0020-action-parameters.md).
+- After the return type, `raises` and `passes` clauses list the errors the action can return. `ErrorClauses` is defined in [ADR 0023](0023-error-handling.md).
 
 ### Types
 
@@ -80,6 +81,7 @@ A type is one of:
 ```ebnf
 Block        = ?indent?, {Statement | ?comment?}, ?dedent? ;
 Statement    = AssignmentStatement | DeleteStatement | ExpressionStatement | ReturnStatement
+             | RaiseStatement | PassStatement | AssertStatement | IgnoredStatement
              | BreakStatement | ContinueStatement | ForStatement | WhileStatement | IfStatement ;
 AssignmentStatement = AssignmentTarget, ":=", Expression ;
 AssignmentTarget    = Identifier | Postfix ;
@@ -93,6 +95,10 @@ DeleteStatement     = DeleteKeyword, Postfix ;
 | Delete | `delete <collection>[<index>]` or `delete <collection>.<name>`, which removes an element or member of a collection ([ADR 0021](0021-collections.md)) |
 | Expression | An `Expression` on its own |
 | Return | `return <expression>` |
+| Raise | `raise <error>`, with optional `data`, which ends the action with an error ([ADR 0023](0023-error-handling.md)) |
+| Pass | `pass <expression>`, which passes an error along ([ADR 0023](0023-error-handling.md)) |
+| Assert | `assert <condition>`, with an optional message, which panics if the condition is `false` ([ADR 0023](0023-error-handling.md)) |
+| Ignored statement | `ignore` before an assignment or `delete`, which ignores its error ([ADR 0023](0023-error-handling.md)) |
 | Break / continue | `break`, `continue` |
 | For | `for <identifier> in <expression>` followed by a block |
 | While | `while <expression>` followed by a block |

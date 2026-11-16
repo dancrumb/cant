@@ -199,7 +199,7 @@ headers["Content-Type"] := "text/plain"
 - The value assigned must be of the collection's element or member type: a `T` for a `[T]` or a `{T}`. Since elements and members cannot be optional, an unchecked optional cannot be assigned.
 - Assigning to a member a map does not have yet adds that member.
 - Arrays are sparse. Assigning to an index past the end of an array extends it, leaving a gap of slots that hold no element. They do not hold an empty optional, or anything else. On a three-element array, `a[5] := 1` makes an array that runs to index 5, with no elements at indexes 3 and 4. Reading a slot with no element, with `a[i]`, gives an empty `T?`, just as reading past the end does.
-- Assigning to a negative index past the start of an array, such as `a[-5] := 1` on a three-element array, is a runtime error. An array only grows at its end. What a runtime error does is left to [ADR 0023](0023-error-handling.md).
+- Assigning to a negative index past the start of an array, such as `a[-5] := 1` on a three-element array, is a runtime error. An array only grows at its end. It raises the built-in error `IndexBeforeStart`, which the action must declare or ignore ([ADR 0023](0023-error-handling.md)).
 
 This does not conflict with [ADR 0018](0018-immutable-identifiers.md). An identifier that holds a collection is still a constant: it always refers to the same collection, and cannot be given a different one. Only what is inside the collection changes.
 

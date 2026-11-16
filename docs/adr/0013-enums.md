@@ -58,7 +58,7 @@ An enum has at least one member. Its members' names must be distinct, and so mus
 
 The enum's name is a type. It can be used wherever a `TypeRef` can, by name (`InvoiceStatus`) or, from another namespace, by qualified name (`billing::InvoiceStatus`, see [ADR 0005](0005-module-namespaces.md)).
 
-Because an enum's name is a type name, it must be unique among the type names in its namespace: two enums, or an enum and a model ([ADR 0027](0027-object-shapes.md)) or an entity, with the same name in the same namespace are a compile-time error.
+Because an enum's name is a type name, it must be unique among the type names in its namespace: two enums, or an enum and a model ([ADR 0027](0027-object-shapes.md)), an entity or an error ([ADR 0023](0023-error-handling.md)), with the same name in the same namespace are a compile-time error.
 
 ```cant
 action SetStatus(invoiceId: TEXT, status: InvoiceStatus): VOID
@@ -149,7 +149,7 @@ action ParseStatus(code: TEXT): InvoiceStatus
         return code     // checked at runtime: an error if code is not a value of InvoiceStatus
 ```
 
-If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. What kind of error that is, and how a caller can handle it, is left to [ADR 0023](0023-error-handling.md).
+If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. The call raises the built-in error `InvalidEnumValue`, which the caller handles like any other error ([ADR 0023](0023-error-handling.md)).
 
 ### Inline enums
 

@@ -13,7 +13,7 @@ Not decided yet. Earlier ADRs already constrain it:
 
 - Only Cant defines faceted types, and a value can be created from any one of its facets, with the interpreter providing the others ([ADR 0017](0017-faceted-types.md)).
 - The URL, stream and blob facets follow JavaScript semantics, and their types cannot be named in a program ([ADR 0017](0017-faceted-types.md)).
-- Deriving a facet can be expensive and can fail ([ADR 0017](0017-faceted-types.md)); failures are handled by [ADR 0023](0023-error-handling.md).
+- Deriving a facet can be expensive and can fail ([ADR 0017](0017-faceted-types.md)); a failure raises the built-in error `FacetUnavailable` ([ADR 0023](0023-error-handling.md)).
 - A faceted value's identifier decides its equality and its text ([ADR 0017](0017-faceted-types.md)).
 
 ## Open questions
