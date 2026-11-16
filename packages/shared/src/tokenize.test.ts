@@ -299,6 +299,14 @@ test('tokenizes into and as as keywords only on an import line', () => {
     'identifier:into',
     'identifier:as',
   ]);
+  assert.deepEqual(describeTokens('export a::F as G'), [
+    'keyword:export',
+    'identifier:a',
+    'operator:::',
+    'identifier:F',
+    'keyword:as',
+    'identifier:G',
+  ]);
 });
 
 test('keeps escapes and lone dollar signs inside strings', () => {

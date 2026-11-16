@@ -72,7 +72,7 @@ AuthBlock  = AuthKeyword, ?indent?, Expression, ?dedent? ;
 ```cant
 trigger GetInvoice on InvoiceRequested
     auth
-        @subject is @defined and (@subject can "invoices:read" or @subject is admin within billing)
+        @subject is @defined and (@subject can "invoices:read" or @subject is admin within @message.organization)
     arguments
         invoiceId := @message.invoiceId
 ```

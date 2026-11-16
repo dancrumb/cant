@@ -78,6 +78,7 @@ TopLevel
   / Trigger
   / Permissions
   / ExportableDeclaration
+  / ReExport
 
 // Triggers and `permissions` declarations cannot be exported.
 ExportableDeclaration
@@ -86,6 +87,13 @@ ExportableDeclaration
       return exported === null
         ? declaration
         : { ...declaration, exported: true, position: toPosition(location()) };
+    }
+
+// `export accounts::FindUser`, optionally `as LookupUser`: export a symbol the module imports
+// (docs/adr/0006-imports.md).
+ReExport
+  = ExportKeyword __ name:Name alias:(__ AsKeyword __ @Identifier)? {
+      return u('reExport', { name, ...(alias && { alias }), position: toPosition(location()) });
     }
 
 // ----- Namespaces: docs/adr/0005-module-namespaces.md -----
@@ -667,7 +675,7 @@ Nothing
 
 AuthPredicate
   = subject:SubjectBuiltIn __ CanKeyword __ permission:ConstantStringLiteral
-    group:(__ WithinKeyword __ @Identifier)? {
+    group:(__ WithinKeyword __ @Group)? {
       return u('canPredicate', {
         subject,
         permission,
@@ -675,12 +683,16 @@ AuthPredicate
         position: toPosition(location()),
       });
     }
-  / subject:SubjectBuiltIn __ IsKeyword __ role:Identifier __ WithinKeyword __ group:Identifier {
+  / subject:SubjectBuiltIn __ IsKeyword __ role:Identifier __ WithinKeyword __ group:Group {
       return u('rolePredicate', { subject, role, group, position: toPosition(location()) });
     }
   / subject:SubjectBuiltIn __ IsKeyword __ subjectType:(BuiltIn / Identifier) {
       return u('isPredicate', { subject, subjectType, position: toPosition(location()) });
     }
+
+// The group named by `within`: a name, member or call, binding more tightly than any operator.
+Group
+  = Postfix
 
 SubjectBuiltIn
   = "@subject" !IdentifierPart { return u('builtIn', { name: 'subject', position: toPosition(location()) }); }
@@ -902,7 +914,7 @@ IgnoreKeyword      = "ignore"      !IdentifierPart
 
 // Contextual keywords: special only where they are used, so not listed in Keyword.
 IntoKeyword        = "into"        !IdentifierPart  // in an import
-AsKeyword          = "as"          !IdentifierPart  // in an import, and in an entity's expose block
+AsKeyword          = "as"          !IdentifierPart  // in an import, a re-export and an entity's expose block
 RaisesKeyword      = "raises"      !IdentifierPart  // in an action's signature
 PassesKeyword      = "passes"      !IdentifierPart  // in an action's signature
 WithKeyword        = "with"        !IdentifierPart  // in a raise statement

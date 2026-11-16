@@ -390,7 +390,9 @@ The language has a fixed set of **built-in errors** for the runtime errors that 
 Built-in errors are handled like any other error: they can be checked with `instanceOf`, passed, ignored or used. Each comes from a construct that already has a way to give an error:
 
 - `DivisionByZero` and `FractionalModulo` are part of the result of `/` and `%` (see Errors from operators).
-- `InvalidEnumValue` is part of the result of a call that converts an argument, or its return value, to an enum ([ADR 0013](0013-enums.md)), as if the action listed it in `raises`. It is only added when the compiler cannot tell that the value is one of the enum's values, so passing an enum value or a constant expression never adds it.
+- `InvalidEnumValue` comes from converting a value to an enum ([ADR 0013](0013-enums.md)), and only when the compiler cannot tell that the value is one of the enum's values, so passing or returning an enum value or a constant expression never gives it.
+  - When an argument is converted, it is part of the call's result, as if the action listed it in `raises`.
+  - When a `return` converts its value, the error is raised from the action, as statements raise theirs (below), so the action must list `InvalidEnumValue` in its `raises` clause. Leaving it out is a compile-time error. A `return` cannot be ignored, so, unlike a statement, there is no way around listing it.
 - `FacetUnavailable` is part of the result of an access that has to derive a facet ([ADR 0017](0017-faceted-types.md)), such as reading an entity's contents from its `@id`. The result must be handled like an operator's.
 - `DefaultUnavailable` is raised from the action when an object is created and a default cannot be worked out ([ADR 0027](0027-object-shapes.md)), as `IndexBeforeStart`, `RequiredField` and `UnknownField` are raised by statements (below): the action must list it in `raises`, unless the creation is ignored.
 

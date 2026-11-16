@@ -222,13 +222,16 @@ export interface InstanceOfExpression extends Node {
   optional: boolean;
 }
 
-/** `@subject can "permission"`, optionally `within group` (docs/adr/0010-security.md). */
+/**
+ * `@subject can "permission"`, optionally `within group`, where the group is an expression
+ * (docs/adr/0010-security.md).
+ */
 export interface CanPredicate extends Node {
   type: 'canPredicate';
   position: Position;
   subject: BuiltIn;
   permission: StringLiteral;
-  group?: Identifier;
+  group?: Expression;
 }
 
 /** `@subject is User` or `@subject is @anonymous` (docs/adr/0010-security.md). */
@@ -239,13 +242,13 @@ export interface IsPredicate extends Node {
   subjectType: Identifier | BuiltIn;
 }
 
-/** `@subject is admin within org` (docs/adr/0010-security.md). */
+/** `@subject is admin within org`, where the group is an expression (docs/adr/0010-security.md). */
 export interface RolePredicate extends Node {
   type: 'rolePredicate';
   position: Position;
   subject: BuiltIn;
   role: Identifier;
-  group: Identifier;
+  group: Expression;
 }
 
 /** `[a, b, c]` (docs/adr/0021-collections.md). */
@@ -447,6 +450,17 @@ export interface ImportDeclaration extends Node {
   namespace?: Identifier;
   /** The module type from `as`; without it, the module is Cant source. */
   moduleType?: StringLiteral;
+}
+
+/**
+ * `export accounts::FindUser`: a symbol the module imports, exported under its own name, or
+ * under `alias` with `as LookupUser`.
+ */
+export interface ReExport extends Node {
+  type: 'reExport';
+  position: Position;
+  name: Identifier | QualifiedIdentifier;
+  alias?: Identifier;
 }
 
 /** `namespace Greetings` */
@@ -656,6 +670,7 @@ export interface ConstDeclaration extends Node {
 
 export type Declaration =
   | ImportDeclaration
+  | ReExport
   | NamespaceDeclaration
   | ActionDeclaration
   | TriggerDeclaration

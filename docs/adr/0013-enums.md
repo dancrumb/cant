@@ -144,12 +144,15 @@ action DefaultStatus(): InvoiceStatus
     body
         return "draft"  // valid: "draft" is a value of InvoiceStatus
 
-action ParseStatus(code: TEXT): InvoiceStatus
+action ParseStatus(code: TEXT): InvoiceStatus raises Errors::InvalidEnumValue
     body
         return code     // checked at runtime: an error if code is not a value of InvoiceStatus
 ```
 
-If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. The call raises the built-in error `InvalidEnumValue`, which the caller handles like any other error ([ADR 0023](0023-error-handling.md)).
+If the check fails at runtime, the call fails with an error rather than passing or returning a value that is not in the enum. It raises the built-in error `InvalidEnumValue` ([ADR 0023](0023-error-handling.md)):
+
+- **Parameters.** When an argument fails the check, the action is not called. The error is part of the call's result, so the caller sees it where it makes the call, and handles it like any other error.
+- **Return values.** When a returned value fails the check, the error is raised from the action, as if the action had a `raise` statement at that point. So an action whose `return` needs a runtime check must list `InvalidEnumValue` in its `raises` clause, as `ParseStatus` does (with `cant::Errors` imported `into Errors`, as in [ADR 0023](0023-error-handling.md)), so that its callers can see the error in its signature. Leaving it out is a compile-time error.
 
 ### Inline enums
 

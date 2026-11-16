@@ -637,6 +637,25 @@ test('parses security predicates', () => {
     role: identifier('admin'),
     group: identifier('billing'),
   });
+  assert.deepEqual(
+    parseExpression('@subject can "invoices:read" within @message.organization and ok'),
+    binary(
+      'and',
+      {
+        type: 'canPredicate',
+        subject,
+        permission: string('invoices:read'),
+        group: member(builtIn('message'), 'organization'),
+      },
+      identifier('ok'),
+    ),
+  );
+  assert.deepEqual(parseExpression('@subject is admin within FindOrg(slug)'), {
+    type: 'rolePredicate',
+    subject,
+    role: identifier('admin'),
+    group: call(identifier('FindOrg'), argument(identifier('slug'))),
+  });
   assert.throws(() => parseExpression('@subject can permission'), ParseError);
 });
 
@@ -917,6 +936,21 @@ test('marks exported declarations', () => {
     ],
   );
   assert.deepEqual(declarations[0]?.position.start, { line: 1, column: 1, offset: 0 });
+});
+
+test('parses re-exports of imported symbols', () => {
+  assert.deepEqual(
+    withoutPositions(
+      parse(
+        'import "./users.cant" into accounts\nexport accounts::FindUser\nexport Greet as SayHello',
+      ).children.slice(1),
+    ),
+    [
+      { type: 'reExport', name: qualified('accounts', 'FindUser') },
+      { type: 'reExport', name: identifier('Greet'), alias: identifier('SayHello') },
+    ],
+  );
+  assert.throws(() => parse('export FindUser extra'), ParseError);
 });
 
 test('does not let triggers, permissions or imports be exported', () => {

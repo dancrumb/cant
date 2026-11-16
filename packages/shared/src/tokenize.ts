@@ -243,6 +243,10 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
     if (first.text === 'import' && first.kind === 'keyword') {
       for (const token of line.slice(1)) if (isWord(token, 'into', 'as')) markKeyword(token);
     }
+    // 0006: `as` in a re-export, `export accounts::FindUser as LookupUser`.
+    if (first.text === 'export' && first.kind === 'keyword') {
+      for (const token of line.slice(2)) if (isWord(token, 'as')) markKeyword(token);
+    }
 
     if (first.column === 1) {
       // 0023: `raises` and `passes` after an action's parameter list.

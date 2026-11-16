@@ -31,6 +31,7 @@ A value is converted to text according to its type:
 | A set | Each element converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
 | A map | Each member written as `name: value`, with the value converted to text, joined with `", "` ([ADR 0021](0021-collections.md)) |
 | A model, named or anonymous | Each field written as `name: value`, joined with `", "`, one layer deep (see below) |
+| An error, once narrowed | Its name, followed by `": "` and its `data` converted as a model, if it has `data` (see below) |
 
 ### Numbers
 
@@ -88,6 +89,21 @@ An optional field with no value is left out, so `NOTHING` never appears in the t
 Fields are written in the order the model declares them or, for an anonymous model, the order the object value lists them in.
 
 Fields that hold an entity, an enum value or a `FILE` are converted by the rules above, so an entity is written as its `@id`.
+
+### Errors
+
+An error ([ADR 0023](0023-error-handling.md)) can be converted to text once it has been narrowed, with `instanceOf`, to a specific error or to `ERROR`. It is written as the name of its error, as declared. If it has `data`, the name is followed by `": "` and the `data`, converted as a model is above, one layer deep:
+
+```cant
+error UserNotFound
+    data
+        email: TEXT
+
+"${problem}"  // "UserNotFound: email: ada@example.com", when problem is a narrowed UserNotFound
+"${problem}"  // "DivisionByZero", when problem is a narrowed DivisionByZero, which has no data
+```
+
+A result that has not been checked is used, not converted, when it is interpolated, so it panics if it holds an error ([ADR 0023](0023-error-handling.md)).
 
 ### Extended types
 
