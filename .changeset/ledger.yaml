@@ -23,6 +23,11 @@
   dir: packages/shared
   intents:
     - interpolation-braces
+"@dancrumb/cant-shared@0.4.0":
+  dir: packages/shared
+  intents:
+    - parse-relations
+    - within-expressions-and-re-exports
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:

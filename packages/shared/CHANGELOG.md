@@ -1,5 +1,13 @@
 # @dancrumb/cant-shared
 
+## 0.4.0
+
+### Minor Changes
+
+- Parse `relation` declarations, such as `relation User[tasks] 1 --- 0..* Task[owner]`, into `relation` nodes with an entity, navigation field and cardinality at each end. The tokenizer reserves `relation` and recognises cardinalities and `---`.
+
+- Parse `within` followed by any name, member or call, such as `within @message.organization`, and re-exports of imported symbols, such as `export accounts::FindUser as LookupUser`. The tokenizer marks `as` as a keyword in a re-export.
+
 ## 0.3.2
 
 ### Patch Changes
