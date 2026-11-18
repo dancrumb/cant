@@ -537,6 +537,27 @@ export interface PermissionsDeclaration extends Node {
   permissions: StringLiteral[];
 }
 
+// ----- Relations: docs/adr/0035-entity-relationships.md -----
+
+/** How many of an end's entity each entity at the other end is related to. */
+export type Cardinality = '1' | '0..1' | '0..*' | '1..*';
+
+/** One end of a relation: `User[tasks]` and the cardinality written beside it. */
+export interface RelationEnd {
+  entity: Name;
+  /** The navigation field the relation adds to `entity`, reaching the other end. */
+  field: Identifier;
+  cardinality: Cardinality;
+}
+
+/** `relation User[tasks] 1 --- 0..* Task[owner]` */
+export interface RelationDeclaration extends Node {
+  type: 'relation';
+  position: Position;
+  left: RelationEnd;
+  right: RelationEnd;
+}
+
 // ----- Enums: docs/adr/0013-enums.md -----
 
 /** `Name` or `Name := value` in an enum declaration. */
@@ -675,6 +696,7 @@ export type Declaration =
   | ActionDeclaration
   | TriggerDeclaration
   | PermissionsDeclaration
+  | RelationDeclaration
   | EnumDeclaration
   | ModelDeclaration
   | EntityDeclaration

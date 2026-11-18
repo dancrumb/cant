@@ -77,10 +77,11 @@ TopLevel
   / Namespace
   / Trigger
   / Permissions
+  / Relation
   / ExportableDeclaration
   / ReExport
 
-// Triggers and `permissions` declarations cannot be exported.
+// Triggers, `permissions` declarations and relations cannot be exported.
 ExportableDeclaration
   = exported:(@ExportKeyword __)?
     declaration:(Action / EnumDeclaration / ModelDeclaration / Entity / ErrorDeclaration / ConstDeclaration) {
@@ -413,6 +414,25 @@ Permissions
         position: toPosition(location()),
       });
     }
+
+// ----- Relations: docs/adr/0035-entity-relationships.md -----
+
+// `relation User[tasks] 1 --- 0..* Task[owner]`
+Relation
+  = RelationKeyword __ left:RelationEnd __ leftCardinality:Cardinality __ "---"
+    __ rightCardinality:Cardinality __ right:RelationEnd {
+      return u('relation', {
+        left: { ...left, cardinality: leftCardinality },
+        right: { ...right, cardinality: rightCardinality },
+        position: toPosition(location()),
+      });
+    }
+
+RelationEnd
+  = entity:Name _ "[" _ field:Identifier _ "]" { return { entity, field }; }
+
+Cardinality
+  = value:$("0..1" / "0..*" / "1..*" / "1") !IdentifierPart { return value; }
 
 // ----- Enums: docs/adr/0013-enums.md -----
 
@@ -866,6 +886,7 @@ Keyword
   / ModelKeyword
   / UnknownKeyword
   / ConstKeyword
+  / RelationKeyword
   / AndKeyword
   / OrKeyword
   / OrElseKeyword
@@ -905,6 +926,7 @@ AssertKeyword      = "assert"      !IdentifierPart
 ModelKeyword       = "model"       !IdentifierPart
 UnknownKeyword     = "UNKNOWN"     !IdentifierPart
 ConstKeyword       = "const"       !IdentifierPart
+RelationKeyword    = "relation"    !IdentifierPart
 AndKeyword         = "and"         !IdentifierPart
 OrKeyword          = "or"          !IdentifierPart
 OrElseKeyword      = "orElse"      !IdentifierPart

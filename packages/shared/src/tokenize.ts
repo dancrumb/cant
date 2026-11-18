@@ -72,13 +72,15 @@ const KEYWORDS = new Set([
   'UNKNOWN',
   // 0034
   'const',
+  // 0035
+  'relation',
 ]);
 
 /** Operators spelled as words; they are matched as whole words only (0016, 0019, 0023, 0033). */
 const WORD_OPERATORS = new Set(['and', 'or', 'orElse', 'isEmpty', 'instanceOf', 'ignore']);
 
 /** Operators spelled with symbols. Multi-character operators come first so they win over their prefixes. */
-const SYMBOL_OPERATORS = /::|:=|<=|>=|==|!=|\*\*|[<>+*\-/%!.]/;
+const SYMBOL_OPERATORS = /---|::|:=|<=|>=|==|!=|\*\*|[<>+*\-/%!.]/;
 
 /** A JavaScript number literal (docs/adr/0019-operators.md). It never starts with a sign. */
 const NUMBER = new RegExp(
@@ -137,6 +139,11 @@ const lexer = new Tokenizr()
   // A built-in value, such as `@subject` (docs/adr/0009-triggers.md).
   .rule(CODE, /@[A-Za-z_][A-Za-z0-9_]*/, (ctx) => {
     ctx.accept('builtin');
+  })
+  // A relation's cardinality, such as `0..*` (docs/adr/0035-entity-relationships.md). It comes
+  // before numbers so that `0..1` is not read as the number `0.` and then `.1`.
+  .rule(CODE, /[01]\.\.[1*]/, (ctx) => {
+    ctx.accept('number');
   })
   .rule(CODE, NUMBER, (ctx) => {
     ctx.accept('number');

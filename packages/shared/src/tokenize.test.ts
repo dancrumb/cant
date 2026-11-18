@@ -156,7 +156,7 @@ test('tokenizes the keywords reserved by the ADRs', () => {
     'import', 'namespace', 'export', 'action', 'body', 'return', 'break', 'continue', 'for', 'in',
     'while', 'if', 'else', 'trigger', 'on', 'entity', 'permissions', 'TEXT', 'NUMBER', 'BOOLEAN',
     'DATE_TIME', 'FILE', 'VOID', 'NOTHING', 'true', 'false', 'enum', 'SET', 'delete', 'error',
-    'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const',
+    'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const', 'relation',
   ];
   assert.deepEqual(
     describeTokens(keywords.join(' ')),
@@ -202,6 +202,25 @@ test('tokenizes number literals', () => {
     'punctuation:[',
     'number:0',
     'punctuation:]',
+  ]);
+});
+
+test('tokenizes relations, with their cardinalities and ---', () => {
+  assert.deepEqual(describeTokens('relation User[tasks] 1 --- 0..* Task[owner] 0..1 1..*'), [
+    'keyword:relation',
+    'identifier:User',
+    'punctuation:[',
+    'identifier:tasks',
+    'punctuation:]',
+    'number:1',
+    'operator:---',
+    'number:0..*',
+    'identifier:Task',
+    'punctuation:[',
+    'identifier:owner',
+    'punctuation:]',
+    'number:0..1',
+    'number:1..*',
   ]);
 });
 

@@ -792,6 +792,31 @@ test('parses permissions declarations', () => {
   );
 });
 
+test('parses relations', () => {
+  assert.deepEqual(
+    parseProgram(
+      'relation User[tasks] 1 --- 0..* Task[owner]',
+      'relation accounts::User[reports] 0..1 --- 1..* accounts::User[manager]',
+    ),
+    [
+      {
+        type: 'relation',
+        left: { entity: identifier('User'), field: identifier('tasks'), cardinality: '1' },
+        right: { entity: identifier('Task'), field: identifier('owner'), cardinality: '0..*' },
+      },
+      {
+        type: 'relation',
+        left: { entity: qualified('accounts', 'User'), field: identifier('reports'), cardinality: '0..1' },
+        right: { entity: qualified('accounts', 'User'), field: identifier('manager'), cardinality: '1..*' },
+      },
+    ],
+  );
+  assert.throws(() => parse('relation User[tasks] 2 --- 0..* Task[owner]'), ParseError);
+  assert.throws(() => parse('relation User[tasks] 1 -- 0..* Task[owner]'), ParseError);
+  assert.throws(() => parse('relation User 1 --- 0..* Task[owner]'), ParseError);
+  assert.throws(() => parse('export relation User[tasks] 1 --- 0..* Task[owner]'), ParseError);
+});
+
 test('parses enum declarations', () => {
   assert.deepEqual(
     parseProgram('enum Status', '    Idle', '    InProgress := "In Progress"', '    Done := 3'),
@@ -983,7 +1008,7 @@ test('rejects a keyword used as an identifier, reporting where', () => {
 });
 
 test('reserves keywords from every ADR', () => {
-  for (const keyword of ['TEXT', 'SET', 'ERROR', 'error', 'raise', 'pass', 'model', 'const', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
+  for (const keyword of ['TEXT', 'SET', 'ERROR', 'error', 'raise', 'pass', 'model', 'const', 'relation', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
     assert.throws(() => parseBody(`${keyword} := 1`), ParseError, keyword);
   }
 });
