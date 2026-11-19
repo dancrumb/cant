@@ -42,7 +42,9 @@ A navigation field's type follows from the cardinality at the far end:
 | --- | --- | --- |
 | `1` | The far entity, `E` | `task.owner` is a `User` |
 | `0..1` | An optional, `E?` | |
-| `0..*` or `1..*` | An array, `[E]` | `user.tasks` is a `[Task]` |
+| `0..*` or `1..*` | A set, `SET(E)` | `user.tasks` is a `SET(Task)` |
+
+A to-many navigation field is a set ([ADR 0021](0021-collections.md)), not an array, because the entities it reaches are distinct and have no order of their own. Two entities are the same element when they have the same type and `@id` ([ADR 0017](0017-faceted-types.md)), so an entity appears in the field at most once. As with any set, its order is undefined but stable.
 
 ### Setting a relationship
 
@@ -50,7 +52,7 @@ Creating or updating an entity can give a navigation field a value, as in `owner
 
 ### Changing a relationship
 
-A relationship can be changed from either end. A to-many navigation field, such as `user.tasks`, can have entities added to it and removed from it, with the operations that change an array ([ADR 0021](0021-collections.md)), and a single-entity navigation field, such as `task.owner`, can be given a new value. Either way, both ends change together: adding a task to `user.tasks` sets the task's `owner` to that user, and setting `task.owner` adds the task to its new owner's `tasks` and removes it from its old owner's.
+A relationship can be changed from either end. A to-many navigation field, such as `user.tasks`, can have entities added to it and removed from it with `add` and `remove` from `cant::Collections`, as any set can ([ADR 0021](0021-collections.md)), and a single-entity navigation field, such as `task.owner`, can be given a new value. Either way, both ends change together: adding a task to `user.tasks` sets the task's `owner` to that user, and setting `task.owner` adds the task to its new owner's `tasks` and removes it from its old owner's.
 
 ### Enforcing cardinality
 
@@ -72,7 +74,7 @@ Both ends of a relation can name the same entity, as long as their navigation fi
 relation User[reports] 0..1 --- 0..* User[manager]
 ```
 
-Here `user.reports` is a `[User]`, and `user.manager` is a `User?`. As in any relation, each field's type comes from the cardinality at the far end: `reports` gets the `0..*` beside `manager`, and `manager` gets the `0..1` beside `reports`. Writing the ends the other way round, `User[manager] 0..1 --- 0..* User[reports]`, would make `manager` the `[User]` and `reports` the `User?`.
+Here `user.reports` is a `SET(User)`, and `user.manager` is a `User?`. As in any relation, each field's type comes from the cardinality at the far end: `reports` gets the `0..*` beside `manager`, and `manager` gets the `0..1` beside `reports`. Writing the ends the other way round, `User[manager] 0..1 --- 0..* User[reports]`, would make `manager` the `SET(User)` and `reports` the `User?`.
 
 ### Entity-typed fields
 
@@ -115,7 +117,8 @@ Earlier ADRs also apply:
 ## Consequences
 
 - Relationships are declared in one place, with both ends and both cardinalities, so a reader sees the whole relationship at once, and neither entity's models need to mention it.
-- Navigation fields are typed from the cardinality, so a program reading `task.owner` gets a `User` and one reading `user.tasks` gets a `[Task]`, without declaring either.
+- Navigation fields are typed from the cardinality, so a program reading `task.owner` gets a `User` and one reading `user.tasks` gets a `SET(Task)`, without declaring either.
+- To-many navigation fields are sets, so they never hold an entity twice and never have the empty slots of a sparse array, but a program cannot rely on the order of the related entities, or reach one by index.
 - Both ends change together, so a relationship is never seen from one end but not the other.
 - Cardinality is checked at compile time where the compiler can tell, and always at runtime, so a stored relationship never breaks it. The cost is that many changes to relationships, and many deletes, can raise `CardinalityViolation`, which actions must list or ignore.
 - Far ends are loaded when read, so obtaining an entity stays cheap, but each navigation field read can fail with `FacetUnavailable`.

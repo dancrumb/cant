@@ -150,7 +150,7 @@ A type and a value are never written in the same place, so `SET(TEXT)` as a type
 
 Arrays, maps and sets are all subtypes of an internal type, `Collection<T>`: a `[T]` is a `Collection<T>`, and so are a `{T}` and a `SET(T)`. Like `Optional<T>` ([ADR 0014](0014-optionals.md)), `Collection<T>` is used by the compiler but cannot be written in a program, so a program cannot declare a parameter, return type or identifier of that type.
 
-An array or a map can be used wherever a `Collection<T>` is expected. This is how the actions of `cant::Collections` (below) accept either kind of collection, with any element type: their parameters are `Collection<T>`s. Since a program cannot write `Collection<T>`, only actions that Cant provides can take one.
+An array, a map or a set can be used wherever a `Collection<T>` is expected. This is how the actions of `cant::Collections` (below) accept any kind of collection, with any element type: their parameters are `Collection<T>`s. Since a program cannot write `Collection<T>`, only actions that Cant provides can take one.
 
 This is true of every generic type for now. `Optional<T>` and `Collection<T>` are internal, and a program cannot write a generic type, so the source EBNF's `Identifier<TypeRef>` form of `TypeRef` is not part of Cant. A program cannot declare a generic type or a generic action of its own.
 
@@ -248,7 +248,7 @@ a == a  // true
 
 ### The `cant::Collections` module
 
-Operations on collections, both arrays and maps, are actions in a module, `cant::Collections`, rather than operators or members. A program imports it like any other module ([ADR 0006](0006-imports.md)):
+Operations on collections, whether arrays, maps or sets, are actions in a module, `cant::Collections`, rather than operators or members. A program imports it like any other module ([ADR 0006](0006-imports.md)):
 
 ```cant
 import Collections into Collections
@@ -293,10 +293,11 @@ Collections add two operators to [ADR 0019](0019-operators.md):
 | `[ … ]` | `a[i]` | An element of an array, or a member of an object. Binds as tightly as `.` and calls. |
 | `in` | `a in b` | Whether `a` is in the collection `b`. Binds at the same level as the other comparisons. |
 
-`in` means different things for arrays and maps:
+`in` means different things for arrays, maps and sets:
 
 - **Arrays.** `a in b` is `true` when some element of `b` is equal to `a`, using `==` ([ADR 0019](0019-operators.md)). So elements are compared by value, except elements that are themselves collections, which are compared by identity. Slots with no element are skipped.
 - **Maps.** `a in b` is `true` when `b` has a member whose name is `a`. It checks names, not values. As with `b[a]`, `a` can be any value that can be converted to text, and the member's name is that text.
+- **Sets.** `a in b` is `true` when `a` is an element of `b`, using the same equality that decides whether two values are the same element ([Sets](#sets)).
 
 ```cant
 "b" in ["a", "b"]                 // true
@@ -306,7 +307,7 @@ Collections add two operators to [ADR 0019](0019-operators.md):
 
 ### Looping
 
-`for item in a` loops over the elements of an array ([Arrays](#arrays)). A `for` loop cannot loop over a map, and doing so is a compile-time error. To go through a map's members, loop over its names with `keys` ([The `cant::Collections` module](#the-cantcollections-module)):
+`for item in a` loops over the elements of an array ([Arrays](#arrays)) or a set ([Sets](#sets)). A `for` loop cannot loop over a map, and doing so is a compile-time error. To go through a map's members, loop over its names with `keys` ([The `cant::Collections` module](#the-cantcollections-module)):
 
 ```cant
 for name in Collections::keys(headers)

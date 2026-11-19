@@ -109,8 +109,6 @@ A result that has not been checked is used, not converted, when it is interpolat
 
 A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by [ADR 0028](0028-extending-base-types.md).
 
-Arrays and maps are converted as [ADR 0021](0021-collections.md) describes: an array's elements, or a map's members written as `name: value`, are converted and joined with `", "`.
-
 ## Consequences
 
 - Every base type except `VOID` has one fixed text form, so the same value always produces the same text. For `FILE` and other faceted types, that form is their identifier.

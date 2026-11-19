@@ -5,7 +5,7 @@
 
 ## Context
 
-Several ADRs rely on **entities**, the records a Cant program stores and works with, but none defines them. [ADR 0010](0010-security.md) defines only the security lines of an entity declaration, and shows `fields` only to give its examples context. The source EBNF that Cant's grammar started from has an `entity` declaration with key-value metadata, `fields`, computed fields and relations between entities, and expressions to create, update, delete and query them.
+Several ADRs rely on **entities**, the records a Cant program stores and works with, but none defines them. [ADR 0010](0010-security.md) defines only the security lines of an entity declaration, and shows `models` and `expose` only to give its examples context. The source EBNF that Cant's grammar started from has an `entity` declaration with key-value metadata, `fields`, computed fields and relations between entities, and expressions to create, update, delete and query them.
 
 ## Decision
 
