@@ -40,7 +40,7 @@ entity Customer
         passwordHash
 ```
 
-- **Models.** An entity is an aggregation of models ([ADR 0027](0027-object-shapes.md)). Its `models` block names them. For now, an entity is made of a single model; entities made of several models are deferred.
+- **Models.** An entity is an aggregation of models ([ADR 0027](0027-object-shapes.md)). Its `models` block names them. For now, an entity is made of a single model; entities made of several models are deferred. A model named in `models` can't have fields that hold entities, since stored entities are linked only by relations ([ADR 0035](0035-entity-relationships.md)).
 - **Exposing and hiding fields.** By default, all of the model's fields are hidden, so an entity exposes nothing it does not say it exposes. An `expose` or `hide` block lists fields by name, one per line, and each field listed is exposed or hidden as that block says. To expose every field, an entity lists `@all` in an `expose` block explicitly; `@all` can also be listed in a `hide` block, though there it only states the default. Fields listed by name override `@all`, so an `expose` block picks fields to expose from a hidden default, and a `hide` block picks fields to hide from `@all` in an `expose` block. `@all` is a built-in value ([ADR 0024](0024-built-in-values.md)), written with `@` so that it cannot be confused with a field called `all`, which an entity can still list by name.
 - **One of each block.** An entity has at most one `expose` block and at most one `hide` block. A second of either is a compile-time error.
 - **No `fields` block.** An entity's fields come from its models. An entity does not declare fields of its own, so it has no `fields` block.

@@ -78,7 +78,20 @@ Here `user.reports` is a `SET(User)`, and `user.manager` is a `User?`. As in any
 
 ### Entity-typed fields
 
-A model field cannot have an entity type. Entities are linked only by relations, so a field such as `owner: User` in a model is a compile-time error. A model that is not part of an entity, such as one used as a parameter type, cannot hold an entity either.
+A model's field can have an entity type, as in `owner: User`, or a type that holds entities, such as `[User]` or another model with an entity-typed field ([ADR 0027](0027-object-shapes.md)). Such a model is used as a value: as a parameter's or a return type, in a request body or an event's message ([ADR 0024](0024-built-in-values.md)), or as an error's `data` ([ADR 0023](0023-error-handling.md)). A field that holds an entity holds the entity value itself, with its `@id` and, once loaded, its contents ([ADR 0029](0029-accessing-facets.md)).
+
+```cant
+model InvoiceRequest
+    organization: Organization
+    lines: [NUMBER]
+```
+
+Stored entities are still linked only by relations, so a model whose fields hold entities can't be one of an entity's models ([ADR 0022](0022-entities.md)):
+
+- A model holds entities when one of its fields has an entity type, or a type that holds one: a collection of entities, an optional entity, or a model that itself holds entities. Naming such a model in an entity's `models` block is a compile-time error.
+- An entity's field of type `UNKNOWN` could be given an entity at runtime ([ADR 0033](0033-unknown-type.md)). Giving one a value that is, or holds, an entity panics ([ADR 0023](0023-error-handling.md)).
+
+So two stored entities are always linked by a relation, with both ends and both cardinalities enforced, and never by a field that one of them holds.
 
 ### `identity`
 
@@ -122,5 +135,5 @@ Earlier ADRs also apply:
 - Both ends change together, so a relationship is never seen from one end but not the other.
 - Cardinality is checked at compile time where the compiler can tell, and always at runtime, so a stored relationship never breaks it. The cost is that many changes to relationships, and many deletes, can raise `CardinalityViolation`, which actions must list or ignore.
 - Far ends are loaded when read, so obtaining an entity stays cheap, but each navigation field read can fail, and panics when it does.
-- Model fields cannot hold entities, so relationships are the only way to link entities, and models used outside entities cannot refer to stored records.
+- Models used as values can hold entities, so a request, a message or an action's parameters can refer to stored records directly. Models that make up entities can't, so relationships are still the only way to link stored entities, and every link has both ends and both cardinalities.
 - `relation` becomes a keyword reserved everywhere, and the parser needs to support relations.

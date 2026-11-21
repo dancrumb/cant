@@ -14,7 +14,7 @@ Earlier ADRs already constrain it:
 - Groups are entities with a `group` line, and roles are declared on them with `role` lines. A permission is held within a group, and `permissions` declarations grant them to a group kind's members, or to its members with a role ([ADR 0010](0010-security.md)).
 - How a refused request is reported, such as with an HTTP 401 or 403, is up to the interpreter ([ADR 0010](0010-security.md)).
 - A trigger source is outside the language, and is implemented by the interpreter or whatever provides it ([ADR 0025](0025-trigger-sources.md)).
-- Entities are linked only by relations, through navigation fields ([ADR 0035](0035-entity-relationships.md)).
+- Stored entities are linked only by relations, through navigation fields ([ADR 0035](0035-entity-relationships.md)).
 - A `TestCase` trigger sets `@subject` directly, without authenticating anything ([ADR 0037](0037-test-case-trigger-source.md)).
 
 ## Decision
