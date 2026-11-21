@@ -2,6 +2,10 @@
   dir: packages/compiler
   intents:
     - compile-and-build
+"@dancrumb/cant-compiler@0.10.1":
+  dir: packages/compiler
+  intents:
+    - fair-chicken-warn
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -24,6 +28,14 @@
   dir: packages/compiler
   intents:
     - shared-evaluator
+"@dancrumb/cant-interpreter@0.10.1":
+  dir: packages/interpreter
+  intents:
+    - fair-chicken-warn
+"@dancrumb/cant-lsp@0.10.1":
+  dir: packages/lsp
+  intents:
+    - fair-chicken-warn
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -32,6 +44,10 @@
   dir: packages/shared
   intents:
     - compile-and-build
+"@dancrumb/cant-shared@0.10.1":
+  dir: packages/shared
+  intents:
+    - fair-chicken-warn
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:

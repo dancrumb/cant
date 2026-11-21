@@ -1,5 +1,11 @@
 # @dancrumb/cant-interpreter
 
+## 0.10.1
+
+### Patch Changes
+
+- initial publish of some packages
+
 ## 0.10.0
 
 ### Patch Changes
