@@ -1,6 +1,6 @@
 # 0036. Native modules
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-21
 
 ## Context
@@ -60,7 +60,7 @@ A **native module** is a Cant module that has at least one native action. It is 
 
 The Cant declarations are the single source of truth for a native action's interface. The compiler reads only Cant, so it checks calls to a native action exactly as it checks calls to any other action. The compiler can also generate TypeScript from each native module's Cant declarations, so that `tsc` checks the implementation against them. Neither side is written twice. For each native action, the generated TypeScript has:
 
-- the type of its implementation: its arguments object, and its return type, or a `Promise` of it;
+- the type of its implementation: its arguments object, its context (see [Calling a native action](#calling-a-native-action)), and its return type, or a `Promise` of it;
 - a constructor for each error in its `raises` clause, which takes that error's `data`, typed from its `data` model, and returns a `CantError` (see [Errors](#errors)).
 
 The interpreter loads the module with JavaScript's dynamic `import()`. Cant doesn't compile TypeScript: the string after `native` names whatever the interpreter can load, normally the JavaScript that the TypeScript compiles to.
@@ -71,14 +71,14 @@ The standard library modules, such as `cant::Collections`, are native modules pr
 
 ### Calling a native action
 
-A native action's implementation is a function that takes a single object, with one property for each of the action's parameters, by name, and returns the action's value, or a `Promise` of it:
+A native action's implementation is a function that takes two objects, its arguments, with one property for each of the action's parameters, by name, and its context, and returns the action's value, or a `Promise` of it:
 
 ```ts
 // Generated from the Cant declarations
 import { type ChargeCard as ChargeCardImpl, PaymentDeclined } from "./payments.cant-types.js";
 
-export const ChargeCard: ChargeCardImpl = async ({ token, amount, currency }) => {
-  const result = await provider.charge({ token, amount, currency });
+export const ChargeCard: ChargeCardImpl = async ({ token, amount, currency }, { signal }) => {
+  const result = await provider.charge({ token, amount, currency }, { signal });
   if (!result.ok) {
     throw PaymentDeclined({ reason: result.reason });
   }
@@ -87,9 +87,25 @@ export const ChargeCard: ChargeCardImpl = async ({ token, amount, currency }) =>
 ```
 
 - **Arguments.** The interpreter evaluates arguments and defaults as for any call ([ADR 0020](0020-action-parameters.md)), then passes them by name. An optional parameter with a default always has a value. An optional parameter with no default that the caller left out is `undefined`.
-- **Waiting.** If the implementation returns a `Promise`, the interpreter waits for it to settle before the calling action carries on, so a call to a native action reads, and behaves, like any other call. Whether the interpreter runs other actions, such as those of other triggers, while it waits is up to the interpreter.
+- **Context.** The second object is the call's context. For now, it has one property, `signal`, an `AbortSignal` that is aborted if the call times out (see [Timeouts](#timeouts)). More properties may be added later, so implementations shouldn't depend on it having only this one.
+- **Waiting.** If the implementation returns a `Promise`, the interpreter waits for it to settle before the calling action carries on, so a call to a native action reads, and behaves, like any other call.
 - **Return values.** The value an implementation returns, or its `Promise` resolves to, is the action's result. For an action whose return type is `VOID`, the value is ignored.
 - **State.** A native module can keep state in its JavaScript module, such as a connection or a cache. It lasts as long as the interpreter keeps the module loaded, which Cant does not define.
+
+#### Concurrency
+
+While the interpreter waits for a native action's `Promise`, it may run other actions, such as those of other triggers, as Node.js runs other work while a `Promise` is pending. The calling action itself doesn't carry on until the `Promise` settles, so within one action, statements still run one after another.
+
+- **Values passed to a call.** The collections and objects passed to a native action can only be reached from the action that called it, and the actions that called that one. Constants can't hold collections, and each use of a constant object gives a new one ([ADR 0034](0034-top-level-constants.md), [ADR 0023](0023-error-handling.md)), so no other trigger's action can reach them. They can't change while the native call is waiting, except through the native code itself.
+- **Shared state.** What other actions can change in the meantime is state outside the program's values: stored entities and files ([ADR 0022](0022-entities.md), [ADR 0015](0015-files.md)), and the native module's own state. Cant makes no guarantee about a native module's state across calls, so a native module that keeps state has to protect it from calls that interleave, as any Node.js code does.
+
+#### Timeouts
+
+The interpreter may time a native call out, if its `Promise` hasn't settled after a limit set in the interpreter's configuration. How long the limit is, and whether there is one, is not part of the language.
+
+- When a call times out, the interpreter aborts the call's `signal`, so native code that passes it on, such as to `fetch`, can stop its work.
+- A timeout panics ([ADR 0023](0023-error-handling.md)), like a boundary failure. It is not an error the program can check, pass or ignore, so no action has to declare it.
+- If the `Promise` settles after the call has timed out, its value or error is ignored.
 
 ### Representing values
 
@@ -179,13 +195,6 @@ The types and helpers that native code uses, such as `CantError` and `CantFile`,
 
 Native code runs with everything the interpreter's Node.js process can do, outside Cant's checks. It isn't sandboxed and needs no permission. Importing a module that has native actions means trusting that code, as with any npm dependency.
 
-## Open questions
-
-These need answers before this ADR is accepted:
-
-- **Concurrency.** While the interpreter waits for a native action's `Promise`, it may run other actions ([Calling a native action](#calling-a-native-action)). Those can change a native module's state, or a collection or object that was passed to the native action, in the middle of the call. Does Cant guarantee anything here, such as running one action at a time, or does a native module have to protect its own state?
-- **Cancellation and timeouts.** A `Promise` that never settles stalls the calling action forever. Can the interpreter time a native call out, and if so, is that a panic or a built-in error? Can native code find out that a call has been abandoned, such as with an `AbortSignal`?
-
 ## Deferred
 
 - **Entities.** An entity type can't appear in a native action's signature for now, as a parameter, a return type, or inside a collection or model, until the keywords for creating, loading and saving entities are specified ([ADR 0022](0022-entities.md)). Using one is a compile-time error.
@@ -203,6 +212,8 @@ These need answers before this ADR is accepted:
 - Every native implementation is found when the program starts, so a missing module or export stops the program from starting, rather than panicking the first time a trigger happens to call the action. The cost is that every native module is loaded, and its set-up run, at start-up, even if none of its actions is ever called.
 - A native module is an ordinary Cant module, so no new module type, import form or resolution rule is needed, and a module can implement some actions in Cant and some in TypeScript.
 - Named arguments arrive as one object, and `Promise`s are waited for, so existing asynchronous libraries can be wrapped with little code.
+- Other actions can run while a native call waits, so a slow call doesn't hold up other triggers. The values a call is given can't be changed by another trigger while it waits, but a native module's own state can, so a native module that keeps state has to guard it.
+- A native call that takes too long can be timed out, and its `AbortSignal` lets native code stop its work. A timeout panics, so a program can't recover from one, and doesn't have to declare it. Whether calls time out, and after how long, depends on how the interpreter is configured, not on the program.
 - Values cross the boundary as plain JavaScript values, without copying, so calls are cheap and native code can use familiar types. The cost is that the interpreter has to hold Cant values as those same JavaScript values, and native code can break Cant's guarantees through a reference in ways that can't all be checked.
 - Every returned value is checked against the signature, so a mistake in native code is caught at the boundary, as a panic, rather than spreading through the program as a value of the wrong type. Checking large collections and objects on every return has a cost.
 - Native code raises only declared errors, and anything else panics, so Cant's checked errors stay complete: a caller handles every error a native action can give, and no unexpected JavaScript exception reaches Cant code as a value.
