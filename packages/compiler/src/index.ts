@@ -22,7 +22,7 @@ export type { Host } from './host.ts';
 export { findManifest, MANIFEST, readManifest } from './manifest.ts';
 export type { Manifest } from './manifest.ts';
 
-export { loadProgram } from './modules.ts';
+export { loadProgram, symbolOf } from './modules.ts';
 export type {
   ImportedSymbol,
   ImportTarget,

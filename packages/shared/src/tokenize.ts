@@ -23,7 +23,7 @@ export interface Token {
  * Words reserved everywhere. A program cannot use them as names. Each comes from the ADR that
  * introduced it, in docs/adr.
  */
-const KEYWORDS = new Set([
+export const KEYWORDS: ReadonlySet<string> = new Set([
   // 0005, 0006
   'import',
   'namespace',

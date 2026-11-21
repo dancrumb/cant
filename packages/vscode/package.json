@@ -3,7 +3,7 @@
   "displayName": "Cant",
   "version": "0.7.0",
   "private": true,
-  "description": "Semantic highlighting for the Cant language, including cant code blocks in Markdown",
+  "description": "Language support for Cant: problems, go to definition, references, hover, outline and completion, and highlighting, including cant code blocks in Markdown",
   "license": "MIT",
   "publisher": "dancrumb",
   "type": "module",
@@ -15,6 +15,7 @@
     "Programming Languages"
   ],
   "activationEvents": [
+    "onLanguage:cant",
     "onLanguage:markdown"
   ],
   "contributes": {
@@ -33,17 +34,19 @@
     ]
   },
   "scripts": {
-    "build": "tsc && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs --log-level=warning",
+    "build": "tsc && esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.cjs --log-level=warning && esbuild @dancrumb/cant-lsp/server --bundle --platform=node --format=cjs --outfile=dist/server.cjs --log-level=warning",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint ."
   },
   "dependencies": {
+    "@dancrumb/cant-lsp": "workspace:^",
     "@dancrumb/cant-shared": "workspace:^",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.2.0"
+    "unist-util-visit": "^5.2.0",
+    "vscode-languageclient": "^11.0.0"
   },
   "devDependencies": {
     "@types/vscode": "~1.100.0",

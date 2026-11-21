@@ -8,7 +8,11 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./server": "./dist/server.js"
+  },
+  "bin": {
+    "cant-lsp": "./dist/server.js"
   },
   "files": [
     "dist",
@@ -18,7 +22,13 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@dancrumb/cant-shared": "workspace:^"
+    "@dancrumb/cant-compiler": "workspace:^",
+    "@dancrumb/cant-shared": "workspace:^",
+    "vscode-languageserver": "^11.0.0",
+    "vscode-languageserver-textdocument": "^1.0.16"
+  },
+  "devDependencies": {
+    "@types/unist": "^3.0.3"
   },
   "publishConfig": {
     "access": "public"
@@ -27,6 +37,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test \"dist/**/*.test.js\""
   }
 }
