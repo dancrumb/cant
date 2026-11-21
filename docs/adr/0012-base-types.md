@@ -30,7 +30,7 @@ action Greet(name: TEXT, greeting?: TEXT := "Hello, "): TEXT
 
 action SayHello(): VOID
     body
-        IO::stdout.write("Hello World!")
+        IO::write("Hello World!")
 ```
 
 There is a single `NUMBER` type, rather than separate integer and decimal types. A `NUMBER` is a 64-bit IEEE 754 double, as in JavaScript, and is written with JavaScript's number literals ([ADR 0019](0019-operators.md)). Whole numbers are exact up to 2<sup>53</sup>, but fractional arithmetic can lose precision: `0.1 + 0.2` is `0.30000000000000004`.

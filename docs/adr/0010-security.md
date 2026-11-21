@@ -74,6 +74,7 @@ model MembershipRecord
     joined: DATE_TIME
 
 entity Membership
+    membership user in organization
     identity organization, user
     models
         MembershipRecord
@@ -84,7 +85,7 @@ relation Organization[memberships] 1 --- 0..* Membership[organization]
 relation User[memberships] 1 --- 0..* Membership[user]
 ```
 
-`organization` and `user` are navigation fields, which the two relations add to `Membership` ([ADR 0035](0035-entity-relationships.md)). Each reaches exactly one entity, so an identity can name it.
+`organization` and `user` are navigation fields, which the two relations add to `Membership` ([ADR 0035](0035-entity-relationships.md)). Each reaches exactly one entity, so an identity can name it. The `membership` line makes each `Membership` make its user a member of its organization ([ADR 0032](0032-authentication.md)).
 
 For a subject entity, the identity is what an authenticated request is matched against to find the subject, so every subject entity must have an `identity`.
 

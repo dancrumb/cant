@@ -67,7 +67,7 @@ The interpreter loads the module with JavaScript's dynamic `import()`. Cant does
 
 The interpreter loads every native action's module when the program starts, before any trigger runs, and checks that it exports a function with the action's name. If a module can't be loaded, or doesn't export that function, the program does not start, and the interpreter reports which action is missing its implementation. So a call to a native action never finds its implementation missing. Loading a module runs its top-level code, so a native module's set-up happens when the program starts.
 
-The standard library modules, such as `cant::Collections`, are native modules provided by the interpreter. Their declarations may use internal types such as `Collection<T>` ([ADR 0021](0021-collections.md)), which no other module can, since a program can't write them.
+The standard library modules, such as `cant::Collections`, are native modules provided by the interpreter. Their declarations may use internal types such as `Collection<T>` ([ADR 0021](0021-collections.md)), which no other module can, since a program can't write them. They may also take and return entities, including inside collections, such as the `SET(Task)` that `Collections::add` is given for a navigation field ([ADR 0035](0035-entity-relationships.md)), which other native actions can't for now (see [Deferred](#deferred)).
 
 ### Calling a native action
 

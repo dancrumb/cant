@@ -62,6 +62,8 @@ Deleting an entity removes it from every relationship it is part of. If that wou
 
 Like the errors from assignment and `delete` ([ADR 0023](0023-error-handling.md)), `CardinalityViolation` is raised from the action, so an action whose changes can raise it must list it in its `raises` clause, unless the change is ignored.
 
+This includes a call to `add` or `remove` whose set is a to-many navigation field ([ADR 0021](0021-collections.md)). Such a call is treated as a statement that changes the relationship, as an assignment to a navigation field is, not as a call with a result: `CardinalityViolation` is raised from the calling action, not returned in the call's result. Writing `ignore` before it, as in `ignore Collections::remove(set := user.tasks, value := task)`, ignores the error as it does before an assignment ([ADR 0023](0023-error-handling.md)): if the change would break a cardinality, it isn't made, and the action carries on.
+
 ### Loading
 
 The entities at the far end of a navigation field are loaded when the field is read, not when the entity that has the field is obtained. Reading a navigation field derives a facet ([ADR 0017](0017-faceted-types.md)), so it can fail, and the program panics when it does ([ADR 0023](0023-error-handling.md)). When facets are derived is decided by [ADR 0029](0029-accessing-facets.md).
@@ -102,6 +104,7 @@ model MembershipRecord
     joined: DATE_TIME
 
 entity Membership
+    membership user in organization
     identity organization, user
     models
         MembershipRecord

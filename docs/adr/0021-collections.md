@@ -274,7 +274,7 @@ For now, the module has these actions:
 
 For sets ([Sets](#sets)), which have no indexes, so cannot be changed with `:=` or `delete`:
 
-- **`add(set, value)`** adds `value` to `set`, changing it in place. If `value` is already in the set, the set does not change.
+- **`add(set, value)`** adds `value` to `set`, changing it in place. When `set` is a to-many navigation field, the call changes a relationship, and can raise `CardinalityViolation` from the calling action, as `remove` can ([ADR 0035](0035-entity-relationships.md)). If `value` is already in the set, the set does not change.
 - **`remove(set, value)`** removes `value` from `set`, changing it in place. If `value` is not in the set, the set does not change, as `delete` does nothing for a member that is not there.
 - **`intersect(first, second)`** returns a new set holding the elements that are in both `first` and `second`.
 - **`difference(base, exclude)`** returns a new set holding the elements of `base` that are not in `exclude`: `base` minus `exclude`.
