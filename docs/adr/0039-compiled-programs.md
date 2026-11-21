@@ -41,11 +41,11 @@ Its TypeScript types are declared in `@dancrumb/cant-shared` ([ADR 0002](0002-sh
 interface CompiledProgram {
   /** The version of this structure. */
   format: 1;
+  /** Identifies this build, so that its source map can be matched with it. */
+  build: string;
   /** The entry module. */
   entry: ModuleId;
-  /** Every module the program uses, including the standard library modules it imports. */
-  modules: Record<ModuleId, CompiledModule>;
-  /** Every declaration in those modules, by its symbol. */
+  /** Every declaration in every module the program uses, by its symbol. */
   types: Record<SymbolId, TypeDeclaration>;      // enums, models, entities and errors
   actions: Record<SymbolId, ActionDeclaration>;
   constants: Record<SymbolId, Value>;
@@ -55,11 +55,15 @@ interface CompiledProgram {
   triggers: Trigger[];
 }
 
-interface CompiledModule {
-  /** The module's source, for reporting positions, such as in a panic. */
-  source?: string;
+/** Where something is in the program's source: its module, and where it starts and ends in it, 1-based. */
+interface SourcePosition {
+  module: ModuleId;
+  start: { line: number; column: number };
+  end: { line: number; column: number };
 }
 ```
+
+A compiled program doesn't hold the program's source. Positions only name a module, a line and a column, and the source that shows what is there is kept in a separate [source map](#source-maps).
 
 #### Modules and symbols
 
@@ -155,7 +159,7 @@ An action's body, defaults, trigger arguments, `auth` rules and assertions are h
   - `toEnum`, which checks a value against an enum's values, where a value of its value type is given for an enum ([ADR 0013](0013-enums.md));
   - `unwrap`, where the value of a result that may hold an error is used without being checked, which panics if it holds one ([ADR 0023](0023-error-handling.md));
   - the element type of each array, map and set value, so an empty collection has the type it was given ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)).
-- **Positions are kept.** Every statement and expression keeps its position in its module, so the interpreter can say where a panic or a failed assertion happened. An action's `position` names its module.
+- **Positions are kept.** Every statement and expression keeps its `SourcePosition`, so the interpreter can say where a panic, a failed assertion or a boundary failure happened.
 
 The compiler doesn't otherwise change the code: it doesn't optimise it, or reorder it.
 
@@ -163,36 +167,73 @@ The compiler doesn't otherwise change the code: it doesn't optimise it, or reord
 
 `triggers` holds only the entry module's triggers, since triggers in imported modules never take effect ([ADR 0006](0006-imports.md)). Each names its action's symbol, its source, its parameters as constant values, and its arguments, `auth` rule and assertions as code. `TestCase` triggers are included like any other. The interpreter decides which sources fire, so it skips them unless it is running the program's tests ([ADR 0037](0037-test-case-trigger-source.md)).
 
+### Source maps
+
+Alongside a compiled program, the compiler produces a **source map**, which holds the source of each of the program's modules:
+
+```ts
+interface SourceMap {
+  format: 1;
+  /** The build of the compiled program this source map belongs to. */
+  build: string;
+  /** Each module's source, by its module ID. */
+  sources: Record<ModuleId, string>;
+}
+```
+
+The interpreter uses a source map, when it is given one, to report where something happened in the program. Without one, it still reports the position, as its module, line and column:
+
+```text
+lib/payments.cant:12:9: panic: The result of ChargeCard held PaymentDeclined, which was used without being checked.
+```
+
+With one, it also shows the line of source the position points to, with the part it is about underlined, as the compiler shows its diagnostics:
+
+```text
+lib/payments.cant:12:9: panic: The result of ChargeCard held PaymentDeclined, which was used without being checked.
+   |
+12 |         total := ChargeCard(card := card).total
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^^
+```
+
+- **Matching builds.** A compiled program's `build` identifies it, such as by a hash of its contents. The interpreter only uses a source map whose `build` is the compiled program's, and ignores any other, as if it had none, so it never shows source from a different version of the program.
+- **Standard library modules** have no Cant source, so they have no entry in `sources`. Positions in them are reported without source.
+- **Not JavaScript source maps.** JavaScript's source maps relate positions in generated text to positions in its source. A compiled program isn't text whose positions mean anything: its nodes already hold their positions in the source. So a Cant source map only needs to hold the source itself.
+
+Keeping the source out of the compiled program keeps it small, and lets a program be deployed without its source, when its errors only need positions.
+
 ### Passing it to the interpreter
 
 The compiler's API gives a compiled program, or the diagnostics that stopped it:
 
 ```ts
-compile(entry: string, host?: Host): { program: CompiledProgram } | { diagnostics: Diagnostic[] };
+compile(entry: string, host?: Host): { program: CompiledProgram; sourceMap: SourceMap } | { diagnostics: Diagnostic[] };
 ```
 
-The interpreter's API takes a compiled program and the program's root, which it loads native modules from:
+The interpreter's API takes a compiled program, the program's root, which it loads native modules from, and its source map, if there is one:
 
 ```ts
-run(program: CompiledProgram, options: { root: string; … }): …;
+run(program: CompiledProgram, options: { root: string; sourceMap?: SourceMap; … }): …;
 ```
 
 #### On the command line
 
-`cant build` compiles a program and writes the compiled program to disk, as JSON, for running later or elsewhere:
+`cant build` compiles a program and writes the compiled program and its source map to disk, as JSON, for running later or elsewhere:
 
 ```sh
-cant build main.cant                  # writes main.compiled.json in the program's root
-cant build main.cant -o out/app.json  # writes out/app.json
+cant build main.cant                    # writes main.compiled.json and main.compiled.json.map in the program's root
+cant build main.cant -o out/app.json    # writes out/app.json and out/app.json.map
+cant build main.cant --no-source-map    # writes main.compiled.json only
 ```
 
-- **Where it writes.** Without `-o`, it writes `<entry>.compiled.json`, named after the entry module without its `.cant`, in the program's root: the directory that holds its `cant.json`, or the entry module's directory if it has none ([ADR 0031](0031-module-resolution.md)).
-- **Problems.** If the program has compile-time errors, `cant build` reports them, as `cant check` does, and writes nothing. It doesn't leave an earlier compiled program in place either: it removes the file it would have written, so a compiled program on disk always matches the source it was last built from.
+- **Where it writes.** Without `-o`, it writes `<entry>.compiled.json`, named after the entry module without its `.cant`, in the program's root: the directory that holds its `cant.json`, or the entry module's directory if it has none ([ADR 0031](0031-module-resolution.md)). The source map is written beside it, with `.map` added to its name.
+- **Without a source map.** `--no-source-map` writes only the compiled program, and removes a source map left beside it by an earlier build.
+- **Problems.** If the program has compile-time errors, `cant build` reports them, as `cant check` does, and writes nothing. It doesn't leave an earlier build in place either: it removes the files it would have written, so a compiled program on disk always matches the source it was last built from.
 
 `cant run` and `cant test` take either an entry module or a compiled program:
 
-- Given an entry module, such as `cant run main.cant`, they compile it and pass the compiled program straight to the interpreter, with nothing written to disk.
-- Given a compiled program, such as `cant run main.compiled.json`, they run it without compiling. The program's root is then the directory the compiled program is in, which is where native modules are loaded from, so a compiled program has to sit in its program's root, as `cant build` puts it by default, with its native modules beside it. `--root` names another directory.
+- Given an entry module, such as `cant run main.cant`, they compile it and pass the compiled program and its source map straight to the interpreter, with nothing written to disk.
+- Given a compiled program, such as `cant run main.compiled.json`, they run it without compiling. The program's root is then the directory the compiled program is in, which is where native modules are loaded from, so a compiled program has to sit in its program's root, as `cant build` puts it by default, with its native modules beside it. `--root` names another directory. If the compiled program's source map is beside it, with `.map` added to its name, they give that to the interpreter too.
 
 ### Versions
 
@@ -200,7 +241,7 @@ A compiled program is made by one version of the compiler for the same version o
 
 ## Deferred
 
-- **Smaller programs.** A compiled program holds every declaration of every module it uses, and may hold each module's source. Leaving out what no trigger can reach, and the sources, can come later.
+- **Smaller programs.** A compiled program holds every declaration of every module it uses. Leaving out what no trigger can reach can come later.
 - **Bytecode.** The interpreter walks the tree. A lower-level form, such as bytecode, can come later if the tree is too slow.
 - **Separate compilation.** The compiler compiles the whole program at once. Compiling modules separately, and linking them, can come later.
 
@@ -211,4 +252,5 @@ A compiled program is made by one version of the compiler for the same version o
 - The compiler and the interpreter share one evaluator, so they can't disagree about what an expression's value is. A change to how values behave is made once, in `@dancrumb/cant-shared`.
 - Programs can be compiled once and run many times, or compiled on one machine and run on another, since the structure is JSON and doesn't depend on where the program was on disk.
 - A compiled program is tied to one version of the interpreter, so it has to be compiled again after an upgrade.
+- The program's source is only in its source map, so a program can run without it, with errors that give only positions. Keeping a source map with the compiled program it was built with is up to whoever deploys them; one from another build is ignored rather than shown.
 - Language servers and other tools can keep using the compiler's own structures, such as its symbol tables and references; the compiled program is only what the interpreter needs.
