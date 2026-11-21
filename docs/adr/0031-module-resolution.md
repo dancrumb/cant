@@ -23,7 +23,7 @@ These need answers before this ADR is accepted:
 - **Versions.** How does a program choose a version of a module, and is there a lock file?
 - **Local modules.** Can a symbolic identifier refer to a module in the program's own project, or only URL strings can?
 - **Caching and security.** Are fetched modules cached, and checked for integrity?
-- **Module types.** Which values of `as` are supported, and how is each type of module turned into Cant symbols?
+- **Module types.** Which values of `as` are supported, and how is each type of module turned into Cant symbols? A module whose actions are implemented in TypeScript is still Cant source, so it needs no type of its own ([ADR 0036](0036-native-modules.md)).
 
 ## Consequences
 

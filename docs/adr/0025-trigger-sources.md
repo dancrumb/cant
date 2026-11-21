@@ -71,7 +71,7 @@ Earlier ADRs already constrain trigger sources:
 
 ## Deferred
 
-- **Where sources come from.** To be decided later. Is a source's definition (its name, built-ins and parameters) written in Cant, for example as a declaration whose implementation the interpreter supplies, or is it built into the interpreter? Can a module provide sources that a program imports ([ADR 0006](0006-imports.md))? Are source names keywords, or ordinary names that can be namespaced, as in `on http::Request`?
+- **Where sources come from.** To be decided later. Is a source's definition (its name, built-ins and parameters) written in Cant, for example as a declaration whose implementation the interpreter supplies, or is it built into the interpreter? Can a module provide sources that a program imports ([ADR 0006](0006-imports.md)), such as a native module ([ADR 0036](0036-native-modules.md))? Are source names keywords, or ordinary names that can be namespaced, as in `on http::Request`?
 
 ## Consequences
 
