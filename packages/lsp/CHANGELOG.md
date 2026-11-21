@@ -1,5 +1,13 @@
 # @dancrumb/cant-lsp
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies:
+  - @dancrumb/cant-compiler@0.10.0
+  - @dancrumb/cant-shared@0.10.0
+
 ## 0.9.0
 
 ### Patch Changes

@@ -1,3 +1,7 @@
+"@dancrumb/cant-compiler@0.10.0":
+  dir: packages/compiler
+  intents:
+    - compile-and-build
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -24,6 +28,10 @@
   dir: packages/lsp
   intents:
     - language-server
+"@dancrumb/cant-shared@0.10.0":
+  dir: packages/shared
+  intents:
+    - compile-and-build
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
