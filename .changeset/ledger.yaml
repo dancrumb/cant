@@ -16,6 +16,10 @@
   dir: packages/compiler
   intents:
     - language-server
+"@dancrumb/cant-compiler@0.9.0":
+  dir: packages/compiler
+  intents:
+    - shared-evaluator
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -62,6 +66,10 @@
   dir: packages/shared
   intents:
     - language-server
+"@dancrumb/cant-shared@0.9.0":
+  dir: packages/shared
+  intents:
+    - shared-evaluator
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
@@ -76,6 +84,11 @@ cant-vscode@0.8.0:
   dir: packages/vscode
   intents:
     - language-server
+cant-vscode@0.9.0:
+  dir: packages/vscode
+  intents:
+    - vscode-icon
+    - vscode-publishing
 cant@0.2.0:
   dir: ""
   intents:
