@@ -58,7 +58,7 @@ entity Customer
 - **Storage.** The interpreter stores entities. Where they are kept, and how, is up to the interpreter, not the program, as it is for files ([ADR 0015](0015-files.md)).
 - **No metadata lines.** The source EBNF allows key-value metadata lines in an entity. Cant leaves them out: an entity's block holds only its security lines, its `models` block, and its `expose` and `hide` blocks.
 - **Keywords.** `models`, `expose` and `hide` are only special inside an entity's block, like the security lines `subject`, `identity`, `group` and `role` ([ADR 0010](0010-security.md)), and stay usable as names elsewhere. So is `as` in an `expose` block, as it is in an import ([ADR 0006](0006-imports.md)). `@all` is a built-in value, and `entity` is reserved everywhere.
-- **Security lines.** The `subject`, `identity`, `group` and `role` lines of [ADR 0010](0010-security.md) still go in an entity's block. `entity` starts a top-level declaration and is reserved everywhere ([ADR 0010](0010-security.md)).
+- **Security lines.** The `subject`, `identity`, `group` and `role` lines of [ADR 0010](0010-security.md), and the `membership` line of [ADR 0032](0032-authentication.md), still go in an entity's block. `entity` starts a top-level declaration and is reserved everywhere ([ADR 0010](0010-security.md)).
 
 Earlier ADRs already fix these:
 
@@ -68,7 +68,6 @@ Earlier ADRs already fix these:
 
 ## Deferred
 
-- **Membership and roles.** How subjects become members of groups, and how roles are assigned, is left to [ADR 0032](0032-authentication.md).
 - **Creating, updating and deleting entities.** Entities will be created, updated and deleted with Cant keywords that are not specified yet. That includes how a program gives a hidden field a value, such as a password hash, and whether an object of the entity's model can be used to create or update an entity. `delete` is not one of them for now: it removes collection members ([ADR 0021](0021-collections.md)) and clears optional fields of models and entities ([ADR 0027](0027-object-shapes.md)), but does not delete a stored entity.
 - **Querying entities.** Finding entities, by `@id`, by `identity` fields or by other conditions, and paging and ordering the results, will also be done with Cant keywords that are not specified yet.
 - **Relationships.** How one entity refers to another, and how one-to-many and many-to-many relationships are declared, are left to [ADR 0035](0035-entity-relationships.md).

@@ -26,11 +26,13 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 An entity declaration can contain these security lines, in any order, alongside its `models`, `expose` and `hide` blocks ([ADR 0022](0022-entities.md)):
 
 ```ebnf
-EntitySecurity  = SubjectKeyword | Identity | GroupDefiner | RoleDefiner ;
+EntitySecurity  = SubjectKeyword | Identity | GroupDefiner | RoleDefiner | MembershipDefiner ;
 Identity        = IdentityKeyword, Identifier, {",", Identifier} ;
 GroupDefiner    = GroupKeyword, Identifier ;
 RoleDefiner     = RoleKeyword, Identifier ;
 ```
+
+`MembershipDefiner`, the `membership` line, is defined in [ADR 0032](0032-authentication.md).
 
 ```cant
 model UserRecord
@@ -94,7 +96,7 @@ For a subject entity, the identity is what an authenticated request is matched a
 
 `role` declares a role in the application's security model: one that a member can have within a group of this entity's kind. The role itself is not an entity; it is a name that `permissions` declarations and `auth` rules refer to. An entity can declare any number of roles, but only if it also has a `group` line. A `role` in an entity with no `group` is an error, since there would be no group for a member to hold the role in. Role names are scoped to their group kind, so two group kinds can both have an `admin` role.
 
-How subjects become members of groups, and how roles are assigned, is left to [ADR 0032](0032-authentication.md).
+A subject becomes a member of a group, with roles in it, through a membership entity: an entity with a `membership` line that the program declares and stores, which relates a subject to a group and holds the subject's roles there ([ADR 0032](0032-authentication.md)).
 
 ### Permissions
 
@@ -137,7 +139,7 @@ An `auth` block appears in a trigger ([ADR 0009](0009-triggers.md)) and holds on
 
 `auth` blocks are handled by the interpreter. Each time a trigger fires, the interpreter:
 
-1. authenticates the request, using an algorithm that [ADR 0032](0032-authentication.md) will define, and finds `@subject`, the subject that caused the trigger, by matching the authenticated request against the `identity` of each subject entity; if none matches, the subject is anonymous;
+1. finds `@subject`, the subject that caused the trigger, from the claims the trigger's source gives once it has authenticated the request: the claims name a subject entity and give its `identity` values, and the stored entity with those values is the subject. If there are no claims, or they match no stored subject, the subject is anonymous ([ADR 0032](0032-authentication.md));
 2. evaluates the rule, including the group expression in each `within`, and runs the action only if it is `true`.
 
 If the rule is `false`, the action does not run. How the interpreter reports that to the caller, such as with an HTTP 401 or 403 response, is up to the interpreter.
@@ -211,7 +213,7 @@ The same rules apply as for `instanceOf`: narrowing follows the logic of the who
 
 `entity` and `permissions` start top-level declarations, so they are reserved everywhere. The other words in this ADR are only special where they are used, and stay usable as identifiers elsewhere:
 
-- `subject`, `identity`, `group` and `role`, in an entity's block;
+- `subject`, `identity`, `group`, `role` and `membership` ([ADR 0032](0032-authentication.md)), in an entity's block;
 - `has`, in a `permissions` declaration;
 - `can`, `is` and `within`, in a predicate.
 
@@ -224,5 +226,5 @@ The same rules apply as for `instanceOf`: narrowing follows the logic of the who
 - Many mistakes in `auth` rules, such as a misspelled role or permission, are caught by the compiler rather than when a request is refused.
 - Because `auth` rules are ordinary expressions, they can use every operator, and the same predicates can be checked inside an action when a decision depends on more than the trigger.
 - Permissions are always scoped to a group, which suits multi-tenant programs but makes "global" permissions (for example, for site administrators) awkward to express.
-- Security depends on entities ([ADR 0022](0022-entities.md)) for its subjects and groups, and on [ADR 0032](0032-authentication.md) for authentication, membership and role assignment, so it cannot be fully implemented until those are decided.
+- Security depends on entities ([ADR 0022](0022-entities.md)) for its subjects and groups, and on [ADR 0032](0032-authentication.md) for authentication and memberships, which leaves how requests are authenticated to trigger sources and the interpreter.
 - More contextual keywords make the grammar harder to read and the tokenizer harder to get right, since it has to know which block it is in.

@@ -185,7 +185,7 @@ When the interpreter runs a program's tests:
 
 ## Deferred
 
-- **Memberships and roles.** A subject's roles and permissions come from its groups, but how subjects become members of groups and get roles is left to [ADR 0032](0032-authentication.md). Until it is decided, a test case can test `@subject is <type>` and anonymous `auth` rules, but not role or permission predicates.
+- **Memberships and roles.** A subject's roles come from stored membership entities ([ADR 0032](0032-authentication.md)), but a test case's storage holds only its subject, and a program can't yet create the membership entities it needs ([ADR 0022](0022-entities.md)). Until it can, a test case can test `@subject is <type>` and anonymous `auth` rules, but not role or permission predicates.
 - **Stand-ins for native actions.** A test case can't replace a native action ([ADR 0036](0036-native-modules.md)) with a stand-in. A native module that shouldn't reach a real service during tests, such as a payment provider, has to choose a fake itself, such as from its own configuration.
 - **Shared set-up.** A mechanism for set-up shared by several test cases, other than an action each one calls, may be added later.
 
@@ -200,7 +200,7 @@ When the interpreter runs a program's tests:
 - Test cases only run when the interpreter runs a program's tests, so a program can keep its tests alongside its code without them running in production. In a test run, no other source fires, so a test only does what its own action does.
 - Each test case has its own empty storage, holding only its subject, so test cases can't affect each other, can run in any order or at the same time, and need no tear-down. The cost is that every test case has to set up all the data it needs, and that native module state is still shared between them.
 - The language fixes what a test report says about each test case, but not how tests are chosen or how the report is formatted, which is left to the interpreter's tooling.
-- Role and permission predicates can't be tested until [ADR 0032](0032-authentication.md) decides how subjects get them, and native actions can't be replaced with stand-ins, so code that reaches outside services needs its native modules to provide fakes.
+- Role and permission predicates can't be tested until a test can create membership entities ([ADR 0022](0022-entities.md), [ADR 0032](0032-authentication.md)), and native actions can't be replaced with stand-ins, so code that reaches outside services needs its native modules to provide fakes.
 - A test case can describe its subject in place, as a literal object, so `auth` rules and actions that check `@subject` can be tested as a signed-in subject, as well as anonymously, without creating or loading entities, and without going through authentication.
 - The subject's fields are checked against its entity's model at compile time, like an anonymous model, so a missing or misspelled field is caught before any test runs.
 - `subject` is a constant object ([ADR 0023](0023-error-handling.md)), so it is known at compile time, as every source parameter is ([ADR 0025](0025-trigger-sources.md)), and needs no special case.

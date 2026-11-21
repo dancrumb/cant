@@ -14,6 +14,7 @@ A **trigger source** is something outside the program that causes a trigger to r
 - **A name**, which a trigger uses after `on` to say which source it responds to, as in `trigger SayHello on Start` ([ADR 0009](0009-triggers.md)).
 - **The built-in values it provides a value to** ([ADR 0024](0024-built-in-values.md)). When a source runs a trigger, it gives values to those built-ins, such as the request that arrived or the event that occurred, and the trigger's settings can use them, for example in its `arguments` and `auth`.
 - **Its parameters**, which configure it in a particular trigger, such as an HTTP endpoint's path or a schedule's timing.
+- **Whether it can have a subject**, and if so, the claims it gives once it has authenticated a request, from which the interpreter finds `@subject` ([ADR 0032](0032-authentication.md)).
 
 A trigger gives its source's parameters in a `parameters` block, one of the settings in the trigger's block ([ADR 0009](0009-triggers.md)), not after the source's name. Each parameter is written `name := value`, as an argument is in `arguments`:
 
@@ -81,4 +82,4 @@ Earlier ADRs already constrain trigger sources:
 - Source built-ins are confined to the trigger, so actions do not depend on how they were started, and can be reused by other triggers and called by other actions. The cost is that every value an action needs from a request or event has to be passed through `arguments`.
 - Implementations are left to the interpreter, so the language stays small, but a program's behaviour depends on the sources its interpreter provides.
 - An error that reaches a trigger is dealt with by its source or the interpreter, not the program. So the same error can be reported differently by different sources, and a program that needs a particular outcome, such as a particular reply, has to handle the error in the action itself.
-- Where sources are defined, which sources Cant comes with, how a source's reply, such as an HTTP response, is formed, how events are declared and raised, and which sources have a subject are left open. Until they are decided, the grammar accepts any identifier after `on`.
+- Where sources are defined, which sources Cant comes with, how a source's reply, such as an HTTP response, is formed, and how events are declared and raised are left open. Until they are decided, the grammar accepts any identifier after `on`.
