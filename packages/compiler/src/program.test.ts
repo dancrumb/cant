@@ -72,7 +72,7 @@ test('resolves symbolic imports through cant.json, including from a directory ab
         'import app::Shared',
         'action Pay(): payments::Receipt',
         '    native "./pay.js"',
-        'const c: Note := 1',
+        'const c: Note := { text := "n" }',
       ],
       '/vendor/acme/Payments.cant': ['export model Receipt', '    total: NUMBER'],
       '/app/Shared.cant': ['export model Note', '    text: TEXT'],
@@ -172,7 +172,7 @@ test('reports names that clash when an import places them', () => {
 test('resolves re-exports, and reports re-exports of names that are not imported', () => {
   assert.deepEqual(
     problems({
-      '/app/main.cant': ['import "./lib.cant" into lib', 'const a: lib::Renamed := 1', 'const b: lib::Inner := 2'],
+      '/app/main.cant': ['import "./lib.cant" into lib', 'const a: lib::Renamed := { x := "a" }', 'const b: lib::Inner := 2'],
       '/app/lib.cant': [
         'import "./inner.cant" into inner',
         'export inner::Inner as Renamed',
@@ -196,7 +196,7 @@ test('resolves re-exports, and reports re-exports of names that are not imported
 test('survives import cycles', () => {
   assert.deepEqual(
     problems({
-      '/app/main.cant': ['import "./a.cant" into a', 'const x: a::A := 1'],
+      '/app/main.cant': ['import "./a.cant" into a', 'action F(x: a::A): VOID', '    native "./f.js"'],
       '/app/a.cant': ['import "./b.cant" into b', 'export model A', '    other: b::B'],
       '/app/b.cant': ['import "./a.cant" into a', 'export model B', '    other: a::A'],
     }),
@@ -216,7 +216,8 @@ test('resolves names in the current namespace, and reports unknown names and nam
         '    items: [Item]',
         '    owner: nowhere::User',
         'namespace __main__',
-        'const ok: billing::Invoice := 1',
+        'action Ok(invoice: billing::Invoice): VOID',
+        '    native "./ok.js"',
       ],
     }),
     ['/app/main.cant unknown-name 5:11', '/app/main.cant unknown-name 6:13', '/app/main.cant unknown-namespace 7:12'],

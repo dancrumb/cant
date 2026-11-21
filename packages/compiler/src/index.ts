@@ -42,5 +42,11 @@ export type { NavigationField } from './entities.ts';
 export { resolveNames } from './resolve.ts';
 export type { References } from './resolve.ts';
 
+export { checkTypes } from './typecheck.ts';
+export type { ResolvedProgram } from './typecheck.ts';
+
+export { createAssignable, describe as describeType, typeOf } from './types.ts';
+export type { Assignable, Type } from './types.ts';
+
 export { STANDARD_LIBRARY } from './stdlib.ts';
 export type { StandardKind } from './stdlib.ts';
