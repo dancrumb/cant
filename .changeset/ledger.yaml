@@ -12,6 +12,14 @@
     - compiler-resolve-bodies
     - compiler-resolve-modules
     - compiler-typecheck
+"@dancrumb/cant-compiler@0.8.0":
+  dir: packages/compiler
+  intents:
+    - language-server
+"@dancrumb/cant-lsp@0.8.0":
+  dir: packages/lsp
+  intents:
+    - language-server
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -50,6 +58,10 @@
   dir: packages/shared
   intents:
     - parse-error-types
+"@dancrumb/cant-shared@0.8.0":
+  dir: packages/shared
+  intents:
+    - language-server
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
@@ -60,6 +72,10 @@ cant-vscode@0.3.0:
   dir: packages/vscode
   intents:
     - parser-aligned-with-adrs
+cant-vscode@0.8.0:
+  dir: packages/vscode
+  intents:
+    - language-server
 cant@0.2.0:
   dir: ""
   intents:

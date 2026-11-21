@@ -1,6 +1,6 @@
 {
   "name": "@dancrumb/cant-shared",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Shared code for the cant compiler, interpreter and language server",
   "license": "MIT",
   "type": "module",
