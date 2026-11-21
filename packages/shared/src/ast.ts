@@ -76,7 +76,32 @@ export interface BooleanLiteral extends Literal {
 }
 
 /** A literal whose value is known at compile time, as in an enum (docs/adr/0013-enums.md). */
-export type ConstantValue = StringLiteral | NumberLiteral | BooleanLiteral;
+/**
+ * `DATE_TIME("2026-11-21T09:30:00Z")` (docs/adr/0026-dates-and-times.md). `value` is the ISO 8601
+ * string as written, which the parser has checked names a real instant.
+ */
+export interface DateTimeLiteral extends Literal {
+  type: 'dateTime';
+  position: Position;
+  value: string;
+}
+
+/**
+ * `DURATION("PT1H30M")` (docs/adr/0026-dates-and-times.md). `value` is the ISO 8601 string as
+ * written, in days, hours, minutes and seconds.
+ */
+export interface DurationLiteral extends Literal {
+  type: 'duration';
+  position: Position;
+  value: string;
+}
+
+export type ConstantValue =
+  | StringLiteral
+  | NumberLiteral
+  | BooleanLiteral
+  | DateTimeLiteral
+  | DurationLiteral;
 
 /** `NOTHING`, which can only be written in a `return` (docs/adr/0012-base-types.md). */
 export interface Nothing extends Node {
@@ -90,7 +115,7 @@ export interface Nothing extends Node {
 export interface BaseType extends Node {
   type: 'baseType';
   position: Position;
-  name: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE_TIME' | 'FILE';
+  name: 'TEXT' | 'NUMBER' | 'BOOLEAN' | 'DATE_TIME' | 'DURATION' | 'FILE';
 }
 
 /** `VOID`, which can only be a return type (docs/adr/0012-base-types.md). */
@@ -262,8 +287,11 @@ export interface ArrayValue extends Node {
 export interface ObjectItem extends Node {
   type: 'objectItem';
   position: Position;
-  /** An identifier, which can be a keyword, or a string for names that are not identifiers. */
-  name: Identifier | StringLiteral;
+  /**
+   * An identifier, which can be a keyword, a string for names that are not identifiers, or a
+   * built-in name, such as `@entity` in a test case's `subject` (docs/adr/0037-test-case-trigger-source.md).
+   */
+  name: Identifier | StringLiteral | BuiltIn;
   value: Expression;
 }
 
@@ -288,6 +316,8 @@ export type Expression =
   | StringLiteral
   | NumberLiteral
   | BooleanLiteral
+  | DateTimeLiteral
+  | DurationLiteral
   | ArrayValue
   | ObjectValue
   | SetValue
@@ -485,7 +515,8 @@ export interface Parameter extends Node {
 
 /**
  * An action, `action Name(parameters): ReturnType? raises A passes B` with an indented `body`
- * block. The body's statements are held in `children`.
+ * block, whose statements are held in `children`, or a `native` line naming the module that
+ * implements it (docs/adr/0036-native-modules.md), in which case `children` is empty.
  */
 export interface ActionDeclaration extends Parent {
   type: 'action';
@@ -501,6 +532,8 @@ export interface ActionDeclaration extends Parent {
   raises: Name[];
   /** The errors in the `passes` clause, which can include `@all`. */
   passes: (Name | BuiltIn)[];
+  /** The module named by a `native` line, for an action implemented in TypeScript. */
+  native?: StringLiteral;
   children: Statement[];
 }
 
@@ -514,7 +547,18 @@ export interface NamedValue extends Node {
   value: Expression;
 }
 
-/** `trigger SayHello on Start`, with optional `auth`, `arguments` and `parameters` blocks. */
+/** `condition, message` in a test case's `assertions` block (docs/adr/0037-test-case-trigger-source.md). */
+export interface Assertion extends Node {
+  type: 'assertion';
+  position: Position;
+  test: Expression;
+  message: Expression;
+}
+
+/**
+ * `trigger SayHello on Start`, with optional `auth`, `arguments`, `parameters` and
+ * `assertions` blocks.
+ */
 export interface TriggerDeclaration extends Node {
   type: 'trigger';
   position: Position;
@@ -524,6 +568,7 @@ export interface TriggerDeclaration extends Node {
   auth?: Expression;
   arguments?: NamedValue[];
   parameters?: NamedValue[];
+  assertions?: Assertion[];
 }
 
 // ----- Security: docs/adr/0010-security.md -----
@@ -621,6 +666,18 @@ export interface RoleLine extends Node {
   name: Identifier;
 }
 
+/** `membership member in group with roles` (docs/adr/0032-authentication.md). */
+export interface MembershipLine extends Node {
+  type: 'membershipLine';
+  position: Position;
+  /** The navigation field that reaches the member, a subject entity. */
+  member: Identifier;
+  /** The navigation field that reaches the group, a group entity. */
+  group: Identifier;
+  /** The field that holds the member's roles, after `with`. */
+  roles?: Identifier;
+}
+
 export interface ModelsBlock extends Node {
   type: 'modelsBlock';
   position: Position;
@@ -652,6 +709,7 @@ export type EntityLine =
   | IdentityLine
   | GroupLine
   | RoleLine
+  | MembershipLine
   | ModelsBlock
   | ExposeBlock
   | HideBlock;
@@ -714,6 +772,7 @@ export type CantNode =
   | Declaration
   | Parameter
   | NamedValue
+  | Assertion
   | EnumMember
   | Field
   | EntityLine

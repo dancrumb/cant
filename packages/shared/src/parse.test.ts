@@ -817,6 +817,203 @@ test('parses relations', () => {
   assert.throws(() => parse('export relation User[tasks] 1 --- 0..* Task[owner]'), ParseError);
 });
 
+test('parses native actions', () => {
+  assert.deepEqual(
+    parseProgram(
+      'export action ChargeCard(token: TEXT, amount: NUMBER): Receipt raises PaymentDeclined',
+      '    // implemented in TypeScript',
+      '    native "./payments.js"',
+    ),
+    [
+      {
+        type: 'action',
+        exported: true,
+        name: identifier('ChargeCard'),
+        parameters: [
+          { type: 'parameter', name: identifier('token'), optional: false, valueType: baseType('TEXT') },
+          { type: 'parameter', name: identifier('amount'), optional: false, valueType: baseType('NUMBER') },
+        ],
+        returnType: identifier('Receipt'),
+        optional: false,
+        raises: [identifier('PaymentDeclined')],
+        passes: [],
+        native: string('./payments.js'),
+        children: [],
+      },
+    ],
+  );
+  assert.throws(() => parse('action A(): VOID\n    native "./a-${b}.js"'), ParseError);
+  assert.throws(() => parse('action A(): VOID\n    native'), ParseError);
+  assert.throws(
+    () => parse('action A(): VOID\n    native "./a.js"\n    body\n        return'),
+    ParseError,
+  );
+});
+
+test('parses a TestCase trigger with assertions', () => {
+  assert.deepEqual(
+    parseProgram(
+      'trigger ChargeCard on TestCase',
+      '    parameters',
+      '        name := "declines an expired card"',
+      '        subject := { @entity := User, email := "ada@example.com" }',
+      '    assertions',
+      '        !isEmpty @error, "the charge fails"',
+      '        @error instanceOf PaymentDeclined, "the card is declined: ${@result}"',
+    ),
+    [
+      {
+        type: 'trigger',
+        action: identifier('ChargeCard'),
+        source: identifier('TestCase'),
+        parameters: [
+          { type: 'namedValue', name: identifier('name'), value: string('declines an expired card') },
+          {
+            type: 'namedValue',
+            name: identifier('subject'),
+            value: {
+              type: 'object',
+              items: [
+                { type: 'objectItem', name: builtIn('entity'), value: identifier('User') },
+                { type: 'objectItem', name: identifier('email'), value: string('ada@example.com') },
+              ],
+            },
+          },
+        ],
+        assertions: [
+          {
+            type: 'assertion',
+            test: unary('!', unary('isEmpty', builtIn('error'))),
+            message: string('the charge fails'),
+          },
+          {
+            type: 'assertion',
+            test: {
+              type: 'instanceOf',
+              value: builtIn('error'),
+              target: identifier('PaymentDeclined'),
+              optional: false,
+            },
+            message: {
+              type: 'string',
+              parts: [
+                { type: 'text', value: 'the card is declined: ' },
+                { type: 'interpolation', expression: builtIn('result') },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  );
+  // Every assertion has a message, and a trigger has at most one `assertions` block.
+  assert.throws(() => parse('trigger A on TestCase\n    assertions\n        true'), ParseError);
+  assert.throws(
+    () => parse('trigger A on TestCase\n    assertions\n        true, "a"\n    assertions\n        true, "b"'),
+    ParseError,
+  );
+});
+
+test('parses DATE_TIME and DURATION literals', () => {
+  assert.deepEqual(
+    parseBody(
+      'due := DATE_TIME("2026-11-21T09:30:00Z") + DURATION("P30D")',
+      'late := DATE_TIME("2024-02-29T23:59:59.250+01:00") - -DURATION("PT1H30M")',
+    ),
+    [
+      {
+        type: 'assignment',
+        target: identifier('due'),
+        value: binary(
+          '+',
+          { type: 'dateTime', value: '2026-11-21T09:30:00Z' },
+          { type: 'duration', value: 'P30D' },
+        ),
+      },
+      {
+        type: 'assignment',
+        target: identifier('late'),
+        value: binary(
+          '-',
+          { type: 'dateTime', value: '2024-02-29T23:59:59.250+01:00' },
+          unary('-', { type: 'duration', value: 'PT1H30M' }),
+        ),
+      },
+    ],
+  );
+  for (const valid of ['2026-11-21T09:30Z', '0000-01-01T00:00:00.000Z', '2026-06-30T00:00:00-05:30']) {
+    assert.doesNotThrow(() => parseBody(`t := DATE_TIME("${valid}")`), valid);
+  }
+  for (const invalid of [
+    '2026-11-21', // no time
+    '2026-11-21T09:30:00', // no offset
+    '2026-02-30T00:00Z', // no such day
+    '2025-02-29T00:00Z', // not a leap year
+    '2026-13-01T00:00Z',
+    '2026-11-21T24:00Z',
+    '2026-11-21T09:30:00.1234Z', // more than milliseconds
+    '2026-11-21T09:30:00+0100',
+  ]) {
+    assert.throws(() => parseBody(`t := DATE_TIME("${invalid}")`), ParseError, invalid);
+  }
+  for (const valid of ['P1D', 'PT90M', 'PT0.5S', 'P1DT12H', 'PT1H30M15.250S', 'PT0S']) {
+    assert.doesNotThrow(() => parseBody(`d := DURATION("${valid}")`), valid);
+  }
+  for (const invalid of ['P', 'PT', 'P1Y', 'P1M', 'P2W', 'PT1.5H', 'PT1M1H', '-PT1H', 'PT1.0001S', '1D']) {
+    assert.throws(() => parseBody(`d := DURATION("${invalid}")`), ParseError, invalid);
+  }
+  // The string can't interpolate.
+  assert.throws(() => parseBody('t := DATE_TIME("${when}")'), ParseError);
+});
+
+test('parses DURATION as a type, and date and time values in enums', () => {
+  assert.deepEqual(
+    parseProgram(
+      'enum Deadline',
+      '    EndOfYear := DATE_TIME("2026-12-31T23:59:59.999Z")',
+      '    Grace := DURATION("P7D")',
+      'const timeout: DURATION := DURATION("PT30S")',
+    ),
+    [
+      {
+        type: 'enumDeclaration',
+        name: identifier('Deadline'),
+        members: [
+          {
+            type: 'enumMember',
+            name: identifier('EndOfYear'),
+            value: { type: 'dateTime', value: '2026-12-31T23:59:59.999Z' },
+          },
+          { type: 'enumMember', name: identifier('Grace'), value: { type: 'duration', value: 'P7D' } },
+        ],
+      },
+      {
+        type: 'const',
+        name: identifier('timeout'),
+        valueType: baseType('DURATION'),
+        value: { type: 'duration', value: 'PT30S' },
+      },
+    ],
+  );
+  assert.deepEqual(
+    withoutPositions(parseAction('action Wait(d: enum(DURATION("P1D"), DURATION("P2D"))): VOID\n    body\n        return').parameters),
+    [
+      {
+        type: 'parameter',
+        name: identifier('d'),
+        optional: false,
+        valueType: {
+          type: 'enum',
+          values: [
+            { type: 'duration', value: 'P1D' },
+            { type: 'duration', value: 'P2D' },
+          ],
+        },
+      },
+    ],
+  );
+});
+
 test('parses enum declarations', () => {
   assert.deepEqual(
     parseProgram('enum Status', '    Idle', '    InProgress := "In Progress"', '    Done := 3'),
@@ -855,6 +1052,40 @@ test('parses model declarations', () => {
       },
     ],
   );
+});
+
+test('parses membership lines', () => {
+  assert.deepEqual(
+    parseProgram(
+      'entity Membership',
+      '    membership user in organization with roles',
+      '    identity user, organization',
+      'entity Seat',
+      '    membership holder in team',
+    ),
+    [
+      {
+        type: 'entity',
+        name: identifier('Membership'),
+        lines: [
+          {
+            type: 'membershipLine',
+            member: identifier('user'),
+            group: identifier('organization'),
+            roles: identifier('roles'),
+          },
+          { type: 'identityLine', fields: [identifier('user'), identifier('organization')] },
+        ],
+      },
+      {
+        type: 'entity',
+        name: identifier('Seat'),
+        lines: [{ type: 'membershipLine', member: identifier('holder'), group: identifier('team') }],
+      },
+    ],
+  );
+  assert.throws(() => parse('entity M\n    membership user organization'), ParseError);
+  assert.throws(() => parse('entity M\n    membership user in organization with'), ParseError);
 });
 
 test('parses entity declarations', () => {
@@ -1008,13 +1239,13 @@ test('rejects a keyword used as an identifier, reporting where', () => {
 });
 
 test('reserves keywords from every ADR', () => {
-  for (const keyword of ['TEXT', 'SET', 'ERROR', 'error', 'raise', 'pass', 'model', 'const', 'relation', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
+  for (const keyword of ['TEXT', 'DURATION', 'SET', 'ERROR', 'error', 'raise', 'pass', 'model', 'const', 'relation', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
     assert.throws(() => parseBody(`${keyword} := 1`), ParseError, keyword);
   }
 });
 
 test('lets contextual keywords be identifiers elsewhere', () => {
-  const names = ['into', 'as', 'raises', 'passes', 'with', 'data', 'auth', 'arguments', 'parameters', 'has', 'can', 'is', 'within', 'subject', 'identity', 'group', 'role', 'models', 'expose', 'hide'];
+  const names = ['into', 'as', 'raises', 'passes', 'with', 'data', 'auth', 'arguments', 'parameters', 'assertions', 'has', 'can', 'is', 'within', 'subject', 'identity', 'group', 'role', 'membership', 'models', 'expose', 'hide', 'native'];
   assert.deepEqual(
     parseBody(...names.map((name) => `${name} := 1`)),
     names.map((name) => ({ type: 'assignment', target: identifier(name), value: number(1) })),

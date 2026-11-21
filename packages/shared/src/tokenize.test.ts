@@ -156,7 +156,7 @@ test('tokenizes the keywords reserved by the ADRs', () => {
     'import', 'namespace', 'export', 'action', 'body', 'return', 'break', 'continue', 'for', 'in',
     'while', 'if', 'else', 'trigger', 'on', 'entity', 'permissions', 'TEXT', 'NUMBER', 'BOOLEAN',
     'DATE_TIME', 'FILE', 'VOID', 'NOTHING', 'true', 'false', 'enum', 'SET', 'delete', 'error',
-    'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const', 'relation',
+    'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const', 'relation', 'DURATION',
   ];
   assert.deepEqual(
     describeTokens(keywords.join(' ')),
@@ -267,6 +267,13 @@ test('tokenizes contextual keywords only where they are special', () => {
     '        data: TEXT',
     'error F',
     '    data FData',
+    'action N(): VOID',
+    '    native "./n.js"',
+    'trigger N on TestCase',
+    '    assertions',
+    '        native, "assertions"',
+    'entity Membership',
+    '    membership user in organization with roles',
   ].join('\n');
 
   const keywords = describeTokens(source).filter((token) => token.startsWith('keyword:'));
@@ -304,6 +311,30 @@ test('tokenizes contextual keywords only where they are special', () => {
     'keyword:TEXT',
     'keyword:error',
     'keyword:data',
+    'keyword:action',
+    'keyword:VOID',
+    'keyword:native',
+    'keyword:trigger',
+    'keyword:on',
+    'keyword:assertions',
+    'keyword:entity',
+    'keyword:membership',
+    'keyword:in',
+    'keyword:with',
+  ]);
+});
+
+test('tokenizes DATE_TIME and DURATION literals', () => {
+  assert.deepEqual(describeTokens('DATE_TIME("2026-11-21T09:30:00Z") + DURATION("PT1H")'), [
+    'keyword:DATE_TIME',
+    'punctuation:(',
+    'string:"2026-11-21T09:30:00Z"',
+    'punctuation:)',
+    'operator:+',
+    'keyword:DURATION',
+    'punctuation:(',
+    'string:"PT1H"',
+    'punctuation:)',
   ]);
 });
 

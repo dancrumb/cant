@@ -49,6 +49,36 @@
     );
   }
 
+  // A `DATE_TIME` literal's string: an ISO 8601 date and time with a `Z` or an offset
+  // (docs/adr/0026-dates-and-times.md).
+  const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-](\d{2}):(\d{2}))$/;
+
+  function isLeapYear(year) {
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+  }
+
+  // Whether a `DATE_TIME` literal's string names a real instant.
+  function isDateTime(text) {
+    const match = DATE_TIME.exec(text);
+    if (match === null) return false;
+    // Unmatched groups are `undefined`, so they take these defaults.
+    const [year, month, day, hour, minute, second = '0', offsetHours = '0', offsetMinutes = '0'] = match.slice(1);
+    const daysInMonth = [31, isLeapYear(Number(year)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return (
+      Number(month) >= 1 && Number(month) <= 12 &&
+      Number(day) >= 1 && Number(day) <= daysInMonth[Number(month) - 1] &&
+      Number(hour) <= 23 && Number(minute) <= 59 && Number(second) <= 59 &&
+      Number(offsetHours) <= 23 && Number(offsetMinutes) <= 59
+    );
+  }
+
+  // A `DURATION` literal's string: days, then optionally `T` and hours, minutes and seconds,
+  // with at least one part (docs/adr/0026-dates-and-times.md).
+  const DURATION = /^P(?=\d|T\d)(?:\d+D)?(?:T(?=\d)(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d{1,3})?S)?)?$/;
+
+  // The text of a string literal with no interpolations.
+  const textOf = (literal) => literal.parts.map((part) => part.value).join('');
+
   const ASSIGNABLE = new Set(['identifier', 'member', 'index']);
   const MEMBER_OR_INDEX = new Set(['member', 'index']);
 }}
@@ -128,11 +158,22 @@ ModuleIdentifier
 
 // ----- Actions: docs/adr/0007-actions.md -----
 
+// The action's statements follow `body`, or `native` names the module that implements it
+// (docs/adr/0036-native-modules.md).
 Action
   = ActionKeyword __ signature:ActionSignature
-    Newline Indent body:(Samedent BodyKeyword @Block)? Dedent &{ return body !== null; } {
-      return u('action', { ...signature, position: toPosition(location()) }, body);
+    Newline Indent implementation:(Samedent @ActionImplementation)? Dedent
+    &{ return implementation !== null; } {
+      return u(
+        'action',
+        { ...signature, ...(implementation.native && { native: implementation.native }), position: toPosition(location()) },
+        implementation.body ?? [],
+      );
     }
+
+ActionImplementation
+  = BodyKeyword body:Block { return { body }; }
+  / NativeKeyword __ native:ConstantStringLiteral { return { native }; }
 
 // `VOID?` is a syntax error (docs/adr/0014-optionals.md).
 ActionSignature
@@ -205,7 +246,7 @@ TypeRef
   / Name
 
 BaseType "type"
-  = name:$("TEXT" / "NUMBER" / "BOOLEAN" / "DATE_TIME" / "FILE") !IdentifierPart {
+  = name:$("TEXT" / "NUMBER" / "BOOLEAN" / "DATE_TIME" / "DURATION" / "FILE") !IdentifierPart {
       return u('baseType', { name, position: toPosition(location()) });
     }
 
@@ -240,6 +281,8 @@ ConstantValue
   = ConstantStringLiteral
   / NumberLiteral
   / BooleanLiteral
+  / DateTimeLiteral
+  / DurationLiteral
 
 Name
   = QualifiedIdentifier
@@ -386,6 +429,21 @@ TriggerSetting
     }
   / ArgumentsKeyword value:NamedValueBlock { return { kind: 'arguments', value }; }
   / ParametersKeyword value:NamedValueBlock { return { kind: 'parameters', value }; }
+  / AssertionsKeyword value:AssertionBlock { return { kind: 'assertions', value }; }
+
+// A `TestCase` trigger's assertions, each a condition and a message
+// (docs/adr/0037-test-case-trigger-source.md). That only a `TestCase` trigger can have them is
+// left to later passes.
+AssertionBlock
+  = Newline Indent first:(Samedent @Assertion)? rest:(Newline Samedent @Assertion)* Dedent
+    &{ return first !== null; } {
+      return [first, ...rest];
+    }
+
+Assertion
+  = test:Expression _ "," _ message:Expression {
+      return u('assertion', { test, message, position: toPosition(location()) });
+    }
 
 NamedValueBlock
   = Newline Indent first:(Samedent @NamedValue)? rest:(Newline Samedent @NamedValue)* Dedent
@@ -489,6 +547,7 @@ EntityLine
   / IdentityLine
   / GroupLine
   / RoleLine
+  / MembershipLine
   / ModelsBlock
   / ExposeBlock
   / HideBlock
@@ -509,6 +568,13 @@ GroupLine
 RoleLine
   = "role" !IdentifierPart __ name:Identifier {
       return u('roleLine', { name, position: toPosition(location()) });
+    }
+
+// `membership user in organization with roles` (docs/adr/0032-authentication.md).
+MembershipLine
+  = "membership" !IdentifierPart __ member:Identifier __ InKeyword __ group:Identifier
+    roles:(__ WithKeyword __ @Identifier)? {
+      return u('membershipLine', { member, group, ...(roles && { roles }), position: toPosition(location()) });
     }
 
 ModelsBlock
@@ -674,6 +740,8 @@ Primary
   = NumberLiteral
   / BooleanLiteral
   / StringLiteral
+  / DateTimeLiteral
+  / DurationLiteral
   / BuiltIn
   / ArrayValue
   / ObjectValue
@@ -752,9 +820,11 @@ ObjectValue
 ObjectItems
   = head:ObjectItem tail:(Layout "," Layout @ObjectItem)* (Layout ",")? { return [head, ...tail]; }
 
-// A member's name can be an identifier, a keyword such as `body`, or a string.
+// A member's name can be an identifier, a keyword such as `body`, or a string. It can also be a
+// built-in name, as `@entity` is in a test case's `subject`; which built-in names are allowed
+// where is left to later passes (docs/adr/0021-collections.md, docs/adr/0037-test-case-trigger-source.md).
 ObjectItem
-  = name:(MemberName / StringLiteral) _ ":=" _ value:Expression {
+  = name:(MemberName / StringLiteral / BuiltIn) _ ":=" _ value:Expression {
       return u('objectItem', { name, value, position: toPosition(location()) });
     }
 
@@ -794,6 +864,28 @@ BinaryLiteral
 BooleanLiteral
   = TrueKeyword { return u('boolean', { value: true, position: toPosition(location()) }); }
   / FalseKeyword { return u('boolean', { value: false, position: toPosition(location()) }); }
+
+// ----- Dates and times: docs/adr/0026-dates-and-times.md -----
+
+// `DATE_TIME("2026-11-21T09:30:00Z")`, which must name a real instant with a `Z` or an offset.
+DateTimeLiteral "date and time"
+  = DateTimeKeyword _ "(" _ literal:ConstantStringLiteral _ ")" {
+      const value = textOf(literal);
+      if (!isDateTime(value)) {
+        error(`"${value}" is not a valid DATE_TIME: write an ISO 8601 date and time ending in Z or an offset, such as "2026-11-21T09:30:00Z".`);
+      }
+      return u('dateTime', { value, position: toPosition(location()) });
+    }
+
+// `DURATION("PT1H30M")`, in days, hours, minutes and seconds.
+DurationLiteral "duration"
+  = DurationKeyword _ "(" _ literal:ConstantStringLiteral _ ")" {
+      const value = textOf(literal);
+      if (!DURATION.test(value)) {
+        error(`"${value}" is not a valid DURATION: write an ISO 8601 duration in days, hours, minutes and seconds, such as "PT1H30M".`);
+      }
+      return u('duration', { value, position: toPosition(location()) });
+    }
 
 // ----- Strings: docs/adr/0008-strings.md -----
 
@@ -912,6 +1004,8 @@ OnKeyword          = "on"          !IdentifierPart
 EntityKeyword      = "entity"      !IdentifierPart
 PermissionsKeyword = "permissions" !IdentifierPart
 VoidKeyword        = "VOID"        !IdentifierPart
+DateTimeKeyword    = "DATE_TIME"   !IdentifierPart
+DurationKeyword    = "DURATION"    !IdentifierPart
 NothingKeyword     = "NOTHING"     !IdentifierPart
 TrueKeyword        = "true"        !IdentifierPart
 FalseKeyword       = "false"       !IdentifierPart
@@ -939,12 +1033,14 @@ IntoKeyword        = "into"        !IdentifierPart  // in an import
 AsKeyword          = "as"          !IdentifierPart  // in an import, a re-export and an entity's expose block
 RaisesKeyword      = "raises"      !IdentifierPart  // in an action's signature
 PassesKeyword      = "passes"      !IdentifierPart  // in an action's signature
-WithKeyword        = "with"        !IdentifierPart  // in a raise statement
+WithKeyword        = "with"        !IdentifierPart  // in a raise statement and a membership line
 DataKeyword        = "data"        !IdentifierPart  // in an error declaration
 AuthKeyword        = "auth"        !IdentifierPart  // in a trigger's block
 ArgumentsKeyword   = "arguments"   !IdentifierPart  // in a trigger's block
 ParametersKeyword  = "parameters"  !IdentifierPart  // in a trigger's block
 HasKeyword         = "has"         !IdentifierPart  // in a permissions declaration
+NativeKeyword      = "native"      !IdentifierPart  // in an action's block
+AssertionsKeyword  = "assertions"  !IdentifierPart  // in a trigger's block
 CanKeyword         = "can"         !IdentifierPart  // in a predicate
 IsKeyword          = "is"          !IdentifierPart  // in a predicate
 WithinKeyword      = "within"      !IdentifierPart  // in a predicate

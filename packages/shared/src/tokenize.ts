@@ -51,6 +51,8 @@ const KEYWORDS = new Set([
   'BOOLEAN',
   'DATE_TIME',
   'FILE',
+  // 0026
+  'DURATION',
   'VOID',
   'NOTHING',
   'true',
@@ -199,14 +201,15 @@ interface RawToken {
 
 /** Block headers that stand alone on their line, and the declaration whose block they are in. */
 const BLOCK_HEADERS: Record<string, Set<string>> = {
-  trigger: new Set(['arguments', 'auth', 'parameters']), // 0009, 0025
+  trigger: new Set(['arguments', 'auth', 'parameters', 'assertions']), // 0009, 0025, 0037
   entity: new Set(['subject', 'models', 'expose', 'hide']), // 0010, 0022
   error: new Set(['data']), // 0023
 };
 
 /** Lines inside a declaration's block that start with a contextual keyword followed by more. */
 const LINE_STARTS: Record<string, Set<string>> = {
-  entity: new Set(['identity', 'group', 'role']), // 0010
+  action: new Set(['native']), // 0036
+  entity: new Set(['identity', 'group', 'role', 'membership']), // 0010, 0032
   error: new Set(['data']), // 0023
 };
 
@@ -277,6 +280,8 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
       }
       if (line.length > 1 && LINE_STARTS[declaration]?.has(first.text) === true) {
         markKeyword(first);
+        // 0032: `with` in `membership user in organization with roles`.
+        if (first.text === 'membership' && isWord(line[4], 'with')) markKeyword(line[4]);
       }
     } else if (declaration === 'entity' && line.length === 3 && isWord(line[1], 'as')) {
       // 0022: `field as name` in an entity's `expose` block.
