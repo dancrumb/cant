@@ -46,3 +46,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0034](0034-top-level-constants.md) | Top-level constants | Accepted |
 | [0035](0035-entity-relationships.md) | Entity relationships | Accepted |
 | [0036](0036-native-modules.md) | Native modules | Proposed |
+| [0037](0037-test-case-trigger-source.md) | The `TestCase` trigger source | Proposed |
