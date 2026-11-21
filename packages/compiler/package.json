@@ -6,11 +6,12 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/weave.d.ts",
-      "default": "./dist/weave.js"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     }
   },
   "bin": {
+    "cant": "./dist/cli.js",
     "weave": "./dist/weave.js"
   },
   "files": [
@@ -34,9 +35,11 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
+    "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/unist": "^3.0.3",
     "tsx": "^4.23.15"
   }
 }
