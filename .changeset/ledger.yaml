@@ -2,6 +2,16 @@
   dir: packages/compiler
   intents:
     - fine-wombats-see
+"@dancrumb/cant-compiler@0.7.0":
+  dir: packages/compiler
+  intents:
+    - compiler-check
+    - compiler-constants
+    - compiler-error-handling
+    - compiler-module-namespaces
+    - compiler-resolve-bodies
+    - compiler-resolve-modules
+    - compiler-typecheck
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -36,6 +46,10 @@
   dir: packages/shared
   intents:
     - parse-adr-0026-0037
+"@dancrumb/cant-shared@0.7.0":
+  dir: packages/shared
+  intents:
+    - parse-error-types
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:

@@ -1,6 +1,6 @@
 {
   "name": "@dancrumb/cant-lsp",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "The cant language server",
   "license": "MIT",
   "type": "module",

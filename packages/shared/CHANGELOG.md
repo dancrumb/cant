@@ -1,5 +1,11 @@
 # @dancrumb/cant-shared
 
+## 0.7.0
+
+### Patch Changes
+
+- Type `ParseError` in the published declarations, with its `location`, `expected` and `found`, which were `any` because the declarations are built from the generated parser.
+
 ## 0.6.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @dancrumb/cant-lsp
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies:
+  - @dancrumb/cant-shared@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes
