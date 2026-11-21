@@ -13,7 +13,7 @@ A **built-in value** is written `@<identifier>` ([ADR 0009](0009-triggers.md)). 
 
 ## Decision
 
-Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@all`, `@result`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
+Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@entity`, `@all`, `@result`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
 
 - The grammar is `BuiltIn = "@", Identifier`, with no space after the `@` ([ADR 0009](0009-triggers.md)). The `@` prefix is reserved, so built-in values cannot clash with anything a program declares ([ADR 0010](0010-security.md)).
 - `@subject` is always defined: it is the subject that caused the trigger, or `@anonymous` when there is none ([ADR 0010](0010-security.md)).
@@ -21,6 +21,7 @@ Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@def
 - `@anonymous` stands for no subject, and `@defined` is its opposite, for any subject that is not anonymous. So `@subject is @defined` is `true` exactly when `@subject is @anonymous` is `false` ([ADR 0010](0010-security.md)).
 - `@anonymous` and `@defined` are the only built-in values that can be a `SubjectType` ([ADR 0009](0009-triggers.md)).
 - `@id` is provided by the interpreter for every entity ([ADR 0017](0017-faceted-types.md)). It cannot be read in Cant code: a program has no way to write `@id` to get an entity's identifier, so `user.@id` is an error. The interpreter still uses it, to compare entities and to load their contents ([ADR 0017](0017-faceted-types.md)).
+- `@entity` is provided by the interpreter for every entity, and holds the entity's specific type ([ADR 0022](0022-entities.md)). Like `@id`, it cannot be read in Cant code, so `user.@entity` is an error. The interpreter uses it to resolve an entity's type at runtime, such as for `instanceOf` ([ADR 0033](0033-unknown-type.md)) and equality ([ADR 0017](0017-faceted-types.md)).
   - An `EntityId` is a `TEXT` under the covers. It stays an internal type that a program cannot name or read ([ADR 0022](0022-entities.md)), but when an entity is converted to text, it is written as that `TEXT` ([ADR 0011](0011-converting-values-to-text.md)).
 - `@result` is defined in every trigger, whatever its source, and holds what the action the trigger runs returned ([ADR 0009](0009-triggers.md)).
   - Its type is always an error return type ([ADR 0023](0023-error-handling.md)). If the action has an error return type, `@result` has that type, and holds either the action's value or the error it raised or passed. Otherwise, `@result` has an error return type whose value type is the action's return type and which has no errors, so it always holds the value the action returned.
@@ -57,7 +58,7 @@ Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@def
 | `@all` | Only in an entity's `expose` and `hide` blocks ([ADR 0022](0022-entities.md)), and in `passes @all` ([ADR 0023](0023-error-handling.md)) |
 | `@result` | Only in a trigger, whatever its source |
 | `@request`, `@message` | Only in a trigger on a source that provides them ([ADR 0025](0025-trigger-sources.md)) |
-| `@id` | Nowhere: it cannot be read in Cant code |
+| `@id`, `@entity` | Nowhere: they cannot be read in Cant code |
 
 Using a built-in value anywhere else is a compile-time error.
 

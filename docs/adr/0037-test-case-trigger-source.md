@@ -72,7 +72,7 @@ trigger ApproveInvoice on TestCase
     parameters
         name := "an admin can approve an invoice"
         subject := {
-            entity := User,
+            @entity := User,
             email := "ada@example.com",
             name := "Ada",
         }
@@ -82,9 +82,15 @@ trigger ApproveInvoice on TestCase
         isEmpty @error, "the invoice is approved"
 ```
 
-- **`entity`.** The `entity` member names the subject entity, by name or qualified name ([ADR 0005](0005-module-namespaces.md)). It must be an entity marked `subject` ([ADR 0010](0010-security.md)), and naming any other type is a compile-time error. This is the only place a type is given as a member's value. `entity` is a keyword reserved everywhere ([ADR 0010](0010-security.md)), so no field can be called `entity`, and the member can't clash with one.
+- **`@entity`.** The `@entity` member names the subject entity, by name or qualified name ([ADR 0005](0005-module-namespaces.md)). It must be an entity marked `subject` ([ADR 0010](0010-security.md)), and naming any other type is a compile-time error. This is the only place a type is given as a member's value. Its name starts with `@`, the prefix reserved for built-ins ([ADR 0024](0024-built-in-values.md)), so it can never clash with a field, however that field is named, including a member written as a string, such as `"entity"` ([ADR 0021](0021-collections.md)). To allow it, an object value's member name can be a built-in name:
+
+  ```ebnf
+  ObjectItem  = (Identifier | ?keyword? | StringLiteral | BuiltIn), ":=", Expression ;
+  ```
+
+  This extends the `ObjectItem` rule of [ADR 0021](0021-collections.md). `@entity` in a test case's `subject` is the only built-in name a member can have. Any other, and `@entity` in any other object value, is a compile-time error. `@entity` is the built-in field that every entity has, which holds its type ([ADR 0022](0022-entities.md)). So the member gives the subject entity its `@entity`, which is how the interpreter resolves the subject's type, as it does for any entity. When this ADR is accepted, [ADR 0024](0024-built-in-values.md) gains this use of `@entity`, as a member name in `subject`, alongside `@error`.
 - **Fields.** The other members give the entity's fields, named as they are in its model, as its `identity` line names them ([ADR 0022](0022-entities.md)). They are matched against the model as an anonymous model is ([ADR 0027](0027-object-shapes.md)): every required field must be given, optional fields can be left out and take their defaults, each value must have its field's type, and a member the model doesn't have is a compile-time error. Hidden fields can be given too, since a test may need them. Since every `identity` field is a field of the model, the subject is always identified.
-- **Navigation fields.** A navigation field ([ADR 0035](0035-entity-relationships.md)) can't be given, since it holds entities. So an entity whose `identity` names a navigation field can't be a test case's subject, and naming one in `entity` is a compile-time error.
+- **Navigation fields.** A navigation field ([ADR 0035](0035-entity-relationships.md)) can't be given, since it holds entities. So an entity whose `identity` names a navigation field can't be a test case's subject, and naming one in `@entity` is a compile-time error.
 - **Constant.** Every member's value must be a constant expression ([ADR 0023](0023-error-handling.md)), so the subject is known at compile time, and `subject`, like every other source parameter, is configured before the test case runs ([ADR 0025](0025-trigger-sources.md)). An object value is not otherwise a constant expression ([ADR 0034](0034-top-level-constants.md)). `subject` is the one place where an object value of constant members counts as one, since the object is only used to make the subject, and is never shared.
 - **`@subject`.** The interpreter makes an entity of the named type from the object, with an `@id` of its own ([ADR 0017](0017-faceted-types.md)), and a fresh one each time the test case runs, so a change one test case makes to its subject never reaches another. For the whole test case, in its `auth` rule, in the action and every action it calls, and in its assertions, `@subject` is that entity. So `@subject is User` is `true`, and `@subject` can be narrowed and its fields read as usual ([ADR 0010](0010-security.md)). It is set directly, not by authenticating a request, so it doesn't depend on [ADR 0032](0032-authentication.md).
 - **Left out.** Without `subject`, `@subject` is `@anonymous`, as on any source that has no subject ([ADR 0025](0025-trigger-sources.md)). `@anonymous` can't be given as the value, since it can only be used in an `is` predicate ([ADR 0024](0024-built-in-values.md)).
@@ -191,7 +197,7 @@ These need answers before this ADR is accepted:
 - A test case can describe its subject in place, as a literal object, so `auth` rules and actions that check `@subject` can be tested as a signed-in subject, as well as anonymously, without creating or loading entities, and without going through authentication.
 - The subject's fields are checked against its entity's model at compile time, like an anonymous model, so a missing or misspelled field is caught before any test runs.
 - An object value of constant members counts as a constant expression in `subject`, and nowhere else, so source parameters stay known at compile time, as [ADR 0025](0025-trigger-sources.md) requires, at the cost of one special case in what counts as a constant expression ([ADR 0034](0034-top-level-constants.md)).
-- `entity` is used as a member name that holds a type, which happens nowhere else in Cant.
+- `@entity` is a member name that holds a type, which happens nowhere else in Cant. Because it starts with `@`, it can't clash with a field, but object values gain built-in names as member names, which the parser has to accept and the compiler has to reject everywhere but `subject`.
 - A subject entity whose `identity` names a navigation field, such as one identified by its organization, can't be a test case's subject.
-- `@error` is added to the built-in values ([ADR 0024](0024-built-in-values.md)), and `assertions` to the trigger settings ([ADR 0009](0009-triggers.md)). The parser has to accept both.
+- `@error` is added to the built-in values, and `subject` becomes a place where `@entity` can be written ([ADR 0024](0024-built-in-values.md)), and `assertions` to the trigger settings ([ADR 0009](0009-triggers.md)). The parser has to accept both.
 - `TestCase` is the first trigger source this language defines in an ADR, so it is also the first test of how [ADR 0025](0025-trigger-sources.md) describes sources: a name, parameters and built-in values.

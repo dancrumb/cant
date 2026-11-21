@@ -57,7 +57,7 @@ How a program asks for a facet, what it can do with one, and when a program can 
 
 Entities ([ADR 0010](0010-security.md)) are faceted types with exactly two facets: an identifier facet and a contents facet. An entity's identifier facet is its `@id`, a built-in value that every entity has. Built-in values such as `@id` will be defined by [ADR 0024](0024-built-in-values.md).
 
-Being faceted does not erase an entity's type. Each entity also carries its specific type, given by its name, such as `User` or `accounts::User` ([ADR 0005](0005-module-namespaces.md)). A `User` is a `User`, not just a faceted value with an identifier and contents.
+Being faceted does not erase an entity's type. Each entity also carries its specific type, given by its name, such as `User` or `accounts::User` ([ADR 0005](0005-module-namespaces.md)). A `User` is a `User`, not just a faceted value with an identifier and contents. The type is held in `@entity`, a built-in field that every entity has ([ADR 0022](0022-entities.md)), which the interpreter uses wherever it needs to know an entity's type, as for equality below.
 
 An entity's `@id` is not the same as the fields it names in its `identity` ([ADR 0010](0010-security.md)). The identifier facet is always `@id`, whatever the entity's `identity` fields are, and whether or not it has any.
 
