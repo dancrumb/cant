@@ -36,8 +36,16 @@ export type Type =
   /** An object value, matched by structure (docs/adr/0027-object-shapes.md). */
   | { kind: 'anonymous'; fields: ReadonlyMap<string, Type> }
   | { kind: 'entity'; symbol: ModuleSymbol; declaration: EntityDeclaration }
-  /** A declared error, or any `ERROR` (docs/adr/0023-error-handling.md). */
-  | { kind: 'error'; symbol?: ModuleSymbol; declaration?: ErrorDeclaration }
+  /**
+   * An error (docs/adr/0023-error-handling.md): a specific one, given by `symbol`, or, without
+   * one, any of `among`, or any `ERROR` at all when `among` is missing too.
+   */
+  | { kind: 'error'; symbol?: ModuleSymbol; declaration?: ErrorDeclaration; among?: readonly ModuleSymbol[] }
+  /**
+   * An error return type: a value of `value`, or one of the errors in `errors`, or any error at
+   * all when `anyError` is set (docs/adr/0023-error-handling.md).
+   */
+  | { kind: 'result'; value: Type; errors: readonly ModuleSymbol[]; anyError: boolean }
   | { kind: 'optional'; inner: Type }
   /** The unnamed type of `@subject` (docs/adr/0010-security.md). */
   | { kind: 'subject' };
@@ -101,7 +109,9 @@ export function describe(type: Type): string {
     case 'anonymous':
       return `{ ${[...type.fields].map(([name, field]) => `${name}: ${describe(field)}`).join(', ')} }`;
     case 'error':
-      return type.symbol?.name ?? 'ERROR';
+      return type.symbol?.name ?? (type.among === undefined ? 'ERROR' : type.among.map((symbol) => symbol.name).join(' or '));
+    case 'result':
+      return `${describe(type.value)}, or ${type.anyError ? 'any error' : type.errors.map((symbol) => symbol.name).join(' or ')}`;
     case 'optional':
       return `${describe(type.inner)}?`;
     case 'subject':
@@ -163,7 +173,7 @@ export function fieldType(field: Field, references: References): Type {
   return field.optional && field.defaultValue === undefined ? optional(type) : type;
 }
 
-const sameSymbol = (a: ModuleSymbol, b: ModuleSymbol): boolean => a.module === b.module && a.name === b.name;
+export const sameSymbol = (a: ModuleSymbol, b: ModuleSymbol): boolean => a.module === b.module && a.name === b.name;
 
 export interface AssignOptions {
   /**
@@ -185,7 +195,9 @@ export type Assignable = (from: Type, to: Type, options?: AssignOptions) => bool
 export function createAssignable(modelFields: ModelFields): Assignable {
   const assignable: Assignable = (from, to, options = {}) => {
     if (from.kind === 'unchecked' || to.kind === 'unchecked') return true;
-    if (to.kind === 'unknown') return from.kind !== 'void';
+    // A result's value is what fits; whether it may hold an error is checked separately.
+    if (from.kind === 'result') return assignable(from.value, to, options);
+    if (to.kind === 'unknown') return from.kind !== 'void' && from.kind !== 'error';
     if (to.kind === 'optional') {
       return from.kind === 'optional' ? assignable(from.inner, to.inner, options) : assignable(from, to.inner, options);
     }
@@ -229,6 +241,8 @@ export function createAssignable(modelFields: ModelFields): Assignable {
         return from.kind === 'entity' && sameSymbol(from.symbol, to.symbol);
       case 'error':
         return from.kind === 'error' && (to.symbol === undefined || (from.symbol !== undefined && sameSymbol(from.symbol, to.symbol)));
+      case 'result':
+        return false;
       case 'subject':
         return from.kind === 'subject';
       case 'void':

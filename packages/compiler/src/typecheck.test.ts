@@ -296,6 +296,8 @@ test('checks defaults, constants, trigger arguments, auth and assertions', () =>
       'type-mismatch 11:17',
       'type-mismatch 14:17',
       'type-mismatch 15:16',
+      // Greet returns VOID, so @result isn't a BOOLEAN.
+      'type-mismatch 19:9',
       'type-mismatch 20:15',
     ],
   );

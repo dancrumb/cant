@@ -257,6 +257,9 @@ test("checks a TestCase's subject and assertions", () => {
       'missing-entity 19:20',
       'wrong-kind 23:33',
       'misplaced-built-in 24:14',
+      // Run can't give an error, and returns VOID, which can't be interpolated.
+      'no-errors 15:17',
+      'not-text 15:38',
     ],
   );
 });
