@@ -48,4 +48,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0036](0036-native-modules.md) | Native modules | Accepted |
 | [0037](0037-test-case-trigger-source.md) | The `TestCase` trigger source | Accepted |
 | [0038](0038-namespaces-from-imports.md) | Namespaces from imports | Accepted |
-| [0039](0039-compiled-programs.md) | Compiled programs | Proposed |
+| [0039](0039-compiled-programs.md) | Compiled programs | Accepted |

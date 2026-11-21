@@ -1,6 +1,6 @@
 # 0039. Compiled programs
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-21
 
 ## Context
@@ -92,12 +92,109 @@ type TypeRef =
   | { kind: "internal"; name: string; arguments: TypeRef[] }; // a standard library type, such as Collection<T>
 ```
 
-Declarations keep what the interpreter needs to make and check values ([ADR 0027](0027-object-shapes.md), [ADR 0036](0036-native-modules.md)):
+#### Type declarations
 
-- an enum's values, each with its name;
-- a model's fields, each with its type, whether it is optional, and its default, if it has one;
-- an error's `data` model;
-- an entity's models, identity, exposed fields, subject and group markings, roles and memberships, and its navigation fields, from the relations that name it ([ADR 0010](0010-security.md), [ADR 0022](0022-entities.md), [ADR 0035](0035-entity-relationships.md)).
+Type declarations keep what the interpreter needs to make values and check them ([ADR 0027](0027-object-shapes.md), [ADR 0036](0036-native-modules.md)):
+
+```ts
+type TypeDeclaration = EnumDeclaration | ModelDeclaration | ErrorDeclaration | EntityDeclaration;
+
+interface EnumDeclaration {
+  kind: "enum";
+  /** Its members, in order, each with its name and value. A member without a value has its name as its value. */
+  members: [name: string, value: BaseValue][];
+}
+
+interface ModelDeclaration {
+  kind: "model";
+  /** Its fields, in the order the model declares them, which converting to text follows. */
+  fields: Field[];
+  /** The order to work out defaults in, as indexes into `fields`. */
+  defaultOrder: number[];
+}
+
+interface Field {
+  name: string;
+  type: TypeRef;
+  /** Whether the field is marked `?`. */
+  optional: boolean;
+  default?: Expression;
+}
+
+interface ErrorDeclaration {
+  kind: "error";
+  /** Its `data`: a named model, or the fields of an anonymous one, if it has any. */
+  data?: { model: SymbolId } | { fields: Field[]; defaultOrder: number[] };
+}
+```
+
+A field's default is code, like an action's body (see [Code](#code)), since it can use the model's other fields ([ADR 0020](0020-action-parameters.md), [ADR 0027](0027-object-shapes.md)).
+
+#### Entities
+
+An entity's declaration says how its value is made from its model, how it is identified, how it is related to other entities, and what part it plays in security ([ADR 0010](0010-security.md), [ADR 0022](0022-entities.md), [ADR 0032](0032-authentication.md), [ADR 0035](0035-entity-relationships.md)):
+
+```ts
+interface EntityDeclaration {
+  kind: "entity";
+  /** Its model. For now, an entity is made of exactly one. */
+  model: SymbolId;
+  /**
+   * The fields a program sees, by the names it sees them under, each naming the model's field it
+   * holds. A field that isn't listed is hidden.
+   */
+  exposed: Record<string, string>;
+  /** What identifies it: fields of its model, by their names there, and navigation fields. */
+  identity: ({ field: string } | { navigation: string })[];
+  /** The navigation fields that relations add to it, by name. */
+  navigation: Record<string, NavigationField>;
+  /** Whether it is a subject. */
+  subject: boolean;
+  /** For a group entity, its kind and the roles a member can have in it. */
+  group?: { kind: string; roles: string[] };
+  /** For a membership entity, its navigation fields to its member and group, and its model's field that holds the roles. */
+  membership?: { member: string; group: string; roles?: string };
+}
+
+interface NavigationField {
+  /** The entity at the far end. */
+  entity: SymbolId;
+  /** The cardinality of the far end, which decides the field's type. */
+  cardinality: "1" | "0..1" | "0..*" | "1..*";
+  /** The navigation field at the far end, which leads back. */
+  inverse: string;
+  /** The relation that adds it, as an index into `relations`. */
+  relation: number;
+}
+
+interface Relation {
+  left: RelationEnd;
+  right: RelationEnd;
+}
+
+interface RelationEnd {
+  entity: SymbolId;
+  /** The navigation field this end's entity gets. */
+  field: string;
+  /** How many of this end's entity each entity at the other end is related to. */
+  cardinality: "1" | "0..1" | "0..*" | "1..*";
+}
+
+interface Permissions {
+  /** The kind of group, as a group entity's `group` line names it. */
+  group: string;
+  /** The role the permissions are granted to, or every member when it is missing. */
+  role?: string;
+  permissions: string[];
+}
+```
+
+- **What is resolved.** The compiler has already worked out `expose` and `hide`, including `@all` and renaming with `as` ([ADR 0022](0022-entities.md)), so the interpreter only reads `exposed`. It has also added each relation's navigation fields to the entities at its ends, so the interpreter finds an entity's navigation fields on the entity, and the relation they belong to, for enforcing its cardinality, in `relations` ([ADR 0035](0035-entity-relationships.md)).
+- **Hidden fields** aren't in `exposed`, but they are still fields of the entity's model, so they are still part of the entity's stored contents ([ADR 0022](0022-entities.md)).
+- **`identity`** names model fields by their names in the model, not the names they are exposed under, so it can name a hidden field ([ADR 0022](0022-entities.md)). A navigation field in an identity always reaches exactly one entity ([ADR 0035](0035-entity-relationships.md)).
+- **Groups and roles.** A role belongs to a group kind ([ADR 0010](0010-security.md)), so a group entity's roles are listed with its kind. A membership's `roles` field holds an enum, or a set of one, whose values name those roles ([ADR 0032](0032-authentication.md)).
+- **What every entity has.** `@id` and `@entity` aren't declared, since every entity has them ([ADR 0022](0022-entities.md)). The interpreter gives each entity value its `@entity`, the entity's symbol ID, and gives it an `@id` when it is stored.
+- **Every module's.** `relations` and `permissions` hold those of every module the program uses: an imported module's `permissions` declarations take effect in the programs that import it ([ADR 0006](0006-imports.md)), and a relation's navigation fields are part of its entities' types wherever they are used.
 
 #### Constants
 
@@ -105,13 +202,16 @@ The compiler works out each constant's value, since it is a constant expression 
 
 ```ts
 type Value =
+  | BaseValue
+  | { kind: "enum"; enum: SymbolId; value: BaseValue }      // the member's value
+  | { kind: "object"; model?: SymbolId; members: [string, Value][] };  // in order
+
+type BaseValue =
   | { kind: "text"; value: string }
   | { kind: "number"; value: number }
   | { kind: "boolean"; value: boolean }
   | { kind: "dateTime"; value: number }   // milliseconds since 1970-01-01T00:00:00Z
-  | { kind: "duration"; value: number }   // a whole number of milliseconds
-  | { kind: "enum"; enum: SymbolId; value: Value }          // the member's value, a base value
-  | { kind: "object"; model?: SymbolId; members: [string, Value][] };  // in order
+  | { kind: "duration"; value: number };  // a whole number of milliseconds
 ```
 
 A use of a constant in an action refers to its symbol, and the interpreter makes a new object from an object constant each time it is used.
