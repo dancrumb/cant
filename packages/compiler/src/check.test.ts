@@ -158,24 +158,6 @@ test('reports lines an entity can have only one of', () => {
   );
 });
 
-test('reports test cases with the same name', () => {
-  assert.deepEqual(
-    problems(
-      'trigger A on TestCase',
-      '    parameters',
-      '        name := "totals an invoice"',
-      'trigger B on TestCase',
-      '    parameters',
-      '        name := "totals an invoice"',
-      'trigger C on Start',
-      'trigger D on HttpRequest',
-      '    parameters',
-      '        name := "totals an invoice"',
-    ),
-    ['duplicate-test-case 6:17'],
-  );
-});
-
 test('collects declarations into namespaces, and lists what later passes resolve', () => {
   const { symbols } = check(
     [

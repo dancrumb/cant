@@ -16,6 +16,7 @@ import type {
 } from '@dancrumb/cant-shared';
 import type { Position } from 'unist';
 import { error, type Diagnostic } from './diagnostic.ts';
+import { constantKey } from './types.ts';
 
 /** The namespace a module's declarations are in until a `namespace` line (docs/adr/0005-module-namespaces.md). */
 export const MAIN_NAMESPACE = '__main__';
@@ -82,7 +83,6 @@ const line = (position: Position): string => `line ${String(position.start.line)
  * - two actions with the same name in a namespace;
  * - a constant with the same name as an action, a type or another constant (docs/adr/0034-top-level-constants.md);
  * - two exported symbols with the same name (docs/adr/0006-imports.md);
- * - two test cases with the same name (docs/adr/0037-test-case-trigger-source.md);
  * - inside a declaration: two parameters, model fields or error data fields with the same name,
  *   two enum members with the same name or value, two roles with the same name, and more than
  *   one `identity`, `membership`, `expose` or `hide` in an entity.
@@ -170,8 +170,6 @@ export function collectDeclarations(program: Program): CollectedDeclarations {
         break;
     }
   }
-
-  checkTestCaseNames(symbols.triggers, diagnostics);
 
   return { symbols, diagnostics };
 }
@@ -272,8 +270,7 @@ function checkEnum(declaration: EnumDeclaration, diagnostics: Diagnostic[]): voi
     if (names.has(member.name.value)) continue;
     names.add(member.name.value);
     // A member with no `:=` has its name as its `TEXT` value.
-    const key = member.value === undefined ? `string:${member.name.value}` : valueKey(member.value);
-    if (key === undefined) continue;
+    const key = member.value === undefined ? `TEXT:${member.name.value}` : constantKey(member.value).key;
     const earlier = values.get(key);
     if (earlier === undefined) {
       values.set(key, member.name);
@@ -286,23 +283,6 @@ function checkEnum(declaration: EnumDeclaration, diagnostics: Diagnostic[]): voi
         member.value?.position ?? member.name.position,
       ),
     );
-  }
-}
-
-/** A key that is equal for two enum values exactly when the values are, or `undefined` if unknown. */
-function valueKey(value: NonNullable<EnumDeclaration['members'][number]['value']>): string | undefined {
-  switch (value.type) {
-    case 'string':
-      return `string:${value.parts.map((part) => (part.type === 'text' ? part.value : '')).join('')}`;
-    case 'number':
-      return `number:${String(value.value)}`;
-    case 'boolean':
-      return `boolean:${String(value.value)}`;
-    // Equal instants and durations can be written in different ways, so these are left to the
-    // type checker, which works out their values.
-    case 'dateTime':
-    case 'duration':
-      return undefined;
   }
 }
 
@@ -339,31 +319,4 @@ function checkEntity(declaration: EntityDeclaration, diagnostics: Diagnostic[]):
     'a role',
     diagnostics,
   );
-}
-
-/**
- * Two test cases with the same name are a compile-time error (docs/adr/0037-test-case-trigger-source.md).
- * For now, only names written as a plain string are compared: a name built from constants needs
- * the constants' values, which a later pass works out.
- */
-function checkTestCaseNames(triggers: InNamespace<TriggerDeclaration>[], diagnostics: Diagnostic[]): void {
-  const seen = new Map<string, Position>();
-  for (const { declaration } of triggers) {
-    if (declaration.source.value !== 'TestCase') continue;
-    const name = declaration.parameters?.find((parameter) => parameter.name.value === 'name')?.value;
-    if (name?.type !== 'string' || !name.parts.every((part) => part.type === 'text')) continue;
-    const text = name.parts.map((part) => part.value).join('');
-    const earlier = seen.get(text);
-    if (earlier === undefined) {
-      seen.set(text, name.position);
-      continue;
-    }
-    diagnostics.push(
-      error(
-        'duplicate-test-case',
-        `There is already a test case called "${text}", on ${line(earlier)}. Each test case needs its own name.`,
-        name.position,
-      ),
-    );
-  }
 }

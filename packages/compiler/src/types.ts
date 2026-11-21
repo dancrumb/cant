@@ -78,8 +78,19 @@ export function constantKey(value: ConstantValue): { key: EnumValue; type: BaseN
     case 'dateTime':
       return { key: `DATE_TIME:${String(Date.parse(value.value))}`, type: 'DATE_TIME' };
     case 'duration':
-      return { key: `DURATION:${value.value}`, type: 'DURATION' };
+      return { key: `DURATION:${String(durationMilliseconds(value.value))}`, type: 'DURATION' };
   }
+}
+
+/**
+ * A `DURATION` literal's length in milliseconds, so that equal durations written differently,
+ * such as `PT60M` and `PT1H`, have the same key (docs/adr/0026-dates-and-times.md).
+ */
+export function durationMilliseconds(text: string): number {
+  const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.exec(text);
+  if (match === null) return Number.NaN;
+  const [days = '0', hours = '0', minutes = '0', seconds = '0'] = match.slice(1);
+  return Math.round(((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60_000 + Number(seconds) * 1000);
 }
 
 /** Write a type as a program would. */

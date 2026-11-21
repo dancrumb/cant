@@ -1,4 +1,5 @@
 import { resolveBodies, type Locals } from './bodies.ts';
+import { checkConstants } from './constants.ts';
 import type { Diagnostic } from './diagnostic.ts';
 import { checkEntities, type NavigationField } from './entities.ts';
 import { fileSystemHost, type Host } from './host.ts';
@@ -27,12 +28,14 @@ export function checkProgram(entry: string, host: Host = fileSystemHost): Checke
   const bodies = resolveBodies(program, names.references);
   const entities = checkEntities(program, names.references);
   const types = checkTypes({ ...program, references: names.references, locals: bodies.locals, navigation: entities.navigation });
+  const constants = checkConstants({ ...program, references: names.references, locals: bodies.locals });
   const diagnostics: Diagnostic[] = [
     ...program.diagnostics,
     ...names.diagnostics,
     ...bodies.diagnostics,
     ...entities.diagnostics,
     ...types,
+    ...constants,
   ];
   return {
     ...program,

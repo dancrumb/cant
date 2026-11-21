@@ -42,6 +42,9 @@ export type { NavigationField } from './entities.ts';
 export { resolveNames } from './resolve.ts';
 export type { References } from './resolve.ts';
 
+export { checkConstants } from './constants.ts';
+export type { ConstantsInput } from './constants.ts';
+
 export { checkTypes } from './typecheck.ts';
 export type { ResolvedProgram } from './typecheck.ts';
 
