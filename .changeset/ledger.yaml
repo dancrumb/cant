@@ -94,6 +94,10 @@
   dir: packages/shared
   intents:
     - shared-evaluator
+cant-vscode@0.10.3:
+  dir: packages/vscode
+  intents:
+    - vscode-publisher
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:

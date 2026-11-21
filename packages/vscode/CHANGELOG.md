@@ -1,5 +1,11 @@
 # cant-vscode
 
+## 0.10.3
+
+### Patch Changes
+
+- The extension is published by `wasakatechnologies`, the Marketplace publisher it belongs to.
+
 ## 0.10.2
 
 ## 0.10.1
