@@ -110,7 +110,22 @@ interface HeldResult {
  *   doesn't declare, `raise` data, errors from `/` and `%` and from statements, and the types of
  *   `@result` and `@error`.
  */
-export function checkTypes(program: ResolvedProgram): Diagnostic[] {
+/**
+ * What the type checker found about expressions, which the compiler needs to make the runtime
+ * behaviour that depends on types explicit (docs/adr/0039-compiled-programs.md).
+ */
+export interface TypeRecord {
+  /** Each expression's type, without using a result it may give. */
+  types: Map<Expression, Type>;
+  /** The type each expression's value must fit, where one is expected. */
+  expected: Map<Expression, Type>;
+  /** The expressions whose result is used unchecked, which panics if it holds an error. */
+  unwrapped: Set<Expression>;
+  /** The fields of named models, as the type checker reads them. */
+  modelFields: ModelFields;
+}
+
+export function checkTypes(program: ResolvedProgram): { diagnostics: Diagnostic[]; record: TypeRecord } {
   const diagnostics: Diagnostic[] = [];
   const shared = new SharedTypes(program);
   for (const module of program.modules.values()) {
@@ -118,7 +133,7 @@ export function checkTypes(program: ResolvedProgram): Diagnostic[] {
       diagnostics.push({ ...diagnostic, file: module.path });
     }).run();
   }
-  return diagnostics;
+  return { diagnostics, record: { types: shared.types, expected: shared.expected, unwrapped: shared.unwrapped, modelFields: shared.modelFields } };
 }
 
 /** What every module's checker shares: field types, and the types of constants. */
@@ -126,6 +141,9 @@ class SharedTypes {
   readonly assignable: Assignable;
   readonly constants = new Map<ConstDeclaration, Type>();
   readonly working = new Set<ConstDeclaration>();
+  readonly types = new Map<Expression, Type>();
+  readonly expected = new Map<Expression, Type>();
+  readonly unwrapped = new Set<Expression>();
   /** The values of constant expressions, from the evaluator the interpreter shares. */
   readonly constantValues: ConstantValues;
   private readonly program: ResolvedProgram;
@@ -383,7 +401,8 @@ class TypeChecker {
       type = this.value(constant.value, NO_FACTS).type;
     } else {
       type = typeOf(constant.valueType, this.references);
-      this.expectValue(constant.value, type, NO_FACTS, `${constant.name.value}'s value`, false);
+      // A constant can declare an enum type and give one of its values (docs/adr/0034-top-level-constants.md).
+      this.expectValue(constant.value, type, NO_FACTS, `${constant.name.value}'s value`, true);
     }
     this.shared.working.delete(constant);
     this.shared.constants.set(constant, type);
@@ -851,6 +870,7 @@ class TypeChecker {
   /** Check that an expression's value fits `expected`, and report it if not. */
   private expectValue(expression: Expression, expected: Type, facts: Facts, what: string, enumConversion: boolean): Typed {
     const typed = this.value(expression, facts);
+    this.shared.expected.set(expression, expected);
     const options: AssignOptions = { enumConversion, ...(typed.literal !== undefined && { literal: typed.literal }) };
     if (!this.assignable(typed.type, expected, options)) this.mismatch(typed.type, expected, expression.position, what);
     return typed;
@@ -884,6 +904,7 @@ class TypeChecker {
     const typed = this.value(value, facts);
     // An optional can be passed to an optional parameter of its type (docs/adr/0014-optionals.md).
     const target = parameterOptional ? optional(expected) : expected;
+    this.shared.expected.set(value, target);
     const options: AssignOptions = { enumConversion: true, ...(typed.literal !== undefined && { literal: typed.literal }) };
     if (!this.assignable(typed.type, target, options)) {
       this.mismatch(typed.type, expected, value.position, `The argument for ${name}`);
@@ -903,6 +924,7 @@ class TypeChecker {
     const typed = this.expression(expression, facts);
     if (typed.type.kind !== 'result') return typed;
     this.usedResults.add(expression);
+    this.shared.unwrapped.add(expression);
     this.markHandled(expression);
     if (typed.type.value.kind === 'void') {
       this.report(error('void-value', "This result never holds a value, so it can't be used as one. Check it with `instanceOf`, `pass` it or `ignore` it.", expression.position));
@@ -913,6 +935,12 @@ class TypeChecker {
 
   /** An expression's type, without using a result it may give. */
   private expression(expression: Expression, facts: Facts): Typed {
+    const typed = this.typeExpression(expression, facts);
+    this.shared.types.set(expression, typed.type);
+    return typed;
+  }
+
+  private typeExpression(expression: Expression, facts: Facts): Typed {
     switch (expression.type) {
       case 'identifier':
       case 'qualifiedIdentifier':

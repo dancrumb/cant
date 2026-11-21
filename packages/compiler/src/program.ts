@@ -5,7 +5,7 @@ import { checkEntities, type NavigationField } from './entities.ts';
 import { fileSystemHost, type Host } from './host.ts';
 import { loadProgram, type LoadedProgram } from './modules.ts';
 import { resolveNames, type References } from './resolve.ts';
-import { checkTypes } from './typecheck.ts';
+import { checkTypes, type TypeRecord } from './typecheck.ts';
 
 export interface CheckedProgram extends LoadedProgram {
   /** The top-level names the program refers to, resolved to the symbols they mean. */
@@ -14,6 +14,8 @@ export interface CheckedProgram extends LoadedProgram {
   locals: Locals;
   /** Each entity's navigation fields, by the entity's module and name, then the field's name. */
   navigation: Map<string, Map<string, NavigationField>>;
+  /** What the type checker found about each expression. */
+  types: TypeRecord;
 }
 
 /**
@@ -34,7 +36,7 @@ export function checkProgram(entry: string, host: Host = fileSystemHost): Checke
     ...names.diagnostics,
     ...bodies.diagnostics,
     ...entities.diagnostics,
-    ...types,
+    ...types.diagnostics,
     ...constants,
   ];
   return {
@@ -42,6 +44,7 @@ export function checkProgram(entry: string, host: Host = fileSystemHost): Checke
     references: names.references,
     locals: bodies.locals,
     navigation: entities.navigation,
+    types: types.record,
     diagnostics,
   };
 }

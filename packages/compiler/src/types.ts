@@ -29,7 +29,7 @@ export type Type =
    * signatures aren't written down yet. It is compatible with every type, both ways.
    */
   | { kind: 'unchecked' }
-  | { kind: 'enum'; name?: string; values: ReadonlySet<EnumValue>; valueType: BaseName | undefined }
+  | { kind: 'enum'; name?: string; symbol?: ModuleSymbol; values: ReadonlySet<EnumValue>; valueType: BaseName | undefined }
   | { kind: 'array'; element: Type }
   | { kind: 'map'; value: Type }
   | { kind: 'set'; element: Type }
@@ -161,7 +161,7 @@ export function typeOfSymbol(symbol: ModuleSymbol | undefined): Type {
       const keys = declaration.members.map((member) =>
         member.value === undefined ? { key: `TEXT:${member.name.value}`, type: 'TEXT' as const } : constantKey(member.value),
       );
-      return { kind: 'enum', name: symbol.name, values: new Set(keys.map(({ key }) => key)), valueType: keys[0]?.type };
+      return { kind: 'enum', name: symbol.name, symbol, values: new Set(keys.map(({ key }) => key)), valueType: keys[0]?.type };
     }
     default:
       return UNCHECKED;

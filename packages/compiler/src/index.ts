@@ -53,3 +53,6 @@ export type { Assignable, Type } from './types.ts';
 
 export { STANDARD_LIBRARY } from './stdlib.ts';
 export type { StandardKind } from './stdlib.ts';
+
+export { compile, rootOf } from './compile.ts';
+export type { CompileResult } from './compile.ts';

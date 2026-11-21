@@ -22,3 +22,6 @@ export {
   toText,
 } from './values.ts';
 export type { BaseValue, EnumValue, ObjectInstance, Value } from './values.ts';
+
+export { COMPILED_FORMAT } from './compiled.ts';
+export type * from './compiled.ts';

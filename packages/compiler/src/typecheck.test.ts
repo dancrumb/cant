@@ -349,3 +349,10 @@ test('checks that within names a group', () => {
     ['not-a-group 12:73'],
   );
 });
+
+test('lets a constant declare an enum type and give one of its values', () => {
+  assert.deepEqual(
+    problems('enum Status', '    draft', '    sent', 'const fallback: Status := "draft"', 'const wrong: Status := "paid"'),
+    ['type-mismatch 5:24'],
+  );
+});

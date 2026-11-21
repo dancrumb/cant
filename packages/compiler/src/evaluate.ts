@@ -22,11 +22,14 @@ export const symbolId = (symbol: ModuleSymbol): string => `${symbol.module}#${sy
  */
 export class ConstantValues {
   private readonly references: References;
+  private readonly idOf: (symbol: ModuleSymbol) => string;
   private readonly values = new Map<ConstDeclaration, Evaluation>();
   private readonly working = new Set<ConstDeclaration>();
 
-  constructor(references: References) {
+  /** `idOf` names an enum's symbol in the values it gives, as a compiled program names it. */
+  constructor(references: References, idOf: (symbol: ModuleSymbol) => string = symbolId) {
     this.references = references;
+    this.idOf = idOf;
   }
 
   /** What evaluating a top-level constant's value gives. A constant that depends on itself isn't constant. */
@@ -81,7 +84,7 @@ export class ConstantValues {
           if (result.kind !== 'value' || result.value.kind === 'enum' || result.value.kind === 'object') return undefined;
           value = result.value;
         }
-        return { kind: 'enum', enum: symbolId(symbol), value };
+        return { kind: 'enum', enum: this.idOf(symbol), value };
       },
     };
   }
