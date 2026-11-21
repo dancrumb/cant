@@ -42,3 +42,14 @@ jobs:
       - run: pnpm publish --recursive --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # The extension is private to npm, and published to the Visual Studio Marketplace instead.
+      - run: pnpm --filter cant-vscode run package
+      - run: pnpm --filter cant-vscode run publish:marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: cant-vscode
+          path: packages/vscode/dist/cant.vsix

@@ -6,6 +6,20 @@
   "description": "Language support for Cant: problems, go to definition, references, hover, outline and completion, and highlighting, including cant code blocks in Markdown",
   "license": "MIT",
   "publisher": "dancrumb",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dancrumb/cant.git",
+    "directory": "packages/vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/dancrumb/cant/issues"
+  },
+  "homepage": "https://github.com/dancrumb/cant#readme",
+  "keywords": [
+    "cant",
+    "language server",
+    "lsp"
+  ],
   "type": "module",
   "main": "./dist/extension.cjs",
   "engines": {
@@ -38,18 +52,19 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "test": "node --test \"dist/**/*.test.js\"",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "package": "vsce package --no-dependencies --out dist/cant.vsix",
+    "publish:marketplace": "vsce publish --no-dependencies --packagePath dist/cant.vsix"
   },
-  "dependencies": {
+  "devDependencies": {
     "@dancrumb/cant-lsp": "workspace:^",
     "@dancrumb/cant-shared": "workspace:^",
+    "@types/vscode": "~1.100.0",
+    "@vscode/vsce": "^4.1.1",
+    "esbuild": "^0.28.2",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.2.0",
     "vscode-languageclient": "^11.0.0"
-  },
-  "devDependencies": {
-    "@types/vscode": "~1.100.0",
-    "esbuild": "^0.28.2"
   }
 }

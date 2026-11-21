@@ -1,0 +1,20 @@
+# Cant for Visual Studio Code
+
+Language support for [Cant](https://github.com/dancrumb/cant).
+
+## Features
+
+In `.cant` files:
+
+- **Problems**: every problem `cant check` finds, as you type, in the file and in the modules it imports.
+- **Go to definition** and **find references**, for top-level names across files and for parameters and locals.
+- **Hover**: what a name is, and its declaration.
+- **Outline**: the file's declarations, with their parameters, fields and enum members.
+- **Completion**: keywords, the names the module can see, and locals declared earlier.
+- **Highlighting**.
+
+In Markdown, `cant` and `cant-example` code blocks are highlighted.
+
+## Requirements
+
+None: the language server is bundled with the extension.
