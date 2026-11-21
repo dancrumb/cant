@@ -212,7 +212,7 @@ The value type can be an optional ([ADR 0014](0014-optionals.md)), as in an acti
 
 Narrowing follows the same rules as for `isEmpty` and other uses of `instanceOf` ([ADR 0016](0016-handling-optional-values.md)): it follows the logic of the whole condition, holds after an early return, and only narrows an identifier, not an expression such as a call.
 
-Giving the result to an identifier does not use it, so holding an error in an identifier never panics. An identifier is the only place an unchecked result can be held, since an error type cannot be a parameter's or field's type.
+Giving the result to an identifier does not use it, so holding an error in an identifier never panics. An identifier is the only place an unchecked result can be held, since an error type cannot be a parameter's or field's type. That includes built-in values, which are special identifiers ([ADR 0024](0024-built-in-values.md)), such as `@result`, which holds the unchecked result of a trigger's action.
 
 A caller does not have to check. If it uses the value without checking, and the value holds a value of the value type, the program carries on with that value. If the value holds an error, the program **panics**, whatever the action's `passes` clause says.
 
