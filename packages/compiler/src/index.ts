@@ -33,6 +33,12 @@ export type {
   TypeKind,
 } from './modules.ts';
 
+export { resolveBodies } from './bodies.ts';
+export type { LocalBinding, Locals } from './bodies.ts';
+
+export { checkEntities } from './entities.ts';
+export type { NavigationField } from './entities.ts';
+
 export { resolveNames } from './resolve.ts';
 export type { References } from './resolve.ts';
 

@@ -69,8 +69,8 @@ export type References = Map<Name, ModuleSymbol>;
  * - the action each trigger runs.
  *
  * Names in expressions that may be local, such as identifiers and calls in an action's body,
- * are resolved by a later pass, which knows the local scopes. So are permissions' group kinds
- * and roles, and fields named in entities.
+ * are resolved by `resolveBodies`, which knows the local scopes. Permissions' group kinds and
+ * roles, and the fields entities name, are checked by `checkEntities`.
  */
 export function resolveNames(program: LoadedProgram): { references: References; diagnostics: Diagnostic[] } {
   const references: References = new Map();

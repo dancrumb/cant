@@ -235,7 +235,7 @@ test('reports names that are the wrong kind of thing', () => {
         '        Declined',
         'action Pay(r: Declined): VOID raises Receipt',
         '    body',
-        '        if x instanceOf Declined',
+        '        if r instanceOf Declined',
         '            raise Receipt',
         '        if @subject is Receipt',
         '            return',
