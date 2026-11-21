@@ -21,6 +21,7 @@ A value is converted to text according to its type:
 | `NUMBER` | The number in decimal notation, without trailing zeros after the decimal point or an exponent |
 | `BOOLEAN` | `"true"` or `"false"` |
 | `DATE_TIME` | The ISO 8601 representation of the timestamp in UTC, with milliseconds, ending in `Z` |
+| `DURATION` | Its ISO 8601 form in days, hours, minutes and seconds, such as `"PT1H30M"` ([ADR 0026](0026-dates-and-times.md)) |
 | `FILE` | Its URL, as a faceted type (see below) |
 | `VOID` | An error |
 | `NOTHING` | An error, as [ADR 0014](0014-optionals.md) describes |
@@ -55,7 +56,7 @@ A `DATE_TIME` is written in ISO 8601 form in UTC, with `Z` at the end to show it
 
 An enum value is converted by taking the member's value ([ADR 0013](0013-enums.md)) and applying the rule for that value's type. A `TEXT` value is used unchanged, so `InvoiceStatus.paid` becomes `"paid"`. A `NUMBER` value is written as a number, so `Priority.High`, whose value is `3`, becomes `"3"`. A `BOOLEAN` value follows its rule in the same way. The member's name is never used, so `Status.InProgress` becomes `"In Progress"`, not `"InProgress"`.
 
-The rules for numbers apply to enum values whose value type is `NUMBER` too. Enums cannot have `DATE_TIME` values, since there are no `DATE_TIME` literals ([ADR 0013](0013-enums.md)).
+The rules for numbers apply to enum values whose value type is `NUMBER` too. An enum whose value type is `DATE_TIME` or `DURATION` follows that type's rule ([ADR 0013](0013-enums.md), [ADR 0026](0026-dates-and-times.md)).
 
 `VOID` and `NOTHING` cannot be converted, because there is no value to write. `VOID` is not a value at all ([ADR 0012](0012-base-types.md)), and `NOTHING` stands for a missing one. A program that wants to show a missing value has to check for `NOTHING` and choose the text itself. How interpolating `NOTHING`, or a value that might be `NOTHING`, is reported is decided by [ADR 0014](0014-optionals.md).
 
@@ -118,5 +119,5 @@ A program will be able to define its own types by extending a base type, and an 
 - A model's text shows only its top layer of fields. Nested models and collections are written as a placeholder, so the text stays short, but it does not show everything the object holds.
 - Enum values are written as their values, not their member names, so the text matches the data a program stores and sends.
 - `NOTHING` never appears silently in text, as `null` or an empty string might, so a missing value cannot slip into a message unnoticed. The cost is that programs have to handle missing values before interpolating them.
-- `DATE_TIME` values are written in a standard form that other systems can parse, but not one that is friendly to read. Formatting dates for people needs something other than interpolation, such as an extended type with its own conversion.
+- `DATE_TIME` values are written in a standard form that other systems can parse, but not one that is friendly to read. Formatting dates for people needs something other than interpolation, such as `format` in `cant::Time` ([ADR 0026](0026-dates-and-times.md)), or an extended type with its own conversion.
 - Because extended types can define their own conversion, the same base value can produce different text depending on its type, so the type, not just the value, decides what an interpolation produces.

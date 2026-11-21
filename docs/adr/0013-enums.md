@@ -52,7 +52,7 @@ enum Mixed
 
 A member with no `:=` has a `TEXT` value, so in an enum whose value type is not `TEXT`, every member must use `:=`.
 
-`ConstantValue` is a literal of a base type: a string literal with no interpolations ([ADR 0008](0008-strings.md)), or a number or boolean literal ([ADR 0019](0019-operators.md)). There are no `DATE_TIME` literals yet, so enums whose value type is `DATE_TIME` cannot be written until there are.
+`ConstantValue` is a literal of a base type: a string literal with no interpolations ([ADR 0008](0008-strings.md)), a number or boolean literal ([ADR 0019](0019-operators.md)), or a `DATE_TIME` or `DURATION` literal ([ADR 0026](0026-dates-and-times.md)), so an enum's value type can be `DATE_TIME` or `DURATION`.
 
 An enum has at least one member. Its members' names must be distinct, and so must their values, so `enum E` with members `A` and `B := "A"` is an error.
 

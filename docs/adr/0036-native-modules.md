@@ -116,7 +116,8 @@ Values pass between Cant and TypeScript as plain JavaScript values, without bein
 | `TEXT` | `string` |
 | `NUMBER` | `number`, never `NaN` or an infinity |
 | `BOOLEAN` | `boolean` |
-| `DATE_TIME` | `Date`, never an invalid one ([ADR 0026](0026-dates-and-times.md) may change this) |
+| `DATE_TIME` | `Date`, never an invalid one |
+| `DURATION` | A `CantDuration`, from the native API, holding a whole number of milliseconds ([ADR 0026](0026-dates-and-times.md)) |
 | `FILE` | A `CantFile`, from the native API (below) |
 | An enum | The member's value, a `string`, `number` or `boolean` ([ADR 0013](0013-enums.md)) |
 | `T?` | The value, or `undefined` for `NOTHING` |
@@ -143,6 +144,7 @@ When native code gives a value where Cant expects an `UNKNOWN`, and the value di
 | A `boolean` | `BOOLEAN` |
 | A valid `Date` | `DATE_TIME` |
 | A `CantFile` | `FILE` |
+| A `CantDuration` | `DURATION` |
 | An `Array` | `[UNKNOWN]` |
 | A `Map` whose keys are all `string`s | `{UNKNOWN}` |
 | A `Set` | `SET(UNKNOWN)` |

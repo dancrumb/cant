@@ -55,7 +55,7 @@ A trigger can only use the built-ins its own source provides. Using any other, s
 
 The built-ins a source provides can only be used in the trigger, such as in its `arguments` and `auth`, not in the action it runs. An action gets what it needs from them through its parameters, so it does not depend on how it was started, and the same action can be run by different sources or called by other actions.
 
-Neither rule applies to `@subject`, which always exists ([ADR 0010](0010-security.md)). A source may give it a value, but any trigger, and any action, can use it, whatever the source. It is `@anonymous` when the source has no subject.
+Neither rule applies to `@subject`, which always exists ([ADR 0010](0010-security.md)). A source may give it a value, but any trigger, and any action, can use it, whatever the source. It is `@anonymous` when the source has no subject. They don't apply to `@now` either, which every trigger has, whatever its source ([ADR 0026](0026-dates-and-times.md)).
 
 How a trigger source is implemented, such as how it listens for HTTP requests or keeps time for a schedule, is not part of the language. It is up to the interpreter, or whatever provides the source.
 

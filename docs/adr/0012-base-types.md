@@ -9,14 +9,15 @@ Actions ([ADR 0007](0007-actions.md)) refer to types in their parameters and ret
 
 ## Decision
 
-Cant has five base types, `TEXT`, `NUMBER`, `BOOLEAN`, `DATE_TIME` and `FILE`, and `VOID`, which can only be a return type (below). Their names are written in upper case, with words separated by underscores:
+Cant has six base types, `TEXT`, `NUMBER`, `BOOLEAN`, `DATE_TIME`, `DURATION` and `FILE`, and `VOID`, which can only be a return type (below). Their names are written in upper case, with words separated by underscores:
 
 | Type | Values |
 | --- | --- |
 | `TEXT` | General strings, such as those written as string literals ([ADR 0008](0008-strings.md)) |
 | `NUMBER` | Whole or fractional numbers |
 | `BOOLEAN` | `true` or `false` |
-| `DATE_TIME` | Timestamps |
+| `DATE_TIME` | Timestamps: instants in time, to the millisecond, with no time zone ([ADR 0026](0026-dates-and-times.md)) |
+| `DURATION` | Exact lengths of time, to the millisecond ([ADR 0026](0026-dates-and-times.md)) |
 | `FILE` | Uploaded or stored documents and other blobs |
 | `VOID` | No value at all |
 
@@ -34,7 +35,7 @@ action SayHello(): VOID
 
 There is a single `NUMBER` type, rather than separate integer and decimal types. A `NUMBER` is a 64-bit IEEE 754 double, as in JavaScript, and is written with JavaScript's number literals ([ADR 0019](0019-operators.md)). Whole numbers are exact up to 2<sup>53</sup>, but fractional arithmetic can lose precision: `0.1 + 0.2` is `0.30000000000000004`.
 
-`BOOLEAN` values are written `true` and `false` ([ADR 0019](0019-operators.md)). There are no literals for `DATE_TIME` or `FILE` values ([ADR 0015](0015-files.md)).
+`BOOLEAN` values are written `true` and `false` ([ADR 0019](0019-operators.md)). `DATE_TIME` and `DURATION` values are written as `DATE_TIME("…")` and `DURATION("…")`, with an ISO 8601 string ([ADR 0026](0026-dates-and-times.md)). There are no literals for `FILE` values ([ADR 0015](0015-files.md)).
 
 `VOID` means that there is no value. When an action's return type is `VOID`, a call to it produces nothing that can be assigned to an identifier. Assigning the result of such a call, for example with `:=`, is an error:
 
@@ -64,7 +65,7 @@ Cant has no `null`. Instead, the absence of a value is written `NOTHING`.
 The base type names and `NOTHING` are keywords, reserved everywhere. A program cannot use them as names for its own declarations, parameters or anything else, so a base type name always means the base type and `NOTHING` always means the missing value.
 
 ```ebnf
-BaseType    = TextKeyword | NumberKeyword | BooleanKeyword | DateTimeKeyword | FileKeyword ;
+BaseType    = TextKeyword | NumberKeyword | BooleanKeyword | DateTimeKeyword | DurationKeyword | FileKeyword ;
 TypeRef     = BaseType | UnknownKeyword | Enum | ArrayType | MapType | SetType | Identifier | QualifiedIdentifier ;
 ReturnType  = VoidKeyword | TypeRef, ["?"] ;
 ```
@@ -76,4 +77,4 @@ ReturnType  = VoidKeyword | TypeRef, ["?"] ;
 - A small, fixed set of base types keeps the language easy to learn, and upper-case names make them easy to tell apart from declared types such as `User`.
 - With one `NUMBER` type, programs do not have to choose between integers and decimals. Because fractional numbers are doubles, they match JavaScript and are fast, but they are not suitable for values that need exact decimals, such as money.
 - Because the names are reserved, a program cannot shadow a base type, but adding a base type later reserves another name and can break programs that already use it.
-- `FILE` and `DATE_TIME` are built in, so programs that store documents or timestamps do not need to define their own types for them.
+- `FILE`, `DATE_TIME` and `DURATION` are built in, so programs that store documents, timestamps or lengths of time do not need to define their own types for them.

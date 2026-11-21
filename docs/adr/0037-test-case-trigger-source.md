@@ -41,12 +41,13 @@ trigger InvoiceTotal on TestCase
 | | |
 | --- | --- |
 | **Name** | `TestCase` |
-| **Parameters** | `name: TEXT`, required; `subject`, optional, a subject entity (below) |
+| **Parameters** | `name: TEXT`, required; `subject`, optional, a subject entity (below); `now: DATE_TIME`, optional |
 | **Built-in values** | `@error` (below) |
 
 - **`name`.** The test case's name, which is how the test case is reported. Like every source parameter, it must be a constant expression ([ADR 0025](0025-trigger-sources.md)), so it can be built from top-level constants, as in `"${suite}: totals the line items"` ([ADR 0034](0034-top-level-constants.md)). Since the compiler knows every name, two test cases with the same name in one program are a compile-time error.
 - **Arguments.** The action's arguments are given in the trigger's `arguments` block, as for any trigger ([ADR 0009](0009-triggers.md), [ADR 0020](0020-action-parameters.md)). Each one names one of the action's parameters, and the compiler checks them against the action's signature: a missing required parameter, or one the action doesn't have, is a compile-time error. Unlike the source's parameters, arguments don't have to be constant expressions, so a test case can pass arrays, objects and the results of calls.
 - **`subject`.** The subject the test case runs as, which becomes `@subject` (see [Choosing the subject](#choosing-the-subject)). When it is left out, `@subject` is `@anonymous`.
+- **`now`.** The instant `@now` holds for the test case ([ADR 0026](0026-dates-and-times.md)). Without it, `@now` is the instant the test case started.
 - **Built-in values.** `TestCase` provides `@error`, and gives `@subject` its value. Using `@request` or `@message` in a test case is a compile-time error. `@result` is available, as in every trigger ([ADR 0024](0024-built-in-values.md)).
 - **`auth`.** A test case's `auth` block is evaluated against its subject, as on any other trigger ([ADR 0010](0010-security.md)). A test case whose `auth` rule is `false` fails (below).
 
