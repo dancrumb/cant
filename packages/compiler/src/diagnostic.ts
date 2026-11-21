@@ -8,6 +8,8 @@ export interface Diagnostic {
   message: string;
   /** Where the problem is. Lines and columns are 1-based and offsets are 0-based, as in unist. */
   position: Position;
+  /** The file the problem is in, when the compiler checks more than one. */
+  file?: string;
 }
 
 export const error = (code: string, message: string, position: Position): Diagnostic => ({

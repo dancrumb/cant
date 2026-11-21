@@ -1,7 +1,6 @@
 import type {
   ActionDeclaration,
   ConstDeclaration,
-  Declaration,
   EntityDeclaration,
   EnumDeclaration,
   ErrorDeclaration,
@@ -24,6 +23,9 @@ export const MAIN_NAMESPACE = '__main__';
 /** A declaration that types can name: an enum, a model, an entity or an error. */
 export type TypeDeclaration = EnumDeclaration | ModelDeclaration | EntityDeclaration | ErrorDeclaration;
 
+/** A declaration a module can export, or a re-export (docs/adr/0006-imports.md). */
+export type ExportedDeclaration = TypeDeclaration | ActionDeclaration | ConstDeclaration | ReExport;
+
 /** The names a module declares in one namespace. */
 export interface NamespaceSymbols {
   name: string;
@@ -41,7 +43,7 @@ export interface NamespaceSymbols {
 export interface ModuleSymbols {
   namespaces: Map<string, NamespaceSymbols>;
   /** The names the module exports, own declarations and re-exports alike (docs/adr/0006-imports.md). */
-  exports: Map<string, Declaration>;
+  exports: Map<string, ExportedDeclaration>;
   imports: InNamespace<ImportDeclaration>[];
   reExports: InNamespace<ReExport>[];
   triggers: InNamespace<TriggerDeclaration>[];
@@ -88,7 +90,7 @@ const line = (position: Position): string => `line ${String(position.start.line)
 export function collectDeclarations(program: Program): CollectedDeclarations {
   const diagnostics: Diagnostic[] = [];
   const namespaces = new Map<string, NamespaceSymbols>();
-  const exports = new Map<string, Declaration>();
+  const exports = new Map<string, ExportedDeclaration>();
   const symbols: ModuleSymbols = {
     namespaces,
     exports,
@@ -108,7 +110,7 @@ export function collectDeclarations(program: Program): CollectedDeclarations {
     return namespace;
   };
 
-  const addExport = (name: Identifier, declaration: Declaration): void => {
+  const addExport = (name: Identifier, declaration: ExportedDeclaration): void => {
     const earlier = exports.get(name.value);
     if (earlier === undefined) {
       exports.set(name.value, declaration);
