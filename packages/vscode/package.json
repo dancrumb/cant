@@ -6,6 +6,11 @@
   "description": "Language support for Cant: problems, go to definition, references, hover, outline and completion, and highlighting, including cant code blocks in Markdown",
   "license": "MIT",
   "publisher": "dancrumb",
+  "icon": "images/icon.png",
+  "galleryBanner": {
+    "color": "#16181D",
+    "theme": "dark"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/dancrumb/cant.git",
@@ -43,7 +48,11 @@
         "extensions": [
           ".cant"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./images/file-light.svg",
+          "dark": "./images/file-dark.svg"
+        }
       }
     ]
   },
