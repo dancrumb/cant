@@ -1,6 +1,7 @@
 # 0006. Imports
 
 - **Status:** Accepted
+- **Amended by:** [0038](0038-namespaces-from-imports.md) (a symbolic import without `into` also places its symbols in a namespace named after the module)
 - **Date:** 2026-11-14
 
 ## Context

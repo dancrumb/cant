@@ -47,3 +47,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0035](0035-entity-relationships.md) | Entity relationships | Accepted |
 | [0036](0036-native-modules.md) | Native modules | Accepted |
 | [0037](0037-test-case-trigger-source.md) | The `TestCase` trigger source | Accepted |
+| [0038](0038-namespaces-from-imports.md) | Namespaces from imports | Accepted |

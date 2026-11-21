@@ -261,3 +261,28 @@ test('reports names that are the wrong kind of thing', () => {
 test('reports a missing entry file', () => {
   assert.deepEqual(problems({}), ['/app/main.cant module-not-found 1:1']);
 });
+
+test('places a plain symbolic import in a namespace named after the module too', () => {
+  assert.deepEqual(
+    problems({
+      '/cant.json': '{ "scopes": { "acme": "./acme/" } }',
+      '/acme/Payments.cant': ['export model Receipt', '    total: NUMBER'],
+      '/app/main.cant': [
+        'import IO',
+        'import acme::Payments',
+        'import Collections into C',
+        'import "./local.cant"',
+        'action Say(r: Payments::Receipt, s: Receipt): VOID',
+        '    body',
+        '        IO::write("Hello")',
+        '        write("Hello")',
+        '        C::length(coll := [1])',
+        '        Collections::length(coll := [1])',
+        '        local::Thing()',
+      ],
+      '/app/local.cant': ['export action Thing(): VOID', '    native "./thing.js"'],
+    }),
+    // `into` places symbols only where it says, and a URL import has no module name.
+    ['/app/main.cant unknown-namespace 10:9', '/app/main.cant unknown-namespace 11:9'],
+  );
+});

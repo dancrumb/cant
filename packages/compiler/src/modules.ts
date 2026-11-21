@@ -229,38 +229,39 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
     placed.add(module);
     for (const { namespace, declaration } of module.symbols?.imports ?? []) {
       const target = module.imports.get(declaration) ?? { kind: 'unresolved' };
-      const into = declaration.namespace?.value ?? namespace;
-      let names = module.imported.get(into);
-      if (names === undefined) {
-        names = new Map();
-        module.imported.set(into, names);
-      }
-      for (const [name, symbol] of exportsOfTarget(target)) {
-        const local = localSymbol(module, into, name, symbol.kind);
-        if (local !== undefined) {
-          report(
-            module,
-            error(
-              'import-collision',
-              `This import brings ${name} into namespace ${into}, which already declares ${name} on line ${String(local.declaration?.position.start.line)}. Import it into a namespace of its own with \`into\`.`,
-              declaration.module.position,
-            ),
-          );
-          continue;
+      for (const into of namespacesFor(declaration, namespace)) {
+        let names = module.imported.get(into);
+        if (names === undefined) {
+          names = new Map();
+          module.imported.set(into, names);
         }
-        const earlier = names.get(name);
-        if (earlier !== undefined && clashes(earlier.symbol.kind, symbol.kind) && !sameSymbol(earlier.symbol, symbol)) {
-          report(
-            module,
-            error(
-              'import-collision',
-              `This import brings ${name} into namespace ${into}, but the import on line ${String(earlier.via.position.start.line)} already brought in a different ${name}. Import one of them into a namespace of its own with \`into\`.`,
-              declaration.module.position,
-            ),
-          );
-          continue;
+        for (const [name, symbol] of exportsOfTarget(target)) {
+          const local = localSymbol(module, into, name, symbol.kind);
+          if (local !== undefined) {
+            report(
+              module,
+              error(
+                'import-collision',
+                `This import brings ${name} into namespace ${into}, which already declares ${name} on line ${String(local.declaration?.position.start.line)}. Import it into a namespace of its own with \`into\`.`,
+                declaration.module.position,
+              ),
+            );
+            continue;
+          }
+          const earlier = names.get(name);
+          if (earlier !== undefined && clashes(earlier.symbol.kind, symbol.kind) && !sameSymbol(earlier.symbol, symbol)) {
+            report(
+              module,
+              error(
+                'import-collision',
+                `This import brings ${name} into namespace ${into}, but the import on line ${String(earlier.via.position.start.line)} already brought in a different ${name}. Import one of them into a namespace of its own with \`into\`.`,
+                declaration.module.position,
+              ),
+            );
+            continue;
+          }
+          if (earlier === undefined) names.set(name, { symbol, via: declaration });
         }
-        if (earlier === undefined) names.set(name, { symbol, via: declaration });
       }
     }
   };
@@ -268,6 +269,18 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   for (const module of modules.values()) exportsOf(module);
 
   return { entry: entryPath, ...(manifest && { manifest }), modules, diagnostics };
+}
+
+/**
+ * The namespaces an import places its symbols in: the one its `into` names, or else the current
+ * namespace and, for a symbolic module identifier, a namespace named after the module
+ * (docs/adr/0006-imports.md, docs/adr/0038-namespaces-from-imports.md).
+ */
+function namespacesFor(declaration: ImportDeclaration, current: string): string[] {
+  if (declaration.namespace !== undefined) return [declaration.namespace.value];
+  if (declaration.module.type !== 'moduleName') return [current];
+  const named = declaration.module.name.value;
+  return named === current ? [current] : [current, named];
 }
 
 /** Where an import leads (docs/adr/0031-module-resolution.md). */
