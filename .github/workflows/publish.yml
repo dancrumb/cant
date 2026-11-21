@@ -45,9 +45,16 @@ jobs:
 
       # The extension is private to npm, and published to the Visual Studio Marketplace instead.
       - run: pnpm --filter cant-vscode run package
-      - run: pnpm --filter cant-vscode run publish:marketplace
+
+      # Publishing needs a Marketplace token. Without one, warn rather than fail the release.
+      - id: marketplace
+        run: echo "token=${{ secrets.VSCE_PAT != '' }}" >> "$GITHUB_OUTPUT"
+      - if: steps.marketplace.outputs.token == 'true'
+        run: pnpm --filter cant-vscode run publish:marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - if: steps.marketplace.outputs.token != 'true'
+        run: echo "::warning title=VS Code extension not published::Add a VSCE_PAT secret to publish the extension to the Visual Studio Marketplace. The .vsix is attached to this run."
 
       - uses: actions/upload-artifact@v6
         with:
