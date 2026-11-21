@@ -368,6 +368,8 @@ Panics are handled by the interpreter, not by the program. A program cannot catc
 
 Cant has no transactions. When an action raises an error, passes one along or panics, nothing it has already done is undone.
 
+A facet that cannot be derived ([ADR 0017](0017-faceted-types.md)), such as the contents of an entity whose `@id` no longer exists, panics. It is not an error that a program can check, pass or ignore ([ADR 0029](0029-accessing-facets.md)).
+
 ### Errors that reach a trigger
 
 An error raised or passed by the action a trigger runs goes back to the trigger's source, which may handle it or pass it on to the interpreter ([ADR 0025](0025-trigger-sources.md)).
@@ -381,7 +383,6 @@ The language has a fixed set of **built-in errors** for the runtime errors that 
 | `DivisionByZero` | The right-hand side of `/` or `%` is zero ([ADR 0019](0019-operators.md)) |
 | `FractionalModulo` | An operand of `%` is not a whole number ([ADR 0019](0019-operators.md)) |
 | `InvalidEnumValue` | A value converted to an enum is not one of the enum's values ([ADR 0013](0013-enums.md)) |
-| `FacetUnavailable` | A facet cannot be derived, such as for an entity whose `@id` no longer exists ([ADR 0017](0017-faceted-types.md)) |
 | `IndexBeforeStart` | A value is assigned to a negative index before the start of an array ([ADR 0021](0021-collections.md)) |
 | `DefaultUnavailable` | A model field's default value cannot be worked out when an object is created ([ADR 0027](0027-object-shapes.md)) |
 | `RequiredField` | A required field, named by an expression, is deleted ([ADR 0027](0027-object-shapes.md)) |
@@ -394,7 +395,6 @@ Built-in errors are handled like any other error: they can be checked with `inst
 - `InvalidEnumValue` comes from converting a value to an enum ([ADR 0013](0013-enums.md)), and only when the compiler cannot tell that the value is one of the enum's values, so passing or returning an enum value or a constant expression never gives it.
   - When an argument is converted, it is part of the call's result, as if the action listed it in `raises`.
   - When a `return` converts its value, the error is raised from the action, as statements raise theirs (below), so the action must list `InvalidEnumValue` in its `raises` clause. Leaving it out is a compile-time error. A `return` cannot be ignored, so, unlike a statement, there is no way around listing it.
-- `FacetUnavailable` is part of the result of an access that has to derive a facet ([ADR 0017](0017-faceted-types.md)), such as reading an entity's contents from its `@id`. The result must be handled like an operator's.
 - `CardinalityViolation` is raised from the action when a change to a relationship, or a delete, would break a cardinality ([ADR 0035](0035-entity-relationships.md)), as statements raise their errors (below): the action must list it in `raises`, unless the change is ignored.
 - `DefaultUnavailable` is raised from the action when an object is created and a default cannot be worked out ([ADR 0027](0027-object-shapes.md)), as `IndexBeforeStart`, `RequiredField` and `UnknownField` are raised by statements (below): the action must list it in `raises`, unless the creation is ignored.
 

@@ -49,7 +49,7 @@ Every faceted type has one facet that is its **identifier**. The identifier deci
 
 Only one facet has to be provided to create a value of a faceted type. The interpreter provides the others. For example, a `FILE` created from a URL can still be read as a stream or a blob.
 
-Facets are generally created inside the interpreter, not by the program. When code asks for a facet the value was not created with, the interpreter derives it from the facets the value already has. Deriving a facet can be expensive, such as loading an entity's contents, and can fail, such as when no entity with a given `@id` exists any more. Such a failure raises the built-in error `FacetUnavailable` ([ADR 0023](0023-error-handling.md)).
+Facets are generally created inside the interpreter, not by the program. When code asks for a facet the value was not created with, the interpreter derives it from the facets the value already has. Deriving a facet can be expensive, such as loading an entity's contents, and can fail, such as when no entity with a given `@id` exists any more. Such a failure panics ([ADR 0023](0023-error-handling.md)). When it happens is decided by [ADR 0029](0029-accessing-facets.md).
 
 How a program asks for a facet, what it can do with one, and when a program can create a faceted value itself are left to [ADR 0029](0029-accessing-facets.md). So is whether a facet's value, such as a `FILE`'s URL, can be used where the faceted type is expected. An entity's `@id` cannot be read in Cant code at all ([ADR 0024](0024-built-in-values.md)).
 

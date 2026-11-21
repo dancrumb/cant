@@ -153,7 +153,7 @@ Native code raises one of those errors by throwing a `CantError` from the native
 
 Native code normally creates a `CantError` with the constructors generated from the action's declaration (see [Native modules](#native-modules)), as `PaymentDeclined({ reason })` does above. They are typed from the `raises` clause and the errors' `data` models, so `tsc` reports a misspelled error, one the action doesn't raise, or `data` of the wrong shape. A `CantError` can also be created directly, as `new CantError("PaymentDeclined", { reason })`, naming the error as the `raises` clause does, but then only the interpreter's check at the boundary catches those mistakes.
 
-A `CantError` for a built-in error ([ADR 0023](0023-error-handling.md)), such as one the native API throws itself (see [`FILE`s](#files)), identifies the built-in error itself, not a name. It is passed on as that error if the action's `raises` clause lists it, whatever namespace the declaring module imports `cant::Errors` into.
+A `CantError` for a built-in error ([ADR 0023](0023-error-handling.md)), such as `Errors::DivisionByZero`, identifies the built-in error itself, not a name. It is passed on as that error if the action's `raises` clause lists it, whatever namespace the declaring module imports `cant::Errors` into.
 
 Anything else that native code throws, or rejects with, panics. That includes a `CantError` for an error the action doesn't list, or whose `data` fails its check. The interpreter can include the JavaScript error when it reports the panic.
 
@@ -167,7 +167,7 @@ The native API represents a `FILE` as a `CantFile`, with one method for each fac
 | `stream()` | A `ReadableStream` of the file's contents |
 | `blob()` | A `Promise` of a `Blob` of the file's contents |
 
-A `FILE` always has its URL ([ADR 0017](0017-faceted-types.md)), so `url()` never fails. Deriving the stream or blob facet can fail, such as when the file the URL points to no longer exists. Then `stream()` throws, and `blob()` rejects, with a `CantError` for the built-in error `FacetUnavailable` ([ADR 0023](0023-error-handling.md)). Native code can catch it and handle it, or let it escape. If it escapes, it is raised from the action when the action's `raises` clause lists `FacetUnavailable`, and panics otherwise, like any other `CantError` the action doesn't list (see [Errors](#errors)).
+A `FILE` always has its URL ([ADR 0017](0017-faceted-types.md)), so `url()` never fails. Deriving the stream or blob facet can fail, such as when the file the URL points to no longer exists. Then `stream()` throws, and `blob()` rejects, with an ordinary JavaScript error. Native code can catch it and handle it. If it escapes, it panics, like any other exception that isn't a `CantError` (see [Errors](#errors)), as a facet that can't be derived does in Cant code ([ADR 0029](0029-accessing-facets.md)).
 
 Native code can create a `CantFile` from any one facet, with `CantFile.fromUrl`, `CantFile.fromStream` or `CantFile.fromBlob`, and the interpreter derives the others ([ADR 0017](0017-faceted-types.md)). This is how built-in keywords and `cant::IO` can return new `FILE`s. A program still can't create one itself ([ADR 0015](0015-files.md)). How a Cant program reads a facet is still decided by [ADR 0029](0029-accessing-facets.md).
 
@@ -208,7 +208,7 @@ These need answers before this ADR is accepted:
 - Native code raises only declared errors, and anything else panics, so Cant's checked errors stay complete: a caller handles every error a native action can give, and no unexpected JavaScript exception reaches Cant code as a value.
 - Errors are raised with generated, typed constructors, so `tsc` catches a misspelled error or wrong `data` before the program runs, rather than the interpreter catching it as a panic.
 - Values of `UNKNOWN` type are inferred from their JavaScript values by a fixed table, so native code can return mixed data, such as parsed JSON, without declaring its shape. A value that fits none of the rules, such as a class instance, is caught at the boundary.
-- A failure to derive a `FILE`'s contents reaches native code as `FacetUnavailable`, the same error Cant code sees, so a native action can declare it and let it pass through to its caller.
+- A failure to derive a `FILE`'s contents reaches native code as an ordinary JavaScript error, which it can catch. Otherwise it panics, as it does in Cant code.
 - The standard library is built the same way as any other native module, apart from being allowed internal types.
 - Native code is trusted completely. A native module can do anything the interpreter can, so importing one is a security decision.
 - Entities, `@subject` and callbacks are out of reach of native code for now, which limits what native modules can do until those are decided.

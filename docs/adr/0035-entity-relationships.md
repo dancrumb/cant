@@ -64,7 +64,7 @@ Like the errors from assignment and `delete` ([ADR 0023](0023-error-handling.md)
 
 ### Loading
 
-The entities at the far end of a navigation field are loaded when the field is read, not when the entity that has the field is obtained. Reading a navigation field derives a facet ([ADR 0017](0017-faceted-types.md)), so it can fail, and raises `FacetUnavailable` when it does ([ADR 0023](0023-error-handling.md)). How a program reads facets is left to [ADR 0029](0029-accessing-facets.md).
+The entities at the far end of a navigation field are loaded when the field is read, not when the entity that has the field is obtained. Reading a navigation field derives a facet ([ADR 0017](0017-faceted-types.md)), so it can fail, and the program panics when it does ([ADR 0023](0023-error-handling.md)). When facets are derived is decided by [ADR 0029](0029-accessing-facets.md).
 
 ### Relating an entity to itself
 
@@ -121,6 +121,6 @@ Earlier ADRs also apply:
 - To-many navigation fields are sets, so they never hold an entity twice and never have the empty slots of a sparse array, but a program cannot rely on the order of the related entities, or reach one by index.
 - Both ends change together, so a relationship is never seen from one end but not the other.
 - Cardinality is checked at compile time where the compiler can tell, and always at runtime, so a stored relationship never breaks it. The cost is that many changes to relationships, and many deletes, can raise `CardinalityViolation`, which actions must list or ignore.
-- Far ends are loaded when read, so obtaining an entity stays cheap, but each navigation field read can fail with `FacetUnavailable`.
+- Far ends are loaded when read, so obtaining an entity stays cheap, but each navigation field read can fail, and panics when it does.
 - Model fields cannot hold entities, so relationships are the only way to link entities, and models used outside entities cannot refer to stored records.
 - `relation` becomes a keyword reserved everywhere, and the parser needs to support relations.
