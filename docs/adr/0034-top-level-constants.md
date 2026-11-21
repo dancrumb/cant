@@ -30,7 +30,13 @@ Like other top-level declarations, a constant can be exported from its module an
 
 A string that only interpolates constant expressions, such as `"${apiBase}/invoices/{id}"`, is itself a constant expression ([ADR 0023](0023-error-handling.md)), so it can be used in a trigger's parameters.
 
-A constant's value must be a constant expression ([ADR 0023](0023-error-handling.md)), so the compiler knows it, and nothing has to run, or can fail, when the program starts. A value that is not a constant expression, such as a call to an action, is a compile-time error. Array, map, set and object values ([ADR 0021](0021-collections.md), [ADR 0027](0027-object-shapes.md)) are not constant expressions, so a constant cannot hold a collection or a model. Their contents can be changed, and a constant is shared by every trigger and action that uses it.
+A constant's value must be a constant expression ([ADR 0023](0023-error-handling.md)), so the compiler knows it, and nothing has to run, or can fail, when the program starts. A value that is not a constant expression, such as a call to an action, is a compile-time error. Array, map and set values ([ADR 0021](0021-collections.md)) are not constant expressions, so a constant cannot hold a collection. An object value whose members' values are all constant expressions is one ([ADR 0023](0023-error-handling.md)), so a constant can hold an object, whether it is used as an anonymous model or as a model with matching fields ([ADR 0027](0027-object-shapes.md)):
+
+```cant
+const retryPolicy: RetryPolicy := { attempts := 3, backoffSeconds := 2 }
+```
+
+Each use of such a constant gives a new object, with the constant's members, so an action that changes one of its fields changes only its own object, never the constant or another action's ([ADR 0023](0023-error-handling.md)).
 
 Action bodies can use top-level constants. A parameter, or an identifier in an action's body, can shadow a top-level constant with the same name, as a nested block can shadow a name from an enclosing one ([ADR 0018](0018-immutable-identifiers.md)).
 
@@ -48,6 +54,7 @@ Earlier ADRs already constrain top-level constants:
 
 - Triggers can share values such as base paths and schedules, and a value used in several places is written once.
 - Constants are always constant expressions, so they are known at compile time, can be used wherever a constant expression is needed, such as a trigger's parameters or a divisor ([ADR 0023](0023-error-handling.md)), and cannot fail when the program starts.
-- A constant cannot hold a collection or a model, so no mutable state is shared between triggers through constants. A program that needs a fixed list has to build it inside an action.
+- A constant can hold an object, but each use gives a new one, so no mutable state is shared between triggers through constants. The cost is that two uses of the same constant object are not equal, since objects are compared by identity.
+- A constant cannot hold a collection. A program that needs a fixed list has to build it inside an action.
 - Because constants can be exported and imported, a module can hold a program's configuration, such as `config::apiBase`.
 - `const` becomes a keyword reserved everywhere, and the parser needs constant declarations at the top level.

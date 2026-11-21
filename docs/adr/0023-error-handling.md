@@ -437,12 +437,19 @@ When an ignored assignment or `delete` fails, it changes nothing, and the action
 
 Operators ([ADR 0019](0019-operators.md)) have a defined set of errors that they can raise, such as for division by zero. An operator that can raise an error behaves like a call to an action whose `raises` clause lists those errors: its result can be checked, and using it unchecked when it holds an error panics. `/` can raise `DivisionByZero`, and `%` can raise `DivisionByZero` and `FractionalModulo`. Because such a result is unchecked, the rules for `return` apply to it: `return total / count` is a compile-time error unless the compiler knows `count` is a non-zero constant, and the program must check the result first, or use it outside the `return` (see Returning a checked result).
 
-When the right-hand side of `/` or `%` is a constant expression, one the compiler can work out, and its value is not zero, as in `total / 2`, `n % -3` or `seconds / (60 * 60)`, dividing by zero cannot happen. The compiler treats that operation as raising no division-by-zero or modulo-by-zero error. A constant expression is made of literals, enum values ([ADR 0013](0013-enums.md)), operators applied to constant expressions, strings that only interpolate constant expressions ([ADR 0008](0008-strings.md)), and identifiers whose values the compiler knows because they were given a constant expression, including top-level constants ([ADR 0034](0034-top-level-constants.md)). Identifiers are immutable ([ADR 0030](0030-mutability.md)), so such an identifier keeps its known value:
+When the right-hand side of `/` or `%` is a constant expression, one the compiler can work out, and its value is not zero, as in `total / 2`, `n % -3` or `seconds / (60 * 60)`, dividing by zero cannot happen. The compiler treats that operation as raising no division-by-zero or modulo-by-zero error. A constant expression is made of literals, enum values ([ADR 0013](0013-enums.md)), operators applied to constant expressions, strings that only interpolate constant expressions ([ADR 0008](0008-strings.md)), object values whose members' values are all constant expressions ([ADR 0021](0021-collections.md), [ADR 0027](0027-object-shapes.md)), and identifiers whose values the compiler knows because they were given a constant expression, including top-level constants ([ADR 0034](0034-top-level-constants.md)). Identifiers are immutable ([ADR 0030](0030-mutability.md)), so such an identifier keeps its known value:
 
 ```cant
 secondsPerHour := 60 * 60
 hours := elapsed / secondsPerHour   // cannot raise an error
 ```
+
+An object value is a constant expression when every member's value is one, as in `{ retries := 3, timeout := 60 * 60 }`, including members whose values are themselves such objects. Because an object's fields can be changed ([ADR 0027](0027-object-shapes.md)), two rules keep a constant object from becoming shared, changing state:
+
+- **A fresh object each time.** Each time a constant object is used, it gives a new object, with the same members, as if the object value were written out at that point. So when a top-level constant holds an object, every use of the constant gets its own object, and changing one never changes another, or the constant ([ADR 0034](0034-top-level-constants.md)). Objects are equal only when they are the same object ([ADR 0019](0019-operators.md)), so two uses of the same constant object are not equal: `defaults == defaults` is `false`.
+- **Identifiers in a body.** An identifier in an action's body that is given a constant object, as in `config := { retries := 3 }`, holds that one object, which can then be changed like any other. So it is not a constant expression itself, unlike an identifier given a `NUMBER` or a `TEXT`.
+
+Array, map and set values are never constant expressions, even when every element is one, so a constant cannot hold a collection.
 
 Dividing by a constant expression whose value is zero, with `/` or `%`, as in `n / 0` or `n % (2 - 2)`, is a compile-time error. `%` can still raise its error for a fractional operand when the compiler cannot tell that both operands are whole numbers.
 
