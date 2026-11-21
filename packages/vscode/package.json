@@ -5,7 +5,7 @@
   "private": true,
   "description": "Language support for Cant: problems, go to definition, references, hover, outline and completion, and highlighting, including cant code blocks in Markdown",
   "license": "MIT",
-  "publisher": "dancrumb",
+  "publisher": "wasakatechnologies",
   "icon": "images/icon.png",
   "galleryBanner": {
     "color": "#16181D",

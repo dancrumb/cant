@@ -36,7 +36,7 @@ The logo is in [`docs/logo`](docs/logo): the mark for light backgrounds (`cant-m
 
 ## Publishing
 
-Pushing a `v*` tag, as `pnpm release` makes, runs `.github/workflows/publish.yml`. It publishes the npm packages with the `NPM_TOKEN` secret, and the VS Code extension to the Visual Studio Marketplace, as publisher `dancrumb`, with the `VSCE_PAT` secret.
+Pushing a `v*` tag, as `pnpm release` makes, runs `.github/workflows/publish.yml`. It publishes the npm packages and the VS Code extension, the extension to the Visual Studio Marketplace as publisher `wasakatechnologies`. Both use trusted publishing from GitHub Actions, so no tokens are stored.
 
 ## Architecture decisions
 
