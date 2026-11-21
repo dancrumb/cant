@@ -18,7 +18,7 @@ The grammar below uses ISO/IEC 14977 EBNF, following the conventions of [ADR 000
 An `enum` declaration is a top-level construct, like an action or a trigger. It names the enum and lists its members in an indented block, one per line:
 
 ```ebnf
-EnumDeclaration  = EnumKeyword, Identifier, ?indent?, {EnumMember | Comment}, ?dedent? ;
+EnumDeclaration  = EnumKeyword, Identifier, ?indent?, {EnumMember | ?comment?}, ?dedent? ;
 EnumMember       = Identifier, [":=", ConstantValue] ;
 ```
 
