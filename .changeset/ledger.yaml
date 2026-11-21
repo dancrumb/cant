@@ -32,6 +32,10 @@
   dir: packages/shared
   intents:
     - adrs-locked
+"@dancrumb/cant-shared@0.6.0":
+  dir: packages/shared
+  intents:
+    - parse-adr-0026-0037
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
