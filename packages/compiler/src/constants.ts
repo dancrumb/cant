@@ -1,6 +1,5 @@
 import type {
   ActionDeclaration,
-  ConstDeclaration,
   EntityDeclaration,
   Expression,
   Field,
@@ -11,6 +10,7 @@ import type {
 import type { Position } from 'unist';
 import type { Locals } from './bodies.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
+import { ConstantValues } from './evaluate.ts';
 import type { LoadedProgram } from './modules.ts';
 import type { References } from './resolve.ts';
 
@@ -34,30 +34,37 @@ export interface ConstantsInput extends LoadedProgram {
 export function checkConstants(program: ConstantsInput): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const testNames = new Map<string, { file: string; position: Position }>();
+  const values = new ConstantValues(program.references);
 
   for (const module of program.modules.values()) {
     const report = (diagnostic: Diagnostic): void => {
       diagnostics.push({ ...diagnostic, file: module.path });
     };
     const constants = new Constants(program.references);
+    // A constant expression that panics would fail when the program starts (docs/adr/0034-top-level-constants.md).
+    const reportPanic = (value: Expression): void => {
+      const result = values.evaluate(value);
+      if (result.kind === 'panic') report(error('constant-panics', `This constant expression can't be worked out: ${result.message}`, result.position));
+    };
 
     for (const declaration of module.program?.children ?? []) {
       switch (declaration.type) {
         case 'const': {
           const offending = constants.offending(declaration.value);
-          if (offending !== undefined) {
-            report(notConstant(offending, `${declaration.name.value}'s value`));
-          }
+          if (offending !== undefined) report(notConstant(offending, `${declaration.name.value}'s value`));
+          else reportPanic(declaration.value);
           break;
         }
         case 'trigger': {
           for (const parameter of declaration.parameters ?? []) {
             const offending = constants.offending(parameter.value, declaration.source.value === 'TestCase' && parameter.name.value === 'subject');
             if (offending !== undefined) report(notConstant(offending, `The source parameter ${parameter.name.value}`));
+            else reportPanic(parameter.value);
           }
           if (declaration.source.value === 'TestCase') {
             const name = declaration.parameters?.find((parameter) => parameter.name.value === 'name')?.value;
-            const text = name === undefined ? undefined : constants.text(name);
+            const value = name === undefined ? undefined : values.value(name);
+            const text = value?.kind === 'text' ? value.value : undefined;
             if (name !== undefined && text !== undefined) {
               const earlier = testNames.get(text);
               if (earlier === undefined) testNames.set(text, { file: module.path, position: name.position });
@@ -116,10 +123,9 @@ function describeOffending(expression: Expression): string {
   }
 }
 
-/** Works out whether expressions are constant, and the text of constant strings. */
+/** Works out which part of an expression stops it being constant. */
 class Constants {
   private readonly references: References;
-  private readonly working = new Set<ConstDeclaration>();
 
   constructor(references: References) {
     this.references = references;
@@ -189,38 +195,6 @@ class Constants {
     }
   }
 
-  /**
-   * The text of a constant expression whose value is text, if the compiler can work it out:
-   * strings, and what they interpolate, built from text, whole numbers, booleans and constants.
-   */
-  text(expression: Expression): string | undefined {
-    switch (expression.type) {
-      case 'string': {
-        let text = '';
-        for (const part of expression.parts) {
-          const value = part.type === 'text' ? part.value : this.text(part.expression);
-          if (value === undefined) return undefined;
-          text += value;
-        }
-        return text;
-      }
-      case 'number':
-        return Number.isInteger(expression.value) && Math.abs(expression.value) < 1e21 ? String(expression.value) : undefined;
-      case 'boolean':
-        return String(expression.value);
-      case 'identifier':
-      case 'qualifiedIdentifier': {
-        const declaration = this.references.get(expression)?.declaration;
-        if (declaration?.type !== 'const' || this.working.has(declaration)) return undefined;
-        this.working.add(declaration);
-        const value = this.text(declaration.value);
-        this.working.delete(declaration);
-        return value;
-      }
-      default:
-        return undefined;
-    }
-  }
 }
 
 /** Defaults that refer to each other in a cycle can't be worked out (docs/adr/0020-action-parameters.md, 0027). */

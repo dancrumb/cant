@@ -12,10 +12,12 @@ import type {
   NamedValue,
   Statement,
   TriggerDeclaration,
+  Value,
 } from '@dancrumb/cant-shared';
 import type { Position } from 'unist';
 import type { Locals } from './bodies.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
+import { ConstantValues } from './evaluate.ts';
 import type { NavigationField } from './entities.ts';
 import type { LoadedProgram, Module, ModuleSymbol } from './modules.ts';
 import type { References } from './resolve.ts';
@@ -124,6 +126,8 @@ class SharedTypes {
   readonly assignable: Assignable;
   readonly constants = new Map<ConstDeclaration, Type>();
   readonly working = new Set<ConstDeclaration>();
+  /** The values of constant expressions, from the evaluator the interpreter shares. */
+  readonly constantValues: ConstantValues;
   private readonly program: ResolvedProgram;
   private readonly models = new Map<ModelDeclaration, ReadonlyMap<string, { type: Type; required: boolean }>>();
   private readonly entities = new Map<EntityDeclaration, ReadonlyMap<string, Type>>();
@@ -132,6 +136,7 @@ class SharedTypes {
   constructor(program: ResolvedProgram) {
     this.program = program;
     this.assignable = createAssignable(this.modelFields);
+    this.constantValues = new ConstantValues(program.references);
   }
 
   readonly modelFields: ModelFields = (model) => {
@@ -233,7 +238,7 @@ class TypeChecker {
   /** The declared type of each local: parameters, assigned identifiers, loop variables and fields. */
   private readonly bindings = new Map<Identifier, Type>();
   /** The `NUMBER` value of each local the compiler knows, for constant divisors (docs/adr/0023-error-handling.md). */
-  private readonly constantValues = new Map<Identifier, number>();
+  private readonly localValues = new Map<Identifier, Value>();
   /** The results held in identifiers, which must be handled. */
   private readonly held = new Map<Identifier, HeldResult>();
   /** The expressions whose results were used unchecked, which `return` can't use. */
@@ -571,8 +576,8 @@ class TypeChecker {
       }
       if (this.locals.get(target)?.declaration !== target) return;
       this.bindings.set(target, typed.type);
-      const known = this.constantNumber(value);
-      if (known !== undefined) this.constantValues.set(target, known);
+      const known = this.constant(value);
+      if (known !== undefined) this.localValues.set(target, known);
       if (typed.type.kind === 'result') {
         // `owner := ignore FindUser(email)` keeps the result, already marked as ignored.
         const markedIgnored = value.type === 'unary' && value.operator === 'ignore';
@@ -1376,15 +1381,15 @@ class TypeChecker {
    * can't, from constant operands (docs/adr/0019-operators.md, 0023).
    */
   private division(expression: Extract<Expression, { type: 'binary' }>, type: Type): Type {
-    const divisor = this.constantNumber(expression.right);
-    if (divisor === 0) {
+    const divisor = this.constant(expression.right);
+    if ((divisor?.kind === 'number' || divisor?.kind === 'duration') && divisor.value === 0) {
       this.report(error('division-by-zero', 'This divides by zero.', expression.right.position));
       return type;
     }
     const errors: ModuleSymbol[] = divisor === undefined ? [builtInError('DivisionByZero')] : [];
     if (expression.operator === '%') {
-      const dividend = this.constantNumber(expression.left);
-      const fractional = [dividend, divisor].some((value) => value !== undefined && !Number.isInteger(value));
+      const dividend = this.constant(expression.left);
+      const fractional = [dividend, divisor].some((value) => value?.kind === 'number' && !Number.isInteger(value.value));
       if (fractional) {
         this.report(error('fractional-modulo', '`%` only works on whole numbers.', expression.position));
       } else if (dividend === undefined || divisor === undefined) {
@@ -1394,56 +1399,15 @@ class TypeChecker {
     return result(type, errors);
   }
 
-  /** The value of a `NUMBER` constant expression, if the compiler can work it out (docs/adr/0023-error-handling.md). */
-  private constantNumber(expression: Expression, seen = new Set<ConstDeclaration>()): number | undefined {
-    switch (expression.type) {
-      case 'number':
-        return expression.value;
-      case 'unary': {
-        if (expression.operator !== '-') return undefined;
-        const value = this.constantNumber(expression.argument, seen);
-        return value === undefined ? undefined : -value;
-      }
-      case 'binary': {
-        const left = this.constantNumber(expression.left, seen);
-        const right = this.constantNumber(expression.right, seen);
-        if (left === undefined || right === undefined) return undefined;
-        switch (expression.operator) {
-          case '+':
-            return left + right;
-          case '-':
-            return left - right;
-          case '*':
-            return left * right;
-          case '/':
-            return right === 0 ? undefined : left / right;
-          case '%':
-            return right === 0 ? undefined : ((left % right) + right) % right;
-          case '**':
-            return left ** right;
-          default:
-            return undefined;
-        }
-      }
-      case 'identifier': {
-        const local = this.locals.get(expression);
-        if (local !== undefined) return this.constantValues.get(local.declaration);
-        const symbol = this.references.get(expression);
-        return symbol?.declaration?.type === 'const' ? this.constantOf(symbol.declaration, seen) : undefined;
-      }
-      case 'qualifiedIdentifier': {
-        const symbol = this.references.get(expression);
-        return symbol?.declaration?.type === 'const' ? this.constantOf(symbol.declaration, seen) : undefined;
-      }
-      default:
-        return undefined;
-    }
+  /** The value of a constant expression, if it has one (docs/adr/0023-error-handling.md). */
+  private constant(expression: Expression): Value | undefined {
+    return this.shared.constantValues.value(expression, this.locals, this.localValues);
   }
 
-  private constantOf(constant: ConstDeclaration, seen: Set<ConstDeclaration>): number | undefined {
-    if (seen.has(constant)) return undefined;
-    seen.add(constant);
-    return this.constantNumber(constant.value, seen);
+  /** The value of a `NUMBER` constant expression, if it has one. */
+  private constantNumber(expression: Expression): number | undefined {
+    const value = this.constant(expression);
+    return value?.kind === 'number' ? value.value : undefined;
   }
 
   /** The group in `within` must be a group entity (docs/adr/0010-security.md). */

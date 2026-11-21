@@ -149,3 +149,53 @@ test('treats equal dates and durations written differently as the same enum valu
     ['duplicate-enum-value 3:13', 'duplicate-enum-value 6:14'],
   );
 });
+
+test('reports constants whose values would fail when the program starts', () => {
+  assert.deepEqual(
+    problems(
+      'const far := DATE_TIME("9999-12-31T00:00Z") + DURATION("P99999999D")',
+      'const huge := 10 ** 400',
+      'const fine := DATE_TIME("2026-11-21T00:00Z") + DURATION("P1D")',
+      'action Run(): VOID',
+      '    native "./run.js"',
+      'trigger Run on Schedule',
+      '    parameters',
+      '        every := DURATION("PT1H") * 10 ** 400',
+    ),
+    ['constant-panics 1:14', 'constant-panics 2:15', 'constant-panics 8:37'],
+  );
+});
+
+test('compares test case names built from any constant value', () => {
+  assert.deepEqual(
+    problems(
+      'enum Plan',
+      '    pro := "Pro"',
+      'const rate := 1.5',
+      'action Run(): VOID',
+      '    native "./run.js"',
+      'trigger Run on TestCase',
+      '    parameters',
+      '        name := "${Plan.pro} at ${rate}"',
+      'trigger Run on TestCase',
+      '    parameters',
+      '        name := "Pro at 1.5"',
+    ),
+    ['duplicate-test-case 11:17'],
+  );
+});
+
+test('finds zero divisors through constants, locals and durations', () => {
+  assert.deepEqual(
+    problems(
+      'const none := 2 - 2',
+      'action A(n: NUMBER, d: DURATION): VOID',
+      '    body',
+      '        zero := none * 3',
+      '        a := n / none',
+      '        b := n / zero',
+      '        c := d / DURATION("PT0S")',
+    ),
+    ['division-by-zero 5:18', 'division-by-zero 6:18', 'division-by-zero 7:18'],
+  );
+});
