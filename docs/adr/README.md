@@ -38,7 +38,7 @@ Once the major version is released, records are immutable. If a decision changes
 | [0026](0026-dates-and-times.md) | Dates and times | Proposed |
 | [0027](0027-object-shapes.md) | Object shapes | Accepted |
 | [0028](0028-extending-base-types.md) | Extending base types | Proposed |
-| [0029](0029-accessing-facets.md) | Accessing facets | Proposed |
+| [0029](0029-accessing-facets.md) | Accessing facets | Accepted |
 | [0030](0030-mutability.md) | Mutability | Accepted |
 | [0031](0031-module-resolution.md) | Module resolution | Proposed |
 | [0032](0032-authentication.md) | Authentication | Proposed |
