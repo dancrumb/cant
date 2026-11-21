@@ -1,6 +1,11 @@
 {
   "name": "@dancrumb/cant-compiler",
   "version": "0.10.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dancrumb/cant.git",
+    "directory": "packages/compiler"
+  },
   "description": "The cant compiler",
   "license": "MIT",
   "type": "module",

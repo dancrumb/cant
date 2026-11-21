@@ -1,6 +1,11 @@
 {
   "name": "@dancrumb/cant-shared",
   "version": "0.10.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dancrumb/cant.git",
+    "directory": "packages/shared"
+  },
   "description": "Shared code for the cant compiler, interpreter and language server",
   "license": "MIT",
   "type": "module",
