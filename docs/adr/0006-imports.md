@@ -28,13 +28,12 @@ import IO
 import cant::IO
 ```
 
-A symbolic identifier is resolved to a module by a resolution algorithm that is not yet defined. That algorithm is the subject of [ADR 0031](0031-module-resolution.md).
+A symbolic identifier is resolved to a module as [ADR 0031](0031-module-resolution.md) describes: the `cant` scope is built into the interpreter, and every other scope is mapped to a directory by the program's manifest, `cant.json`.
 
-A **URL identifier** is written as a string. The string is resolved as a URL, with the location of the importing module as the base, and the resulting URL is resolved in the usual way:
+A **URL identifier** is written as a string. The string is resolved as a URL, with the location of the importing module as the base, and the resulting URL is resolved in the usual way. For now, it must resolve to a local file: a remote URL, such as one starting with `https:`, is a compile-time error ([ADR 0031](0031-module-resolution.md)).
 
 ```cant
 import "./greetings.cant"
-import "https://example.com/cant/http.cant"
 ```
 
 ### `into`
@@ -51,13 +50,9 @@ Without `into`, the symbols are placed into the current namespace: the one in ef
 
 ### `as`
 
-`as <string>` declares the type of the imported module, so that it is interpreted correctly:
+`as <string>` declares the type of the imported module, so that it is interpreted correctly, as in `import "./config.json" as "json"`. Without `as`, the module is treated as Cant source.
 
-```cant
-import "./config.json" as "json"
-```
-
-Without `as`, the module is treated as Cant source.
+For now, `as` accepts no module types, so every module is Cant source, and any `as` in an import is a compile-time error. Which types it accepts is left to a later ADR ([ADR 0031](0031-module-resolution.md)).
 
 ### Exports
 
@@ -112,7 +107,7 @@ Triggers and `permissions` declarations are treated differently when their modul
 - `into` lets a module avoid symbol collisions between imports, using the namespaces from ADR 0005.
 - Importing without `into` can bring many symbols into the current namespace at once, and two such imports can collide.
 - `into` and `as` become reserved words in the `import` statement, and `as` in a re-export too, and the tokenizer and grammar need to support them. `as` gives a module's type in an import, but a new name in a re-export.
-- Symbolic imports cannot be resolved until the resolution algorithm is defined.
-- The set of module types that `as` accepts, and how each is interpreted, still needs to be defined.
+- Symbolic imports are resolved by [ADR 0031](0031-module-resolution.md), and only local files can be imported for now.
+- `as` is part of the syntax, but accepts no module types yet ([ADR 0031](0031-module-resolution.md)).
 - A module says what it exports with `export`, construct by construct, and `export` becomes a keyword reserved everywhere.
 - A module can re-export what it imports, symbol by symbol, so a library can gather symbols from several modules into one, without callers knowing where each was declared.
