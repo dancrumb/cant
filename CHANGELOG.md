@@ -1,5 +1,11 @@
 # cant
 
+## 0.10.2
+
+### Patch Changes
+
+- bump to make release
+
 ## 0.10.1
 
 ## 0.10.0

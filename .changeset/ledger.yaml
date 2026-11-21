@@ -113,6 +113,10 @@ cant-vscode@0.9.0:
   intents:
     - vscode-icon
     - vscode-publishing
+cant@0.10.2:
+  dir: ""
+  intents:
+    - wild-humans-repair
 cant@0.2.0:
   dir: ""
   intents:
