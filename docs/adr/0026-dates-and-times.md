@@ -133,7 +133,7 @@ A `DURATION` is passed to native code as a `CantDuration`, from the native API (
 
 - **Dates and times of day.** There is no type for a calendar date without a time, or a time of day without a date. Until there is, a program can hold a date as `TEXT`, such as `"2026-11-21"`, or as a `DATE_TIME` at midnight UTC. Types such as `DATE` and `TIME` may be added later.
 - **Time zones as a type.** Time zones are `TEXT` for now. A type, or an enum, of time zones may be added later.
-- **Formatting with extended types.** Extended types may define their own conversions to text ([ADR 0011](0011-converting-values-to-text.md), [ADR 0028](0028-extending-base-types.md)), such as a date type that always formats itself for people.
+- **Formatting with extended types.** If a later version of Cant adds extended types, they may define their own conversions to text ([ADR 0011](0011-converting-values-to-text.md), [ADR 0028](0028-extending-base-types.md)), such as a date type that always formats itself for people.
 - **More of `cant::Time`.** Actions such as the start of a day or month in a zone, the day of the week, or parsing formats other than ISO 8601.
 
 ## Consequences

@@ -108,7 +108,7 @@ A result that has not been checked is used, not converted, when it is interpolat
 
 ### Extended types
 
-A program will be able to define its own types by extending a base type, and an extended type can define how its values are converted to text. When it does, that conversion is used in place of the base type's rule. When it does not, the base type's rule is used. How types are extended, and how a conversion is written, will be decided by [ADR 0028](0028-extending-base-types.md).
+For now, a program can't define its own types by extending a base type ([ADR 0028](0028-extending-base-types.md)), so every value of a base type is converted by that type's rule above. If a later version of Cant adds extended types, an extended type will be able to define how its values are converted to text, in place of the base type's rule.
 
 ## Consequences
 
@@ -119,5 +119,5 @@ A program will be able to define its own types by extending a base type, and an 
 - A model's text shows only its top layer of fields. Nested models and collections are written as a placeholder, so the text stays short, but it does not show everything the object holds.
 - Enum values are written as their values, not their member names, so the text matches the data a program stores and sends.
 - `NOTHING` never appears silently in text, as `null` or an empty string might, so a missing value cannot slip into a message unnoticed. The cost is that programs have to handle missing values before interpolating them.
-- `DATE_TIME` values are written in a standard form that other systems can parse, but not one that is friendly to read. Formatting dates for people needs something other than interpolation, such as `format` in `cant::Time` ([ADR 0026](0026-dates-and-times.md)), or an extended type with its own conversion.
-- Because extended types can define their own conversion, the same base value can produce different text depending on its type, so the type, not just the value, decides what an interpolation produces.
+- `DATE_TIME` values are written in a standard form that other systems can parse, but not one that is friendly to read. Formatting dates for people needs something other than interpolation, such as `format` in `cant::Time` ([ADR 0026](0026-dates-and-times.md)).
+- Since there are no extended types for now ([ADR 0028](0028-extending-base-types.md)), a base value always produces the same text. If a later version adds extended types with their own conversions, the type, not just the value, will decide what an interpolation produces.
