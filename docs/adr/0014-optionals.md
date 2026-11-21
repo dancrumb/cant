@@ -130,6 +130,12 @@ action SayHello(): VOID?    // syntax error
 - Keeping `Optional<T>` internal means programs only ever write `?`, which keeps the syntax small. Making it explicit later, for example as a field type, would not break programs that use `?`.
 - An optional parameter with a default needs no check inside the action, so giving a parameter a default is the simplest way to avoid handling `NOTHING`.
 - Because an `Optional<T>` holding `NOTHING` behaves like a missing argument, a caller can pass an optional value straight through without checking it first. Because `NOTHING` itself cannot be passed, leaving an argument out is the only way to write "no value" in a call.
-- `NOTHING` cannot be passed or assigned, so an optional only ever comes from an action's optional return, an optional parameter, an optional model field ([ADR 0027](0027-object-shapes.md)), or reading an element or member of a collection ([ADR 0021](0021-collections.md)). Every `NOTHING` in a running program can be traced back to one of those.
+- `NOTHING` cannot be passed or assigned, so an optional only ever comes from one of these, and every `NOTHING` in a running program can be traced back to one of them:
+  - an action's optional return, including a native action's ([ADR 0036](0036-native-modules.md));
+  - an optional parameter, including one a caller leaves out of a native action ([ADR 0036](0036-native-modules.md));
+  - an optional model field ([ADR 0027](0027-object-shapes.md));
+  - reading an element or member of a collection, or reading a model's field by an expression that isn't a literal, which gives a `T?` or an `UNKNOWN?` ([ADR 0021](0021-collections.md), [ADR 0027](0027-object-shapes.md));
+  - a navigation field whose far end has the cardinality `0..1` ([ADR 0035](0035-entity-relationships.md));
+  - a built-in value that may be missing, such as a query value or file in `@request` ([ADR 0024](0024-built-in-values.md)), or `@error` in a test case ([ADR 0037](0037-test-case-trigger-source.md)).
 - Returning a `T` from an action that returns `T?` does not narrow the result, so callers always have to check, even when an action never actually returns `NOTHING`.
 - A program checks an optional with `isEmpty`, or supplies a fallback with `orElse`, as [ADR 0016](0016-handling-optional-values.md) describes.
