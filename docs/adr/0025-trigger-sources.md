@@ -18,7 +18,7 @@ A **trigger source** is something outside the program that causes a trigger to r
 A trigger gives its source's parameters in a `parameters` block, one of the settings in the trigger's block ([ADR 0009](0009-triggers.md)), not after the source's name. Each parameter is written `name := value`, as an argument is in `arguments`:
 
 ```ebnf
-TriggerSetting    = AuthBlock | TriggerArguments | SourceParameters | ?comment? ;
+TriggerSetting    = AuthBlock | TriggerArguments | SourceParameters | Assertions | ?comment? ;
 SourceParameters  = ParametersKeyword, ?indent?, {SourceParameter | ?comment?}, ?dedent? ;
 SourceParameter   = Identifier, ":=", Expression ;
 ```
@@ -48,6 +48,7 @@ Each source provides values to the built-ins that describe what caused the trigg
 | Events | `@message`, the message that describes the event that occurred |
 | Queues | `@message`, the message taken from the queue |
 | Program start | None |
+| Test cases ([ADR 0037](0037-test-case-trigger-source.md)) | `@error`, the error the action raised or passed, if any |
 
 A trigger can only use the built-ins its own source provides. Using any other, such as `@request` in a trigger `on Start`, is a compile-time error. The type of each built-in, and so what a program can read from it, such as a request's path parameters, query, headers and body, is defined by the trigger source as part of its definition.
 

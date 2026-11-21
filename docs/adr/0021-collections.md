@@ -67,7 +67,7 @@ An object holds values by name.
 ```ebnf
 MapType      = "{", TypeRef, "}" ;
 ObjectValue  = "{", [ObjectItem, {",", ObjectItem}, [","]], "}" ;
-ObjectItem   = (Identifier | ?keyword? | StringLiteral), ":=", Expression ;
+ObjectItem   = (Identifier | ?keyword? | StringLiteral | BuiltIn), ":=", Expression ;
 Member       = Expression, ".", (Identifier | ?keyword?) ;
 ```
 
@@ -82,7 +82,7 @@ Member       = Expression, ".", (Identifier | ?keyword?) ;
 
 - Items are separated by commas, and the last item can be followed by a comma. Because of this, layout inside the braces is free: an object can be written on one line or across several, and the line breaks and indentation inside the braces do not open or close blocks ([ADR 0007](0007-actions.md)). Comments can appear between items.
 - Each item gives a member a value with `:=`, as a trigger argument does ([ADR 0009](0009-triggers.md)). `:=` is not an expression operator ([ADR 0019](0019-operators.md)).
-- A member's name can be an identifier, a keyword such as `body`, or a string, for names that are not identifiers, such as `"Content-Type"`.
+- A member's name can be an identifier, a keyword such as `body`, or a string, for names that are not identifiers, such as `"Content-Type"`. It can also be a built-in name, but only `@entity`, and only in a test case's `subject` ([ADR 0037](0037-test-case-trigger-source.md)). Any other built-in name, or `@entity` in any other object value, is a compile-time error.
 - An object cannot give the same member two values. Since every member's name is written in the source, this is a compile-time error. A name written as an identifier and the same name written as a string, such as `name` and `"name"`, are the same member.
 - `value.name` reaches a member by name ([ADR 0019](0019-operators.md)). `value[expression]` reaches a member whose name is the expression's value.
 

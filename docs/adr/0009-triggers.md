@@ -20,7 +20,7 @@ A trigger names an action, the source that triggers it, and optionally an indent
 ```ebnf
 Trigger         = TriggerKeyword, (QualifiedIdentifier | Identifier), OnKeyword, Identifier,
                   [?indent?, {TriggerSetting}, ?dedent?] ;
-TriggerSetting  = AuthBlock | TriggerArguments | SourceParameters | ?comment? ;
+TriggerSetting  = AuthBlock | TriggerArguments | SourceParameters | Assertions | ?comment? ;
 ```
 
 ```cant
@@ -32,6 +32,8 @@ trigger SendWelcome on UserCreated
 ```
 
 The action can be in another namespace (`trigger accounts::SendWelcome on UserCreated`). The identifier after `on` names the trigger's source. A source is configured by its parameters, such as an HTTP endpoint, a queue name or a schedule, which a trigger gives in a `parameters` block ([ADR 0025](0025-trigger-sources.md)). Which sources exist is not decided yet, so the grammar accepts any identifier after `on`.
+
+`Assertions` is the `assertions` block, which only a trigger on the `TestCase` source can have ([ADR 0037](0037-test-case-trigger-source.md)).
 
 A trigger with no settings has no block, so the existing form `trigger SayHello on Start` stays valid.
 
@@ -79,7 +81,7 @@ trigger GetInvoice on InvoiceRequested
 
 ### Keywords
 
-The setting names `arguments`, `auth` and `parameters` ([ADR 0025](0025-trigger-sources.md)) are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. The words used in predicates are described in [ADR 0010](0010-security.md).
+The setting names `arguments`, `auth`, `parameters` ([ADR 0025](0025-trigger-sources.md)) and `assertions` ([ADR 0037](0037-test-case-trigger-source.md)) are only special inside a trigger's block. Like `into` and `as` in imports ([ADR 0006](0006-imports.md)), they stay usable as identifiers elsewhere. The words used in predicates are described in [ADR 0010](0010-security.md).
 
 ## Consequences
 

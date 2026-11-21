@@ -13,7 +13,7 @@ A **built-in value** is written `@<identifier>` ([ADR 0009](0009-triggers.md)). 
 
 ## Decision
 
-Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@entity`, `@all`, `@result`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
+Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@entity`, `@all`, `@result`, `@error`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
 
 - The grammar is `BuiltIn = "@", Identifier`, with no space after the `@` ([ADR 0009](0009-triggers.md)). The `@` prefix is reserved, so built-in values cannot clash with anything a program declares ([ADR 0010](0010-security.md)).
 - `@subject` is always defined: it is the subject that caused the trigger, or `@anonymous` when there is none ([ADR 0010](0010-security.md)).
@@ -26,6 +26,7 @@ Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@def
 - `@result` is defined in every trigger, whatever its source, and holds what the action the trigger runs returned ([ADR 0009](0009-triggers.md)).
   - Its type is always an error return type ([ADR 0023](0023-error-handling.md)). If the action has an error return type, `@result` has that type, and holds either the action's value or the error it raised or passed. Otherwise, `@result` has an error return type whose value type is the action's return type and which has no errors, so it always holds the value the action returned.
   - When the action's return type is `VOID`, the value `@result` holds is `NOTHING`. So for an action declared `: VOID raises SaveFailed`, `@result` holds either `NOTHING` or a `SaveFailed`.
+- `@error` is provided by the `TestCase` source, and holds the error the test case's action raised or passed, if it gave one ([ADR 0037](0037-test-case-trigger-source.md)). Its type is an optional of the action's errors, and it is empty when the action returned a value.
 - `@request` is provided by the HTTP request source, so it can only be used in a trigger on that source ([ADR 0025](0025-trigger-sources.md)). It has four parts:
 
   | Field | Holds | Type of each member |
@@ -57,15 +58,16 @@ Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@def
 | `@anonymous`, `@defined` | Only in an `is` predicate about `@subject`, as its `SubjectType` ([ADR 0009](0009-triggers.md)) |
 | `@all` | Only in an entity's `expose` and `hide` blocks ([ADR 0022](0022-entities.md)), and in `passes @all` ([ADR 0023](0023-error-handling.md)) |
 | `@result` | Only in a trigger, whatever its source |
+| `@error` | Only in the `assertions` of a trigger on `TestCase` ([ADR 0037](0037-test-case-trigger-source.md)) |
 | `@request`, `@message` | Only in a trigger on a source that provides them ([ADR 0025](0025-trigger-sources.md)) |
-| `@id`, `@entity` | Nowhere: they cannot be read in Cant code |
+| `@id`, `@entity` | Nowhere: they cannot be read in Cant code. `@entity` can be written as a member name in a test case's `subject`, to name the subject's entity ([ADR 0037](0037-test-case-trigger-source.md)) |
 
 Using a built-in value anywhere else is a compile-time error.
 
 ## Deferred
 
 - **`@request.body`.** How a trigger declares the model of the request's body, how the JSON body is matched to that model, and what happens when it does not match, such as when a required field is missing or has the wrong type, will be decided with the HTTP request trigger source.
-- **Where `@result` is used.** Which of a trigger's settings can use `@result`, such as one that forms the source's reply, is left for later.
+- **Where `@result` is used.** A test case's `assertions` can use `@result` ([ADR 0037](0037-test-case-trigger-source.md)). Which other trigger settings can use it, such as one that forms a source's reply, is left for later.
 - **Custom built-ins.** A future ADR may let programs or modules define built-in values of their own.
 
 ## Consequences

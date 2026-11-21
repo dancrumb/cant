@@ -1,6 +1,6 @@
 # 0037. The `TestCase` trigger source
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-21
 
 ## Context
@@ -88,11 +88,11 @@ trigger ApproveInvoice on TestCase
   ObjectItem  = (Identifier | ?keyword? | StringLiteral | BuiltIn), ":=", Expression ;
   ```
 
-  This extends the `ObjectItem` rule of [ADR 0021](0021-collections.md). `@entity` in a test case's `subject` is the only built-in name a member can have. Any other, and `@entity` in any other object value, is a compile-time error. `@entity` is the built-in field that every entity has, which holds its type ([ADR 0022](0022-entities.md)). So the member gives the subject entity its `@entity`, which is how the interpreter resolves the subject's type, as it does for any entity. When this ADR is accepted, [ADR 0024](0024-built-in-values.md) gains this use of `@entity`, as a member name in `subject`, alongside `@error`.
+  This extends the `ObjectItem` rule of [ADR 0021](0021-collections.md). `@entity` in a test case's `subject` is the only built-in name a member can have. Any other, and `@entity` in any other object value, is a compile-time error. `@entity` is the built-in field that every entity has, which holds its type ([ADR 0022](0022-entities.md)). So the member gives the subject entity its `@entity`, which is how the interpreter resolves the subject's type, as it does for any entity. [ADR 0024](0024-built-in-values.md) lists this use of `@entity`, as a member name in `subject`, alongside `@error`.
 - **Fields.** The other members give the entity's fields, named as they are in its model, as its `identity` line names them ([ADR 0022](0022-entities.md)). They are matched against the model as an anonymous model is ([ADR 0027](0027-object-shapes.md)): every required field must be given, optional fields can be left out and take their defaults, each value must have its field's type, and a member the model doesn't have is a compile-time error. Hidden fields can be given too, since a test may need them. Since every `identity` field is a field of the model, the subject is always identified.
 - **Navigation fields.** A navigation field ([ADR 0035](0035-entity-relationships.md)) can't be given, since it holds entities. So an entity whose `identity` names a navigation field can't be a test case's subject, and naming one in `@entity` is a compile-time error.
 - **Constant.** Every field's value must be a constant expression, so the object is a constant expression ([ADR 0023](0023-error-handling.md)), the subject is known at compile time, and `subject`, like every other source parameter, is configured before the test case runs ([ADR 0025](0025-trigger-sources.md)). The `@entity` member holds a type, not a value, and is allowed only here, so the object itself must be written in `subject`, but its fields' values can come from top-level constants ([ADR 0034](0034-top-level-constants.md)).
-- **`@subject`.** The interpreter makes an entity of the named type from the object, with an `@id` of its own ([ADR 0017](0017-faceted-types.md)), and a fresh one each time the test case runs, so a change one test case makes to its subject never reaches another. For the whole test case, in its `auth` rule, in the action and every action it calls, and in its assertions, `@subject` is that entity. So `@subject is User` is `true`, and `@subject` can be narrowed and its fields read as usual ([ADR 0010](0010-security.md)). It is set directly, not by authenticating a request, so it doesn't depend on [ADR 0032](0032-authentication.md).
+- **`@subject`.** The interpreter makes an entity of the named type from the object, with an `@id` of its own ([ADR 0017](0017-faceted-types.md)), and stores it in the test case's storage before the test case runs (see [Running tests](#running-tests)), so the action can find it, and relate other entities to it, as it could any stored entity ([ADR 0022](0022-entities.md), [ADR 0035](0035-entity-relationships.md)). It makes a fresh one each time the test case runs, so a change one test case makes to its subject never reaches another. For the whole test case, in its `auth` rule, in the action and every action it calls, and in its assertions, `@subject` is that entity. So `@subject is User` is `true`, and `@subject` can be narrowed and its fields read as usual ([ADR 0010](0010-security.md)). It is set directly, not by authenticating a request, so it doesn't depend on [ADR 0032](0032-authentication.md).
 - **Left out.** Without `subject`, `@subject` is `@anonymous`, as on any source that has no subject ([ADR 0025](0025-trigger-sources.md)). `@anonymous` can't be given as the value, since it can only be used in an `is` predicate ([ADR 0024](0024-built-in-values.md)).
 
 ### Assertions
@@ -172,18 +172,22 @@ Triggers in an imported module never take effect ([ADR 0006](0006-imports.md)), 
 
 `TestCase`, like the names of other sources, is not a keyword ([ADR 0025](0025-trigger-sources.md)).
 
-## Open questions
+### Running tests
 
-These need answers before this ADR is accepted:
+When the interpreter runs a program's tests:
 
-- **Storing the subject.** Is a test case's subject stored, so that the action can find it, or relate other entities to it, as it could a stored entity ([ADR 0022](0022-entities.md))? This is part of how test cases are isolated (below).
-- **Memberships and roles.** A subject's roles and permissions come from its groups, but how subjects become members of groups and get roles is still open ([ADR 0032](0032-authentication.md)). How does a test set up the memberships that its subject needs?
-- **Other sources.** When the interpreter runs a program's tests, do its other triggers, such as those `on Start`, also fire?
-- **Isolation.** Do test cases share stored entities and files ([ADR 0015](0015-files.md), [ADR 0022](0022-entities.md)), or does each start from empty storage? Since there are no transactions, nothing one test case changes is undone ([ADR 0023](0023-error-handling.md)).
-- **Order and concurrency.** In what order do test cases run, and can they run at the same time?
-- **Running and reporting.** How is the interpreter asked to run tests: on a whole project, on chosen modules, or on test cases whose names match a pattern? What does it report, and in what format?
-- **Set-up and tear-down.** Is there a way to share set-up between test cases, other than calling a shared action from each one?
-- **Native code.** Can a test case replace a native action ([ADR 0036](0036-native-modules.md)) with a stand-in, so that it doesn't reach a real payment provider, for example?
+- **Only `TestCase` fires.** No other trigger source fires, so triggers `on Start`, on HTTP requests and on any other source do nothing. A test that needs what a `Start` trigger's action does calls that action itself.
+- **Fresh storage for each test case.** Each test case starts with empty storage for entities and files ([ADR 0015](0015-files.md), [ADR 0022](0022-entities.md)), which holds only its subject, if it has one (see [Choosing the subject](#choosing-the-subject)). Its storage is thrown away when it ends, whether it passes or fails. So nothing one test case stores can be seen by another, and nothing has to be undone, though Cant has no transactions ([ADR 0023](0023-error-handling.md)).
+- **No defined order.** Test cases run in no defined order, and the interpreter may run several at the same time. Since each has its own storage, a test case can't depend on another having run.
+- **Native module state is shared.** Storage is fresh for each test case, but a native module's own state isn't ([ADR 0036](0036-native-modules.md)): the module is loaded once for the whole run, and its state is shared by every test case, which may be running at the same time. A native module that keeps state has to allow for that, as it does for interleaving triggers ([ADR 0036](0036-native-modules.md)).
+- **Set-up.** There is no separate set-up or tear-down. Set-up that several test cases share is an action that each test action calls, and fresh storage makes tear-down unnecessary.
+- **Reporting.** The interpreter reports each test case by its `name`, as passed or failed. A failed test case is reported with why it failed: the message of its failing assertion, the panic, with the message of a failing `assert` if there is one, the error its action raised or passed, or its `auth` rule being `false`. How a program's tests are chosen, such as all of them, those in some modules or those whose names match a pattern, and the format of the report, are up to the interpreter.
+
+## Deferred
+
+- **Memberships and roles.** A subject's roles and permissions come from its groups, but how subjects become members of groups and get roles is left to [ADR 0032](0032-authentication.md). Until it is decided, a test case can test `@subject is <type>` and anonymous `auth` rules, but not role or permission predicates.
+- **Stand-ins for native actions.** A test case can't replace a native action ([ADR 0036](0036-native-modules.md)) with a stand-in. A native module that shouldn't reach a real service during tests, such as a payment provider, has to choose a fake itself, such as from its own configuration.
+- **Shared set-up.** A mechanism for set-up shared by several test cases, other than an action each one calls, may be added later.
 
 ## Consequences
 
@@ -193,7 +197,10 @@ These need answers before this ADR is accepted:
 - Assertions stop at the first failure and narrow the ones after them, like a series of `assert` statements, so later assertions can rely on earlier ones, such as reading an error's `data` once it has been narrowed. The cost is that a test case reports only its first failing assertion.
 - An error from the action fails the test case unless an assertion uses `@error`, so an unexpected error is never ignored by accident, while a test that expects an error can check it.
 - A test case names itself with a constant expression, so its name is known at compile time, and two test cases with the same name are caught before any test runs.
-- Test cases only run when the interpreter runs a program's tests, so a program can keep its tests alongside its code without them running in production.
+- Test cases only run when the interpreter runs a program's tests, so a program can keep its tests alongside its code without them running in production. In a test run, no other source fires, so a test only does what its own action does.
+- Each test case has its own empty storage, holding only its subject, so test cases can't affect each other, can run in any order or at the same time, and need no tear-down. The cost is that every test case has to set up all the data it needs, and that native module state is still shared between them.
+- The language fixes what a test report says about each test case, but not how tests are chosen or how the report is formatted, which is left to the interpreter's tooling.
+- Role and permission predicates can't be tested until [ADR 0032](0032-authentication.md) decides how subjects get them, and native actions can't be replaced with stand-ins, so code that reaches outside services needs its native modules to provide fakes.
 - A test case can describe its subject in place, as a literal object, so `auth` rules and actions that check `@subject` can be tested as a signed-in subject, as well as anonymously, without creating or loading entities, and without going through authentication.
 - The subject's fields are checked against its entity's model at compile time, like an anonymous model, so a missing or misspelled field is caught before any test runs.
 - `subject` is a constant object ([ADR 0023](0023-error-handling.md)), so it is known at compile time, as every source parameter is ([ADR 0025](0025-trigger-sources.md)), and needs no special case.
