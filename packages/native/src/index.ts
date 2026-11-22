@@ -58,7 +58,9 @@ export class CantDuration {
   readonly milliseconds: number;
 
   constructor(milliseconds: number) {
-    if (!Number.isInteger(milliseconds)) throw new RangeError(`A DURATION is a whole number of milliseconds, not ${String(milliseconds)}.`);
+    if (!Number.isInteger(milliseconds)) {
+      throw new RangeError(`A DURATION is a whole number of milliseconds, not ${String(milliseconds)}.`);
+    }
     this.milliseconds = milliseconds;
   }
 
@@ -92,7 +94,9 @@ export class CantFile {
    * file its URL points to no longer exists, or the stream fails when it is read.
    */
   stream(): ReadableStream<Uint8Array> {
-    if (this.#contents !== undefined) return this.#contents.stream();
+    if (this.#contents !== undefined) {
+      return this.#contents.stream();
+    }
     if (this.#url.protocol === 'file:') {
       const path = fileURLToPath(this.#url);
       accessSync(path, constants.R_OK);
@@ -104,12 +108,17 @@ export class CantFile {
       async pull(controller) {
         if (body === undefined) {
           const response = await fetch(url);
-          if (!response.ok || response.body === null) throw new Error(`Can't read ${url.href}: ${String(response.status)} ${response.statusText}`);
+          if (!response.ok || response.body === null) {
+            throw new Error(`Can't read ${url.href}: ${String(response.status)} ${response.statusText}`);
+          }
           body = response.body.getReader();
         }
         const { done, value } = await body.read();
-        if (done) controller.close();
-        else controller.enqueue(value);
+        if (done) {
+          controller.close();
+        } else {
+          controller.enqueue(value);
+        }
       },
     });
   }
