@@ -49,7 +49,9 @@ export type Type =
   | { kind: 'result'; value: Type; errors: readonly ModuleSymbol[]; anyError: boolean }
   | { kind: 'optional'; inner: Type }
   /** The unnamed type of `@subject` (docs/adr/0010-security.md). */
-  | { kind: 'subject' };
+  | { kind: 'subject' }
+  /** The unnamed types of `@stdin`, and of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). */
+  | { kind: 'stream'; direction: 'input' | 'output' };
 
 export const BASE = (name: BaseName): Type => ({ kind: 'base', name });
 export const TEXT = BASE('TEXT');
@@ -117,6 +119,8 @@ export function describe(type: Type): string {
       return `${describe(type.inner)}?`;
     case 'subject':
       return 'the type of @subject';
+    case 'stream':
+      return type.direction === 'input' ? 'an input stream' : 'an output stream';
   }
 }
 
@@ -192,13 +196,37 @@ export type ModelFields = (model: ModelDeclaration) => ReadonlyMap<string, { typ
 /** Whether a value of type `from` can be used where `to` is expected. */
 export type Assignable = (from: Type, to: Type, options?: AssignOptions) => boolean;
 
+/**
+ * Whether a type is a stream, or a collection or object that can hold one. A stream isn't a value
+ * of UNKNOWN, even inside a collection or an object (docs/adr/0040-standard-streams.md).
+ */
+export function holdsStream(type: Type): boolean {
+  switch (type.kind) {
+    case 'stream':
+      return true;
+    case 'array':
+    case 'set':
+      return holdsStream(type.element);
+    case 'map':
+      return holdsStream(type.value);
+    case 'optional':
+      return holdsStream(type.inner);
+    case 'anonymous':
+      return [...type.fields.values()].some(holdsStream);
+    case 'result':
+      return holdsStream(type.value);
+    default:
+      return false;
+  }
+}
+
 /** Make the assignability rules, given how to find a named model's fields. */
 export function createAssignable(modelFields: ModelFields): Assignable {
   const assignable: Assignable = (from, to, options = {}) => {
     if (from.kind === 'unchecked' || to.kind === 'unchecked') return true;
     // A result's value is what fits; whether it may hold an error is checked separately.
     if (from.kind === 'result') return assignable(from.value, to, options);
-    if (to.kind === 'unknown') return from.kind !== 'void' && from.kind !== 'error';
+    if (to.kind === 'unknown') return from.kind !== 'void' && from.kind !== 'error' && !holdsStream(from);
     if (to.kind === 'optional') {
       return from.kind === 'optional' ? assignable(from.inner, to.inner, options) : assignable(from, to.inner, options);
     }
@@ -246,6 +274,8 @@ export function createAssignable(modelFields: ModelFields): Assignable {
         return false;
       case 'subject':
         return from.kind === 'subject';
+      case 'stream':
+        return from.kind === 'stream' && from.direction === to.direction;
       case 'void':
       case 'nothing':
         return false;

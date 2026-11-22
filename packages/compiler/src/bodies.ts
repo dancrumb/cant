@@ -27,25 +27,35 @@ export interface LocalBinding {
 export type Locals = Map<Identifier, LocalBinding>;
 
 /** The built-in values of docs/adr/0024-built-in-values.md, and where each can be written. */
-const BUILT_INS = new Set(['subject', 'anonymous', 'defined', 'id', 'entity', 'all', 'result', 'error', 'now', 'request', 'message']);
+const BUILT_INS = new Set([
+  'subject', 'anonymous', 'defined', 'id', 'entity', 'all', 'result', 'error', 'now', 'request', 'message',
+  // docs/adr/0040-standard-streams.md
+  'stdin', 'stdout', 'stderr',
+]);
+
+/** The built-ins that can be used anywhere but in a constant expression. */
+const ANYWHERE = ['subject', 'now', 'stdin', 'stdout', 'stderr'];
 
 /** Where an expression is, which decides the built-in values it can use. */
 type Context = 'action' | 'field' | 'constant' | 'trigger' | 'source parameters' | 'assertions';
 
 const ALLOWED_BUILT_INS: Record<Context, ReadonlySet<string>> = {
-  action: new Set(['subject', 'now']),
-  field: new Set(['subject', 'now']),
+  action: new Set(ANYWHERE),
+  field: new Set(ANYWHERE),
   // A constant, and a source's parameters, must be constant expressions, which built-ins never are.
   constant: new Set(),
   'source parameters': new Set(),
-  trigger: new Set(['subject', 'now', 'result', 'request', 'message']),
-  assertions: new Set(['subject', 'now', 'result', 'error', 'request', 'message']),
+  trigger: new Set([...ANYWHERE, 'result', 'request', 'message']),
+  assertions: new Set([...ANYWHERE, 'result', 'error', 'request', 'message']),
 };
 
 /** Where docs/adr/0024-built-in-values.md lets each built-in be used, for error messages. */
 const WHERE: Record<string, string> = {
   subject: 'in any trigger or action',
   now: 'in any trigger or action, but not in a constant expression',
+  stdin: 'in any trigger or action, but not in a constant expression',
+  stdout: 'in any trigger or action, but not in a constant expression',
+  stderr: 'in any trigger or action, but not in a constant expression',
   result: 'only in a trigger',
   request: 'only in a trigger on a source that provides it',
   message: 'only in a trigger on a source that provides it',

@@ -46,6 +46,29 @@ test('types dates, durations and their arithmetic', () => {
   );
 });
 
+test('types the standard streams', () => {
+  assert.deepEqual(
+    problems(
+      'import IO',
+      'action Take(value: UNKNOWN): VOID',
+      '    body',
+      '        return',
+      'action A(): VOID',
+      '    body',
+      '        out := @stdout',
+      '        IO::write(out)',
+      '        same := out == @stderr',
+      '        mixed := @stdin == @stdout',
+      '        text := "to ${@stderr}"',
+      '        Take(value := @stdin)',
+      '        streams := [@stdout, @stderr]',
+      '        Take(value := streams)',
+      '        x := out.fd',
+    ),
+    ['type-mismatch 10:18', 'not-text 11:23', 'type-mismatch 12:23', 'type-mismatch 14:23', 'no-fields 15:18'],
+  );
+});
+
 test('checks returns, and actions that can end without one', () => {
   assert.deepEqual(
     problems(

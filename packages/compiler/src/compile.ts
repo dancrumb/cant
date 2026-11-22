@@ -290,6 +290,8 @@ class Compiler {
         return { kind: 'optional', inner: this.fromType(type.inner) };
       case 'subject':
         return { kind: 'subject' };
+      case 'stream':
+        return { kind: 'stream', direction: type.direction };
     }
   }
 

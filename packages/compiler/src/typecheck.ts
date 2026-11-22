@@ -29,6 +29,7 @@ import {
   describe,
   DURATION,
   fieldType,
+  holdsStream,
   isBase,
   NOTHING,
   NUMBER,
@@ -1018,6 +1019,11 @@ class TypeChecker {
         return DATE_TIME;
       case 'subject':
         return { kind: 'subject' };
+      case 'stdin':
+        return { kind: 'stream', direction: 'input' };
+      case 'stdout':
+      case 'stderr':
+        return { kind: 'stream', direction: 'output' };
       case 'result': {
         const action = this.triggerAction();
         return action === undefined ? UNCHECKED : this.actionResult(action);
@@ -1048,15 +1054,23 @@ class TypeChecker {
   private interpolated(expression: Expression, facts: Facts): void {
     const type = this.value(expression, facts).type;
     if (type.kind === 'optional') this.uncheckedOptional(type, expression.position);
-    else if (type.kind === 'void' || type.kind === 'unknown' || type.kind === 'nothing' || (type.kind === 'error' && type.symbol === undefined && type.among !== undefined)) {
+    else if (
+      type.kind === 'void' ||
+      type.kind === 'unknown' ||
+      type.kind === 'nothing' ||
+      type.kind === 'stream' ||
+      (type.kind === 'error' && type.symbol === undefined && type.among !== undefined)
+    ) {
       this.report(
         error(
           'not-text',
           type.kind === 'unknown'
             ? "An UNKNOWN can't be interpolated. Narrow it with `instanceOf` first."
-            : type.kind === 'error'
-              ? 'An error can only be converted to text once it has been narrowed to a specific error, or to ERROR.'
-              : `${describe(type)} has no value, so it can't be interpolated.`,
+            : type.kind === 'stream'
+              ? "A stream can't be converted to text."
+              : type.kind === 'error'
+                ? 'An error can only be converted to text once it has been narrowed to a specific error, or to ERROR.'
+                : `${describe(type)} has no value, so it can't be interpolated.`,
           expression.position,
         ),
       );
@@ -1132,7 +1146,7 @@ class TypeChecker {
         this.report(error('unknown-value', "An UNKNOWN's fields can't be read. Narrow it with `instanceOf` first.", position));
         return UNCHECKED;
       default:
-        this.report(error('no-fields', `${describe(object)} has no fields.`, property.position));
+        this.report(error('no-fields', `${capitalise(describe(object))} has no fields.`, property.position));
         return UNCHECKED;
     }
   }
@@ -1316,7 +1330,7 @@ class TypeChecker {
 
     if (operator === '==' || operator === '!=') {
       if (!this.comparable(left, right)) {
-        this.report(error('type-mismatch', `${describe(left)} and ${describe(right)} can't be compared: they have different types.`, expression.position));
+        this.report(error('type-mismatch', `${capitalise(describe(left))} and ${describe(right)} can't be compared: they have different types.`, expression.position));
       }
       return BOOLEAN;
     }
@@ -1327,8 +1341,8 @@ class TypeChecker {
           error(
             'type-mismatch',
             ordered === undefined
-              ? `${describe(left)} values can't be ordered. NUMBER, DATE_TIME, DURATION and TEXT can, and enums of them.`
-              : `${describe(left)} and ${describe(right)} can't be ordered against each other.`,
+              ? `Values of ${describe(left)} can't be ordered. NUMBER, DATE_TIME, DURATION and TEXT can, and enums of them.`
+              : `${capitalise(describe(left))} and ${describe(right)} can't be ordered against each other.`,
             expression.position,
           ),
         );
@@ -1354,7 +1368,8 @@ class TypeChecker {
 
   /** `==` and `!=` need operands of one type, except enums, compared by value, and UNKNOWN (docs/adr/0019-operators.md). */
   private comparable(left: Type, right: Type): boolean {
-    if (left.kind === 'unknown' || right.kind === 'unknown') return true;
+    // A stream isn't a value of UNKNOWN (docs/adr/0040-standard-streams.md).
+    if (left.kind === 'unknown' || right.kind === 'unknown') return !holdsStream(left) && !holdsStream(right);
     if (left.kind === 'enum' && right.kind === 'enum') return left.valueType === right.valueType;
     if (left.kind === 'enum') return right.kind === 'base' && right.name === left.valueType;
     if (right.kind === 'enum') return left.kind === 'base' && left.name === right.valueType;
@@ -1567,6 +1582,8 @@ class TypeChecker {
 }
 
 type Parameter = ActionDeclaration['parameters'][number];
+
+const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
 const isComparison = (operator: string): boolean => ['==', '!=', '<', '<=', '>', '>=', 'in'].includes(operator);
 
