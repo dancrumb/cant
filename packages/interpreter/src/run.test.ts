@@ -136,6 +136,43 @@ test('copies an object of a named model into a map', async () => {
   assert.deepEqual(await output(program({ 'main.cant#Main': show }, [{ arguments: { customer } }])), { stdout: 'name: Ada, age: 36', stderr: '' });
 });
 
+test('constructs an object of a model: given fields, then defaults that use other fields, in the model\'s order', async () => {
+  const program_ = (given: [string, CompiledExpression][]): CompiledProgram => {
+    const compiled = program(
+      {
+        'main.cant#Main': body([{ name: 'disk', type: { kind: 'named', symbol: 'main.cant#Disk' }, optional: false }], 1, [
+          { type: 'expression', expression: write({ type: 'template', parts: [{ type: 'local', slot: 0, position: at(1) }], position: at(1) }), position: at(1) },
+        ]),
+      },
+      [{ arguments: { disk: { type: 'construct', model: 'main.cant#Disk', value: { type: 'object', members: given, position: at(9) }, position: at(9) } } }],
+    );
+    compiled.types['main.cant#Disk'] = {
+      kind: 'model',
+      fields: [
+        { name: 'path', type: { kind: 'base', name: 'TEXT' }, optional: false },
+        { name: 'free', type: { kind: 'base', name: 'NUMBER' }, optional: false },
+        { name: 'label', type: { kind: 'base', name: 'TEXT' }, optional: true, default: { type: 'template', parts: ['Disk at ', { type: 'field', name: 'path', position: at(1) }], position: at(1) } },
+        { name: 'owner', type: { kind: 'base', name: 'TEXT' }, optional: true },
+      ],
+      defaultOrder: [2],
+    };
+    return compiled;
+  };
+  const number = (value: number): CompiledExpression => ({ type: 'value', value: { kind: 'number', value }, position: at(1) });
+
+  assert.deepEqual(await output(program_([['free', number(3)], ['path', text('/tmp')]])), { stdout: 'path: /tmp, free: 3, label: Disk at /tmp', stderr: '' });
+  assert.deepEqual(await output(program_([['path', text('/tmp')], ['free', number(3)], ['label', text('Scratch')], ['owner', text('ada')]])), {
+    stdout: 'path: /tmp, free: 3, label: Scratch, owner: ada',
+    stderr: '',
+  });
+  await assert.rejects(output(program_([['path', text('/tmp')]])), (caught: unknown) => {
+    assert.ok(caught instanceof Panic);
+    assert.equal(caught.message, 'An object of Disk has no value for its field free.');
+    assert.equal(caught.position?.start.line, 9);
+    return true;
+  });
+});
+
 test('skips test cases, and runs Start triggers in order', async () => {
   const say = (word: string): CompiledAction => body([], 0, [{ type: 'expression', expression: write(text(word)), position: at(1) }]);
   const compiled = program({ 'main.cant#One': say('one '), 'main.cant#Two': say('two') }, [

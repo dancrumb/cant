@@ -212,7 +212,11 @@ class Interpreter {
     }
   }
 
-  private async evaluate(expression: CompiledExpression, frame: (RuntimeValue | undefined)[]): Promise<RuntimeValue> {
+  /**
+   * Evaluate an expression. `fields` holds the fields of the object whose defaults are being worked
+   * out, which a default can refer to (docs/adr/0027-object-shapes.md).
+   */
+  private async evaluate(expression: CompiledExpression, frame: (RuntimeValue | undefined)[], fields?: ReadonlyMap<string, RuntimeValue>): Promise<RuntimeValue> {
     switch (expression.type) {
       case 'value':
         return expression.value;
@@ -228,12 +232,12 @@ class Interpreter {
       case 'template': {
         let written = '';
         for (const part of expression.parts) {
-          written += typeof part === 'string' ? part : this.text(await this.evaluate(part, frame), part.position);
+          written += typeof part === 'string' ? part : this.text(await this.evaluate(part, frame, fields), part.position);
         }
         return { kind: 'text', value: written };
       }
       case 'unwrap': {
-        const value = await this.evaluate(expression.value, frame);
+        const value = await this.evaluate(expression.value, frame, fields);
         if (value.kind === 'raised') {
           throw new Panic(`This held ${nameOf(value.error)}, which was used without being checked.`, expression.position);
         }
@@ -242,13 +246,13 @@ class Interpreter {
       case 'call': {
         const args: (RuntimeValue | undefined)[] = [];
         for (const argument of expression.arguments) {
-          args.push(argument.type === 'omitted' ? undefined : await this.evaluate(argument, frame));
+          args.push(argument.type === 'omitted' ? undefined : await this.evaluate(argument, frame, fields));
         }
         return this.call(expression.action, args, expression.position);
       }
       case 'copyToMap': {
         // A copy, so a change made through the map never reaches the object (docs/adr/0027-object-shapes.md).
-        const value = await this.evaluate(expression.value, frame);
+        const value = await this.evaluate(expression.value, frame, fields);
         if (value.kind !== 'object') {
           throw new Panic(`Only an object can be copied to a map, not a ${value.kind}.`, expression.position);
         }
@@ -257,13 +261,67 @@ class Interpreter {
       case 'map': {
         const members: [string, RuntimeValue][] = [];
         for (const [name, member] of expression.members) {
-          members.push([name, await this.evaluate(member, frame)]);
+          members.push([name, await this.evaluate(member, frame, fields)]);
         }
         return { kind: 'map', members };
+      }
+      case 'field': {
+        const value = fields?.get(expression.name);
+        if (value === undefined) {
+          throw new Panic(`The field ${expression.name} has no value yet.`, expression.position);
+        }
+        return value;
+      }
+      case 'object': {
+        const members: [string, Value][] = [];
+        for (const [name, member] of expression.members) {
+          members.push([name, this.valueOf(await this.evaluate(member, frame, fields), member.position)]);
+        }
+        return { kind: 'object', members };
+      }
+      case 'construct': {
+        const given = await this.evaluate(expression.value, frame, fields);
+        if (given.kind !== 'object') {
+          throw new Panic(`Only an object can be made into an object of a model, not a ${given.kind}.`, expression.position);
+        }
+        return this.construct(expression.model, given.members, expression.position);
       }
       default:
         throw new Panic(`The interpreter can't evaluate ${expression.type} expressions yet.`, expression.position);
     }
+  }
+
+  /**
+   * An object of a model (docs/adr/0027-object-shapes.md): the members it is given, then each
+   * default of a field it isn't given, in the order the compiler worked out, so that a default can
+   * use the fields before it. Its members are in the order of the model's fields, and a field that
+   * is optional and empty isn't one of them.
+   */
+  private async construct(symbol: string, given: [string, Value][], position: SourcePosition): Promise<RuntimeValue> {
+    const model = this.program.types[symbol];
+    if (model?.kind !== 'model') {
+      throw new Panic(`The compiled program has no model ${symbol}.`, position);
+    }
+    const known = new Map<string, Value>(given);
+    for (const index of model.defaultOrder) {
+      const field = model.fields[index];
+      if (field?.default !== undefined && !known.has(field.name)) {
+        const value = await this.evaluate(field.default, [], known);
+        if (value.kind !== 'nothing') {
+          known.set(field.name, this.valueOf(value, field.default.position));
+        }
+      }
+    }
+    const members: [string, Value][] = [];
+    for (const field of model.fields) {
+      const value = known.get(field.name);
+      if (value !== undefined) {
+        members.push([field.name, value]);
+      } else if (!field.optional) {
+        throw new Panic(`An object of ${nameOf(symbol)} has no value for its field ${field.name}.`, position);
+      }
+    }
+    return { kind: 'object', model: symbol, members };
   }
 
   /** A built-in value (docs/adr/0024-built-in-values.md). */
