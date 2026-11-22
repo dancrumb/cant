@@ -1,6 +1,6 @@
 {
   "name": "cant",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "description": "Monorepo for the cant compiler, interpreter, language server and shared code",
   "license": "MIT",

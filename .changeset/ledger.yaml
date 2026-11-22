@@ -33,6 +33,11 @@
   dir: packages/compiler
   intents:
     - interpreter-run
+"@dancrumb/cant-compiler@0.18.0":
+  dir: packages/compiler
+  intents:
+    - cant-console
+    - named-models-as-maps
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -68,6 +73,12 @@
   dir: packages/interpreter
   intents:
     - interpreter-run
+"@dancrumb/cant-interpreter@0.18.0":
+  dir: packages/interpreter
+  intents:
+    - cant-console
+    - interpreter-construct
+    - named-models-as-maps
 "@dancrumb/cant-lsp@0.10.1":
   dir: packages/lsp
   intents:
@@ -92,6 +103,11 @@
   dir: packages/lsp
   intents:
     - fifty-maps-kiss
+"@dancrumb/cant-lsp@0.18.0":
+  dir: packages/lsp
+  intents:
+    - cant-console
+    - named-models-as-maps
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -126,6 +142,10 @@
   dir: packages/shared
   intents:
     - sweet-drinks-knock
+"@dancrumb/cant-shared@0.18.0":
+  dir: packages/shared
+  intents:
+    - named-models-as-maps
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -176,6 +196,12 @@
   dir: packages/cli
   intents:
     - interpreter-run
+"@dancrumb/cant@0.18.0":
+  dir: packages/cli
+  intents:
+    - cant-console
+    - interpreter-construct
+    - named-models-as-maps
 cant-vscode@0.10.3:
   dir: packages/vscode
   intents:
@@ -201,6 +227,11 @@ cant-vscode@0.15.0:
   dir: packages/vscode
   intents:
     - fifty-maps-kiss
+cant-vscode@0.18.0:
+  dir: packages/vscode
+  intents:
+    - cant-console
+    - named-models-as-maps
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
