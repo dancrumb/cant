@@ -6,6 +6,10 @@
   dir: packages/compiler
   intents:
     - fair-chicken-warn
+"@dancrumb/cant-compiler@0.11.0":
+  dir: packages/compiler
+  intents:
+    - standard-streams
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -48,6 +52,10 @@
   dir: packages/shared
   intents:
     - fair-chicken-warn
+"@dancrumb/cant-shared@0.11.0":
+  dir: packages/shared
+  intents:
+    - standard-streams
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
