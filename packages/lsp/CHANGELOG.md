@@ -1,5 +1,15 @@
 # @dancrumb/cant-lsp
 
+## 0.15.0
+
+### Patch Changes
+
+- refactor: get rid of single-line blocks
+
+- Updated dependencies:
+  - @dancrumb/cant-compiler@0.15.0
+  - @dancrumb/cant-shared@0.15.0
+
 ## 0.14.0
 
 ### Minor Changes

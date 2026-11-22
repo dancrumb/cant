@@ -25,6 +25,10 @@
   dir: packages/compiler
   intents:
     - stdlib-files
+"@dancrumb/cant-compiler@0.15.0":
+  dir: packages/compiler
+  intents:
+    - fifty-maps-kiss
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -51,6 +55,11 @@
   dir: packages/interpreter
   intents:
     - fair-chicken-warn
+"@dancrumb/cant-interpreter@0.15.0":
+  dir: packages/interpreter
+  intents:
+    - fifty-maps-kiss
+    - stdlib-implementations
 "@dancrumb/cant-lsp@0.10.1":
   dir: packages/lsp
   intents:
@@ -71,6 +80,10 @@
   intents:
     - semantic-tokens
     - stdlib-files
+"@dancrumb/cant-lsp@0.15.0":
+  dir: packages/lsp
+  intents:
+    - fifty-maps-kiss
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -96,6 +109,11 @@
   intents:
     - cant-collections
     - cant-io
+"@dancrumb/cant-shared@0.15.0":
+  dir: packages/shared
+  intents:
+    - fifty-maps-kiss
+    - stdlib-implementations
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -163,6 +181,10 @@ cant-vscode@0.14.0:
   intents:
     - semantic-tokens
     - stdlib-files
+cant-vscode@0.15.0:
+  dir: packages/vscode
+  intents:
+    - fifty-maps-kiss
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
@@ -186,6 +208,10 @@ cant@0.10.2:
   dir: ""
   intents:
     - wild-humans-repair
+cant@0.15.0:
+  dir: ""
+  intents:
+    - fifty-maps-kiss
 cant@0.2.0:
   dir: ""
   intents:

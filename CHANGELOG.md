@@ -1,5 +1,11 @@
 # cant
 
+## 0.15.0
+
+### Patch Changes
+
+- refactor: get rid of single-line blocks
+
 ## 0.14.0
 
 ## 0.13.0
