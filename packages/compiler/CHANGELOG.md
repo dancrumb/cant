@@ -1,5 +1,12 @@
 # @dancrumb/cant-compiler
 
+## 0.17.0
+
+### Patch Changes
+
+- Updated dependencies:
+  - @dancrumb/cant-shared@0.17.0
+
 ## 0.16.0
 
 ### Minor Changes

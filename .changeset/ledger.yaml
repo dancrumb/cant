@@ -122,6 +122,10 @@
   intents:
     - fifty-maps-kiss
     - stdlib-implementations
+"@dancrumb/cant-shared@0.17.0":
+  dir: packages/shared
+  intents:
+    - sweet-drinks-knock
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:

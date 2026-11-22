@@ -1,5 +1,11 @@
 # @dancrumb/cant-shared
 
+## 0.17.0
+
+### Minor Changes
+
+- make `error` a contextual keyword
+
 ## 0.16.0
 
 ## 0.15.0
