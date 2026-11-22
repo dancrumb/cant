@@ -1,0 +1,27 @@
+// cant::Console provides logging actions that provide the ability to write
+// messages to the system console
+
+export enum LogLevel
+    Error
+    Warn
+    Info
+    Debug
+    Trace
+
+export action error(message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
+
+export action warn(message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
+
+export action info(message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
+
+export action debug(message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
+
+export action trace(message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
+
+export action log(level?: LogLevel := LogLevel.Info, message: TEXT, data?: {UNKNOWN}): VOID
+    native "./Console.js"
