@@ -52,7 +52,7 @@ The interpreter stores files. Where a file is kept, how long it lasts and when i
 
 ### Reading and writing
 
-Explicit file input and output, such as reading a `FILE`'s contents as `TEXT` or writing a new file, will be decided when the `cant::IO` module is designed.
+A program reads a `FILE`'s contents with `IO::read`, which gives its bytes ([ADR 0042](0042-io.md)). A `FILE` can't be written to. Turning its bytes into `TEXT`, and creating a new file, are left to later additions to `cant::IO`.
 
 ### Security
 
@@ -65,4 +65,4 @@ For now, access to files is controlled by triggers. A program can only receive a
 - A `FILE` has no facet for its name. Its blob facet follows JavaScript's `Blob`, which has a size and a media type, but how a program reads those depends on how facets are accessed, which is left to [ADR 0029](0029-accessing-facets.md).
 - With no `FILE` literal, files cannot appear in enums, and a default value for a `FILE` parameter or field can only be an expression that gives an existing `FILE`, such as another parameter.
 - Relying on triggers for file security keeps the rules simple for now, but does not let a program restrict who can read a file once it has one. That may need revisiting alongside [ADR 0010](0010-security.md).
-- Until the built-in keywords and `cant::IO` are defined, programs can only receive files from triggers and pass them on.
+- Until the built-in keywords are defined, programs can only receive files from triggers, pass them on, and read their bytes with `cant::IO` ([ADR 0042](0042-io.md)).

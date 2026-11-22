@@ -10,6 +10,7 @@ import type {
 import { dateTimeMilliseconds, durationMilliseconds } from '@dancrumb/cant-shared';
 import type { ModuleSymbol } from './modules.ts';
 import type { References } from './resolve.ts';
+import { INTERNAL_TYPES } from './stdlib.ts';
 
 export type BaseName = BaseType['name'];
 
@@ -50,8 +51,11 @@ export type Type =
   | { kind: 'optional'; inner: Type }
   /** The unnamed type of `@subject` (docs/adr/0010-security.md). */
   | { kind: 'subject' }
-  /** The unnamed types of `@stdin`, and of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). */
-  | { kind: 'stream'; direction: 'input' | 'output' };
+  /**
+   * The unnamed types of `@stdin`, and of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md).
+   * With `file`, a `FILE` can be given too, as `cant::IO`'s `ReadStream` can (docs/adr/0042-io.md).
+   */
+  | { kind: 'stream'; direction: 'input' | 'output'; file?: true };
 
 export const BASE = (name: BaseName): Type => ({ kind: 'base', name });
 export const TEXT = BASE('TEXT');
@@ -120,7 +124,7 @@ export function describe(type: Type): string {
     case 'subject':
       return 'the type of @subject';
     case 'stream':
-      return type.direction === 'input' ? 'an input stream' : 'an output stream';
+      return type.direction === 'input' ? (type.file === true ? 'an input stream or a FILE' : 'an input stream') : 'an output stream';
   }
 }
 
@@ -153,6 +157,7 @@ export function typeOf(ref: TypeRef, references: References): Type {
 export function typeOfSymbol(symbol: ModuleSymbol | undefined): Type {
   const declaration = symbol?.declaration;
   if (symbol === undefined) return UNCHECKED;
+  if (symbol.typeKind === 'internal') return INTERNAL_TYPES.get(symbol.name) ?? UNCHECKED;
   if (symbol.typeKind === 'error') {
     return declaration?.type === 'errorDeclaration' ? { kind: 'error', symbol, declaration } : { kind: 'error', symbol };
   }
@@ -275,7 +280,7 @@ export function createAssignable(modelFields: ModelFields): Assignable {
       case 'subject':
         return from.kind === 'subject';
       case 'stream':
-        return from.kind === 'stream' && from.direction === to.direction;
+        return (from.kind === 'stream' && from.direction === to.direction) || (to.file === true && isBase(from, 'FILE'));
       case 'void':
       case 'nothing':
         return false;

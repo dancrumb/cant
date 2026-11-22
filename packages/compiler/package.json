@@ -21,7 +21,8 @@
   },
   "files": [
     "dist",
-    "!dist/**/*.test.*"
+    "!dist/**/*.test.*",
+    "stdlib"
   ],
   "engines": {
     "node": ">=22"
@@ -37,9 +38,10 @@
     "access": "public"
   },
   "scripts": {
+    "generate": "node scripts/embed-stdlib.js",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf dist src/generated",
     "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint ."
   },

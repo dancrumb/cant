@@ -2,6 +2,7 @@ import type { Name, StringLiteral, TypeRef } from '@dancrumb/cant-shared';
 import type { Node } from 'unist';
 import { MAIN_NAMESPACE } from './declarations.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
+import { INTERNAL_TYPES, isStandardPath } from './stdlib.ts';
 import {
   describeName,
   fileFromUrl,
@@ -85,6 +86,7 @@ export function resolveNames(program: LoadedProgram): { references: References; 
 
 function resolveModule(module: Module, references: References, report: (diagnostic: Diagnostic) => void): void {
   if (module.program === undefined) return;
+  const standard = isStandardPath(module.path);
 
   const resolve = (name: Name, namespace: string, expected: Expected): void => {
     const where = name.type === 'qualifiedIdentifier' ? name.namespace.value : namespace;
@@ -135,6 +137,13 @@ function resolveModule(module: Module, references: References, report: (diagnost
   const resolveType = (type: TypeRef, namespace: string, expected: 'value type' | 'type' = 'value type'): void => {
     switch (type.type) {
       case 'identifier':
+        // Only the standard library can write its internal types (docs/adr/0036-native-modules.md).
+        if (standard && INTERNAL_TYPES.has(type.value)) {
+          references.set(type, { kind: 'type', typeKind: 'internal', name: type.value, module: module.path });
+          break;
+        }
+        resolve(type, namespace, expected);
+        break;
       case 'qualifiedIdentifier':
         resolve(type, namespace, expected);
         break;
@@ -195,7 +204,8 @@ function resolveModule(module: Module, references: References, report: (diagnost
         if (declaration.returnType.type !== 'voidType') resolveType(declaration.returnType, namespace);
         for (const name of declaration.raises) resolve(name, namespace, 'error');
         for (const name of declaration.passes) if (name.type !== 'builtIn') resolve(name, namespace, 'error');
-        if (declaration.native !== undefined) checkNative(module, declaration.native, report);
+        // The interpreter provides the standard library's implementations itself.
+        if (declaration.native !== undefined && !standard) checkNative(module, declaration.native, report);
         walk(declaration.children, namespace);
         break;
       }

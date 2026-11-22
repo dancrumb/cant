@@ -1,15 +1,22 @@
+import { STANDARD_SOURCES } from './generated/stdlib.ts';
+import type { Type } from './types.ts';
+
 /**
  * The modules of the `cant` scope, which are built into the interpreter
  * (docs/adr/0031-module-resolution.md). They are native modules whose declarations can use
- * internal types that Cant source can't write (docs/adr/0036-native-modules.md), so the compiler
- * describes them here, by the names they export, rather than reading them from Cant files.
+ * internal types that other Cant source can't write (docs/adr/0036-native-modules.md).
  *
- * Only names are listed for now: their signatures arrive with type checking.
+ * A module with Cant source in ../stdlib, such as `cant::IO`, is loaded from it like any other
+ * module, so calls to its actions are checked against their declarations. The others are
+ * described here only by the names they export, until they have source of their own.
  */
+
+export { STANDARD_SOURCES };
 
 /** What a standard library module exports a name as. */
 export type StandardKind = 'action' | 'error';
 
+/** The standard library modules that have no Cant source yet, by the names they export. */
 export const STANDARD_LIBRARY: ReadonlyMap<string, ReadonlyMap<string, StandardKind>> = new Map([
   // docs/adr/0021-collections.md
   [
@@ -35,9 +42,25 @@ export const STANDARD_LIBRARY: ReadonlyMap<string, ReadonlyMap<string, StandardK
       ...errors('UnknownTimeZone', 'NotWholeNumber', 'InvalidDateTime'),
     ]),
   ],
-  // docs/adr/0015-files.md leaves `cant::IO` to be designed. `write` is the one action the ADRs'
-  // examples use (docs/adr/0006-imports.md, 0012).
-  ['IO', actions('write')],
+]);
+
+/** Whether the standard library has a module called `name`. */
+export const isStandardModule = (name: string): boolean => STANDARD_LIBRARY.has(name) || STANDARD_SOURCES.has(name);
+
+/** The path a standard library module with Cant source is loaded as, such as `cant::IO`. */
+export const standardPath = (name: string): string => `cant::${name}`;
+
+/** Whether a module's path is a standard library module's, rather than a file's. */
+export const isStandardPath = (path: string): boolean => path.startsWith('cant::');
+
+/**
+ * The internal types that only standard library modules can write
+ * (docs/adr/0036-native-modules.md): the stream types of docs/adr/0040-standard-streams.md, as
+ * `cant::IO` names them (docs/adr/0042-io.md). A `ReadStream` is also given a `FILE`.
+ */
+export const INTERNAL_TYPES: ReadonlyMap<string, Type> = new Map<string, Type>([
+  ['ReadStream', { kind: 'stream', direction: 'input', file: true }],
+  ['WriteStream', { kind: 'stream', direction: 'output' }],
 ]);
 
 function actions(...names: string[]): Map<string, StandardKind> {

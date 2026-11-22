@@ -58,7 +58,8 @@ test('names modules from the root, keeps only the entry module\'s triggers, and 
     program.triggers.map(({ action, source, arguments: args }) => ({ action, source, arguments: withoutPositions(args) })),
     [{ action: 'lib/greet.cant#Greet', source: 'Start', arguments: { name: { type: 'value', value: { kind: 'text', value: 'Ada' } } } }],
   );
-  assert.deepEqual(Object.keys(sourceMap.sources).sort(), ['lib/greet.cant', 'main.cant']);
+  // The standard library's own source is included, for positions inside it (docs/adr/0042-io.md).
+  assert.deepEqual(Object.keys(sourceMap.sources).sort(), ['cant::IO', 'lib/greet.cant', 'main.cant']);
   assert.equal(sourceMap.build, program.build);
   assert.match(program.build, /^[0-9a-f]{16}$/);
 });

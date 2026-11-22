@@ -1,0 +1,21 @@
+// cant::IO, the standard library module that writes and reads streams (docs/adr/0042-io.md).
+// It is a native module (docs/adr/0036-native-modules.md), whose actions the interpreter
+// implements. The compiler embeds this file, and checks calls to cant::IO against it.
+//
+// `WriteStream` and `ReadStream` are internal types that the compiler defines, and only standard
+// library modules can write (docs/adr/0040-standard-streams.md). A `WriteStream` is `@stdout` or
+// `@stderr`; a `ReadStream` is `@stdin` or a `FILE`. Checked as an ordinary file, this module
+// reports them as unknown names.
+
+// A stream failed: it was closed or broken, or a file couldn't be read.
+export error StreamError
+    data
+        reason: TEXT
+
+// Write `message` to `stream`, encoded as UTF-8, with nothing added.
+export action write(message: TEXT, stream?: WriteStream := @stdout): VOID raises StreamError
+    native "./IO.js"
+
+// Read everything left in `stream`, waiting until it ends, as bytes from 0 to 255.
+export action read(stream?: ReadStream := @stdin): [NUMBER] raises StreamError
+    native "./IO.js"

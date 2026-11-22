@@ -38,7 +38,7 @@ A `FILE`'s identifier is its URL, which it always has, even if it is a `data:` U
 
 ### Reading a `FILE`'s contents
 
-Cant code can't read a `FILE`'s contents, or its URL, size or media type, itself. It does so by calling native actions that take a `FILE` ([ADR 0036](0036-native-modules.md)), such as the actions that `cant::IO` will provide to read a `FILE` as `TEXT` ([ADR 0015](0015-files.md)). So which properties of a file a program can find out, such as its size or media type, is decided by the actions those modules provide, not by the language.
+Cant code can't read a `FILE`'s contents, or its URL, size or media type, itself. It does so by calling native actions that take a `FILE` ([ADR 0036](0036-native-modules.md)), such as `IO::read`, which reads a `FILE`'s bytes ([ADR 0042](0042-io.md)). So which properties of a file a program can find out, such as its size or media type, is decided by the actions those modules provide, not by the language.
 
 ### Creating faceted values
 

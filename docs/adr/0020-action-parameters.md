@@ -59,7 +59,7 @@ These rules apply to every argument, whether it comes from a call or from a trig
 - An optional value `T?` can only be passed to an optional parameter of type `T`. If it holds `NOTHING`, the parameter is treated as left out, so it holds `NOTHING` or its default ([ADR 0014](0014-optionals.md)).
 - `NOTHING` itself cannot be passed ([ADR 0014](0014-optionals.md)).
 - A value of an enum's value type can be passed to a parameter of that enum if it is one of the enum's values ([ADR 0013](0013-enums.md)).
-- A value of a faceted type can only be passed to a parameter of the same specific type ([ADR 0017](0017-faceted-types.md)).
+- A value of a faceted type can only be passed to a parameter of the same specific type ([ADR 0017](0017-faceted-types.md)), except that a `FILE` can be passed to a `ReadStream` parameter of `cant::IO` ([ADR 0042](0042-io.md)).
 
 ### Named arguments
 

@@ -35,7 +35,7 @@ For now, only Cant defines faceted types. A program cannot declare a faceted typ
 Faceted types are compatible only by their specific type:
 
 - A value of one entity type can be used only where that same entity type is expected. A `User` cannot be used where an `Organization` is expected, even if the two have the same fields.
-- A `FILE` can be used only where a `FILE` is expected.
+- A `FILE` can be used only where a `FILE` is expected, or where `cant::IO` expects a `ReadStream`, which reads it through its stream facet ([ADR 0042](0042-io.md)).
 - A `FILE` is never compatible with an entity, nor an entity with a `FILE`.
 
 ### Identifier facets

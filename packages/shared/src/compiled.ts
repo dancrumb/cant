@@ -62,8 +62,11 @@ export type CompiledTypeRef =
   | { kind: 'anyError' }
   /** The type of `@subject` before it is narrowed. */
   | { kind: 'subject' }
-  /** The type of `@stdin`, or of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). */
-  | { kind: 'stream'; direction: 'input' | 'output' };
+  /**
+   * The type of `@stdin`, or of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). With
+   * `file`, a `FILE` can be given too, as to `cant::IO`'s `ReadStream` (docs/adr/0042-io.md).
+   */
+  | { kind: 'stream'; direction: 'input' | 'output'; file?: true };
 
 export type CompiledType = CompiledEnum | CompiledModel | CompiledError | CompiledEntity;
 

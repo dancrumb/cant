@@ -14,13 +14,16 @@ import { MAIN_NAMESPACE, type ModuleSymbols, type TypeDeclaration } from './decl
 import { error, type Diagnostic } from './diagnostic.ts';
 import type { Host } from './host.ts';
 import { findManifest, MANIFEST, type Manifest } from './manifest.ts';
-import { STANDARD_LIBRARY } from './stdlib.ts';
+import { isStandardModule, isStandardPath, STANDARD_LIBRARY, STANDARD_SOURCES, standardPath } from './stdlib.ts';
 
 /** What a declared name is (docs/adr/0006-imports.md lists the constructs a module can export). */
 export type SymbolKind = 'type' | 'action' | 'const';
 
-/** The kinds of declaration that are types. */
-export type TypeKind = 'enum' | 'model' | 'entity' | 'error';
+/**
+ * The kinds of type a name can be: a declaration's, or one of the internal types that only
+ * standard library modules can write (docs/adr/0036-native-modules.md).
+ */
+export type TypeKind = 'enum' | 'model' | 'entity' | 'error' | 'internal';
 
 /** A top-level symbol: a declaration in some module, or a name a standard library module exports. */
 export interface ModuleSymbol {
@@ -48,7 +51,10 @@ export interface ImportedSymbol {
 }
 
 export interface Module {
-  /** The module's file, as an absolute path. */
+  /**
+   * The module's file, as an absolute path, or for a standard library module loaded from its
+   * Cant source, its name, such as `cant::IO`.
+   */
   path: string;
   source: string;
   /** Its syntax tree and declarations, unless it has a syntax error. */
@@ -125,7 +131,10 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   while (queue.length > 0) {
     const next = queue.shift();
     if (next === undefined || modules.has(next.path)) continue;
-    const source = host.readFile(next.path);
+    // A standard library module's source is part of the compiler (../stdlib).
+    const source = isStandardPath(next.path)
+      ? STANDARD_SOURCES.get(next.path.slice('cant::'.length))
+      : host.readFile(next.path);
     if (source === undefined) {
       if (next.from === undefined) {
         diagnostics.push({
@@ -161,6 +170,9 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
       });
       module.imports.set(declaration, target);
       if (target.kind === 'file') queue.push({ path: target.path, from: { module, declaration } });
+      if (target.kind === 'standard' && STANDARD_SOURCES.has(target.name)) {
+        queue.push({ path: standardPath(target.name), from: { module, declaration } });
+      }
     }
   }
 
@@ -205,6 +217,8 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
 
   const exportsOfTarget = (target: ImportTarget): Map<string, ModuleSymbol> => {
     if (target.kind === 'standard') {
+      const loaded = modules.get(standardPath(target.name));
+      if (loaded !== undefined) return exportsOf(loaded);
       const standard = STANDARD_LIBRARY.get(target.name);
       return new Map(
         [...(standard ?? [])].map(([name, kind]) => [
@@ -320,7 +334,7 @@ function resolveImport(
   const scope = identifier.scope?.value ?? 'cant';
   const name = identifier.name.value;
   if (scope === 'cant') {
-    if (STANDARD_LIBRARY.has(name)) return { kind: 'standard', name };
+    if (isStandardModule(name)) return { kind: 'standard', name };
     report(error('module-not-found', `The standard library has no module called cant::${name}.`, identifier.position));
     return { kind: 'unresolved' };
   }

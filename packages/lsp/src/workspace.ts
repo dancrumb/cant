@@ -32,6 +32,8 @@ export type Uri = string;
 
 const toPath = (uri: Uri): string | undefined => (uri.startsWith('file:') ? fileURLToPath(uri) : undefined);
 const toUri = (path: string): Uri => pathToFileURL(path).href;
+/** Whether a module's path is a file, rather than a standard library module such as `cant::IO`, which has none. */
+const isFile = (path: string): boolean => !path.startsWith('cant::');
 
 /** A unist position, whose lines and columns are 1-based, as an LSP range, whose are 0-based. */
 export const toRange = ({ start, end }: UnistPosition): Range => ({
@@ -171,9 +173,10 @@ export class Workspace {
     const seen = new Set<string>();
     for (const path of this.documents.keys()) {
       const program = this.program(path);
-      for (const module of program.modules.keys()) if (!byFile.has(module)) byFile.set(module, []);
+      for (const module of program.modules.keys()) if (isFile(module) && !byFile.has(module)) byFile.set(module, []);
       for (const diagnostic of program.diagnostics) {
         const file = diagnostic.file ?? path;
+        if (!isFile(file)) continue;
         // A module that several open documents import is reported once.
         const key = `${file}:${String(diagnostic.position.start.offset)}:${diagnostic.code}:${diagnostic.message}`;
         if (seen.has(key)) continue;
@@ -211,7 +214,7 @@ export class Workspace {
     if (found?.meaning === undefined) return undefined;
     if (found.meaning.kind === 'local') return { uri, range: toRange(found.meaning.binding.declaration.position) };
     const { symbol } = found.meaning;
-    if (symbol.declaration === undefined) return undefined;
+    if (symbol.declaration === undefined || !isFile(symbol.module)) return undefined;
     return { uri: toUri(symbol.module), range: toRange(symbol.declaration.name.position) };
   }
 
@@ -230,10 +233,11 @@ export class Workspace {
       }
     } else {
       const { symbol } = meaning;
-      if (includeDeclaration && symbol.declaration !== undefined) {
+      if (includeDeclaration && symbol.declaration !== undefined && isFile(symbol.module)) {
         locations.push({ uri: toUri(symbol.module), range: toRange(symbol.declaration.name.position) });
       }
       for (const module of program.modules.values()) {
+        if (!isFile(module.path)) continue;
         for (const { node } of walk(module.program)) {
           if (node.type !== 'identifier' && node.type !== 'qualifiedIdentifier') continue;
           const referred = program.references.get(node as Name);

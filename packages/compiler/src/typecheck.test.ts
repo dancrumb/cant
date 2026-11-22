@@ -56,7 +56,7 @@ test('types the standard streams', () => {
       'action A(): VOID',
       '    body',
       '        out := @stdout',
-      '        IO::write(out)',
+      '        IO::write(message := "hi", stream := out)',
       '        same := out == @stderr',
       '        mixed := @stdin == @stdout',
       '        text := "to ${@stderr}"',
@@ -377,5 +377,31 @@ test('lets a constant declare an enum type and give one of its values', () => {
   assert.deepEqual(
     problems('enum Status', '    draft', '    sent', 'const fallback: Status := "draft"', 'const wrong: Status := "paid"'),
     ['type-mismatch 5:24'],
+  );
+});
+
+test("checks calls against cant::IO's declarations", () => {
+  assert.deepEqual(
+    problems(
+      'import IO',
+      'action A(doc: FILE): VOID',
+      '    body',
+      '        IO::write("plain")',
+      '        IO::write(message := "error", stream := @stderr)',
+      '        IO::write(message := "in", stream := @stdin)',
+      '        IO::write(message := "file", stream := doc)',
+      '        IO::write(42)',
+      '        ignore IO::read()',
+      '        ignore IO::read(stream := doc)',
+      '        ignore IO::read(stream := @stdout)',
+    ),
+    ['type-mismatch 6:46', 'type-mismatch 7:48', 'type-mismatch 8:19', 'type-mismatch 11:35'],
+  );
+});
+
+test("doesn't let a program name cant::IO's stream types", () => {
+  assert.deepEqual(
+    problems('import IO', 'action A(stream: ReadStream, out: IO::WriteStream): VOID', '    body', '        return'),
+    ['unknown-name 2:18', 'unknown-name 2:35'],
   );
 });

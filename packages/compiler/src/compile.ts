@@ -35,7 +35,7 @@ import { ConstantValues } from './evaluate.ts';
 import { fileSystemHost, type Host } from './host.ts';
 import { symbolOf, type Module, type ModuleSymbol } from './modules.ts';
 import { checkProgram, type CheckedProgram } from './program.ts';
-import { STANDARD_LIBRARY } from './stdlib.ts';
+import { isStandardPath, STANDARD_LIBRARY } from './stdlib.ts';
 import { typeOf, type Type } from './types.ts';
 
 export type CompileResult = { program: CompiledProgram; sourceMap: SourceMap; root: string } | { diagnostics: Diagnostic[] };
@@ -253,8 +253,11 @@ class Compiler {
       case 'mapType':
         return { kind: 'map', value: this.typeRef(ref.valueType) };
       case 'identifier':
-      case 'qualifiedIdentifier':
+      case 'qualifiedIdentifier': {
+        // An internal type of the standard library has no declaration to name (docs/adr/0042-io.md).
+        if (this.checked.references.get(ref)?.typeKind === 'internal') return this.fromType(this.checkedType(ref));
         return { kind: 'named', symbol: this.reference(ref) };
+      }
     }
   }
 
@@ -291,7 +294,7 @@ class Compiler {
       case 'subject':
         return { kind: 'subject' };
       case 'stream':
-        return { kind: 'stream', direction: type.direction };
+        return { kind: 'stream', direction: type.direction, ...(type.file && { file: true }) };
     }
   }
 
@@ -368,6 +371,9 @@ class Compiler {
     if (action.native === undefined) {
       const body = this.block(action.children, frame);
       implementation = { kind: 'body', locals: frame.slots.size, body };
+    } else if (isStandardPath(this.module.path)) {
+      // The interpreter provides the standard library's implementations itself.
+      implementation = { kind: 'standard' };
     } else {
       // The native module, relative to the program's root (docs/adr/0036-native-modules.md).
       const path = resolve(dirname(this.module.path), this.text(action.native));

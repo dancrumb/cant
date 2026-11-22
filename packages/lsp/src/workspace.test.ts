@@ -86,7 +86,13 @@ test('describes names on hover', () => {
   assert.equal(hoverText(workspace.hover(MAIN, { line: 4, character: 16 })), '(local) user\n\n```cant\nuser := FindUser(email)\n```');
   assert.equal(
     hoverText(open('import IO', 'action A(): VOID', '    body', '        IO::write("hi")').hover(MAIN, { line: 3, character: 12 })),
-    '(action) write — from the standard library',
+    [
+      '(action) write — from cant::IO',
+      '',
+      '```cant',
+      'export action write(message: TEXT, stream?: WriteStream := @stdout): VOID raises StreamError',
+      '```',
+    ].join('\n'),
   );
 });
 
@@ -119,4 +125,10 @@ test('completes keywords, visible names and earlier locals', () => {
   const broken = workspace.completions(MAIN, { line: 5, character: 16 }).map(({ label }) => label);
   assert.ok(broken.includes('FindUser'));
   assert.ok(!broken.includes('user'));
+});
+
+test("doesn't give a location in a standard library module, which has no file", () => {
+  const workspace = open('import IO', 'action A(): VOID', '    body', '        IO::write("hi")');
+  assert.equal(workspace.definition(MAIN, { line: 3, character: 12 }), undefined);
+  assert.deepEqual([...workspace.diagnostics().keys()].filter((uri) => !uri.startsWith('file:')), []);
 });
