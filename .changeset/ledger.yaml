@@ -29,6 +29,10 @@
   dir: packages/compiler
   intents:
     - fifty-maps-kiss
+"@dancrumb/cant-compiler@0.16.0":
+  dir: packages/compiler
+  intents:
+    - interpreter-run
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -60,6 +64,10 @@
   intents:
     - fifty-maps-kiss
     - stdlib-implementations
+"@dancrumb/cant-interpreter@0.16.0":
+  dir: packages/interpreter
+  intents:
+    - interpreter-run
 "@dancrumb/cant-lsp@0.10.1":
   dir: packages/lsp
   intents:
@@ -160,6 +168,10 @@
   dir: packages/shared
   intents:
     - shared-evaluator
+"@dancrumb/cant@0.16.0":
+  dir: packages/cli
+  intents:
+    - interpreter-run
 cant-vscode@0.10.3:
   dir: packages/vscode
   intents:
