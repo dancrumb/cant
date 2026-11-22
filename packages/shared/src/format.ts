@@ -270,6 +270,18 @@ class Printer {
     const header = cat(
       text(`${exported}action `, startOf(node)),
       this.name(node.name),
+      node.typeParameters === undefined
+        ? []
+        : cat(
+            text('<'),
+            join(
+              node.typeParameters.map((parameter) =>
+                cat(this.name(parameter.name), parameter.bound === undefined ? [] : cat(text(': '), this.type(parameter.bound))),
+              ),
+              ', ',
+            ),
+            text('>'),
+          ),
       text('('),
       join(node.parameters.map((parameter) => this.field(parameter)), ', '),
       text('): '),
@@ -416,6 +428,8 @@ class Printer {
         return cat(text('{', start), this.type(node.valueType), text('}'));
       case 'setType':
         return cat(text('SET(', start), this.type(node.elementType), text(')'));
+      case 'genericType':
+        return cat(this.name(node.name), text('<'), join(node.arguments.map((argument) => this.type(argument)), ', '), text('>'));
       case 'identifier':
       case 'qualifiedIdentifier':
         return this.name(node);

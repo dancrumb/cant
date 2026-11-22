@@ -66,7 +66,11 @@ export type CompiledTypeRef =
    * The type of `@stdin`, or of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). With
    * `file`, a `FILE` can be given too, as to `cant::IO`'s `ReadStream` (docs/adr/0042-io.md).
    */
-  | { kind: 'stream'; direction: 'input' | 'output'; file?: true };
+  | { kind: 'stream'; direction: 'input' | 'output'; file?: true }
+  /** `Collection<T>`, in a standard library action's signature (docs/adr/0021-collections.md). */
+  | { kind: 'collection'; element: CompiledTypeRef }
+  /** A standard library action's type parameter (docs/adr/0043-standard-library-generics.md). */
+  | { kind: 'typeParameter'; name: string };
 
 export type CompiledType = CompiledEnum | CompiledModel | CompiledError | CompiledEntity;
 

@@ -405,3 +405,36 @@ test("doesn't let a program name cant::IO's stream types", () => {
     ['unknown-name 2:18', 'unknown-name 2:35'],
   );
 });
+
+test("works out the types in calls to cant::Collections' generic actions", () => {
+  assert.deepEqual(
+    problems(
+      'import Collections into Collections',
+      'action A(scores: [NUMBER], names: [TEXT], headers: {TEXT}, tags: SET(TEXT), ids: SET(NUMBER)): VOID',
+      '    body',
+      '        n := Collections::length(scores) + Collections::size(headers) + Collections::length(tags)',
+      '        bad := Collections::length(5)',
+      '        all := Collections::concat(src := [1, 2], tgt := scores)',
+      '        total := (all[0] orElse 0) + 1',
+      '        mixed := Collections::concat(src := names, tgt := scores)',
+      '        kinds := Collections::concat(src := tags, tgt := scores)',
+      '        fresh := Collections::concat(src := [], tgt := names)',
+      '        first := fresh[0] orElse "none"',
+      '        joined := "${Collections::join(coll := tags, delim := ", ")}!"',
+      '        nope := Collections::keys(scores)',
+      '        value := Collections::values(headers)[0] orElse "x"',
+      '        Collections::add(set := tags, value := "urgent")',
+      '        Collections::add(set := tags, value := 3)',
+      '        both := Collections::intersect(first := tags, second := ids)',
+      '        sub := Collections::isSubset(subset := tags, superset := SET("a")) and true',
+    ),
+    ['type-mismatch 5:36', 'type-mismatch 8:59', 'type-mismatch 9:58', 'type-mismatch 13:35', 'type-mismatch 16:48', 'type-mismatch 17:65'],
+  );
+});
+
+test("doesn't let a program declare type parameters or write a generic type", () => {
+  assert.deepEqual(
+    problems('action First<T>(items: [T]): T', '    native "./first.js"', 'action Count(items: Collection<TEXT>): NUMBER', '    native "./count.js"'),
+    ['generic-action 1:14', 'generic-type 3:21'],
+  );
+});

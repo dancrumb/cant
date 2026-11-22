@@ -158,8 +158,19 @@ export interface SetType extends Node {
   elementType: TypeRef;
 }
 
-/** A type: a base type, `UNKNOWN`, an inline enum, a collection type, or a named type. */
-export type TypeRef = BaseType | UnknownType | EnumType | ArrayType | MapType | SetType | Name;
+/**
+ * `Collection<T>`: a generic type and its type arguments. Only standard library modules can write
+ * one (docs/adr/0043-standard-library-generics.md).
+ */
+export interface GenericType extends Node {
+  type: 'genericType';
+  position: Position;
+  name: Name;
+  arguments: TypeRef[];
+}
+
+/** A type: a base type, `UNKNOWN`, an inline enum, a collection type, a generic type, or a named type. */
+export type TypeRef = BaseType | UnknownType | EnumType | ArrayType | MapType | SetType | GenericType | Name;
 
 /** `ERROR`, the type of every error, on the right of `instanceOf` (docs/adr/0023-error-handling.md). */
 export interface ErrorType extends Node {
@@ -502,6 +513,18 @@ export interface NamespaceDeclaration extends Node {
 
 // ----- Actions: docs/adr/0007-actions.md, docs/adr/0020-action-parameters.md -----
 
+/**
+ * `T` or `C: Collection` in an action's type parameters. Only standard library modules can declare
+ * them (docs/adr/0043-standard-library-generics.md).
+ */
+export interface TypeParameter extends Node {
+  type: 'typeParameter';
+  position: Position;
+  name: Identifier;
+  /** The type that every type given for it must fit. */
+  bound?: TypeRef;
+}
+
 /** `name?: Type := default` in an action's signature. */
 export interface Parameter extends Node {
   type: 'parameter';
@@ -524,6 +547,8 @@ export interface ActionDeclaration extends Parent {
   /** Whether the declaration starts with `export` (docs/adr/0006-imports.md). */
   exported?: true;
   name: Identifier;
+  /** The type parameters after its name, as in `values<T>(map: {T}): [T]`. */
+  typeParameters?: TypeParameter[];
   parameters: Parameter[];
   returnType: TypeRef | VoidType;
   /** Whether the return type is followed by `?`, so the action may return `NOTHING`. */
@@ -770,6 +795,7 @@ export interface Program extends Parent {
 export type CantNode =
   | Program
   | Declaration
+  | TypeParameter
   | Parameter
   | NamedValue
   | Assertion

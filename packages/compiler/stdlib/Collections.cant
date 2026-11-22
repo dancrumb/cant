@@ -1,0 +1,53 @@
+// cant::Collections, the standard library module of operations on arrays, maps and sets
+// (docs/adr/0021-collections.md). It is a native module (docs/adr/0036-native-modules.md), whose
+// actions the interpreter implements. The compiler embeds this file, and checks calls to
+// cant::Collections against it.
+//
+// Its actions are generic (docs/adr/0043-standard-library-generics.md). `Collection<T>` is an
+// array, a map or a set of `T`, and `<C: Collection>` stands for one kind of collection, the same
+// wherever `C` appears. Checked as an ordinary file, this module reports them as errors.
+
+// The length of an array, counting slots with no element, or the number of members in a map or a set.
+export action length<T>(coll: Collection<T>): NUMBER
+    native "./Collections.js"
+
+// The number of elements a collection holds, skipping an array's slots with no element.
+export action size<T>(coll: Collection<T>): NUMBER
+    native "./Collections.js"
+
+// A new collection of `tgt`'s contents followed by `src`'s: for maps, `src`'s value wins where
+// both have a member, and for sets, their union. Neither is changed.
+export action concat<C: Collection>(src: C, tgt: C): C
+    native "./Collections.js"
+
+// The members of `coll`, each converted to text, with `delim` between them.
+export action join<T>(coll: Collection<T>, delim: TEXT): TEXT
+    native "./Collections.js"
+
+// A map's member names, in its stable order.
+export action keys<T>(map: {T}): [TEXT]
+    native "./Collections.js"
+
+// A map's member values, in its stable order.
+export action values<T>(map: {T}): [T]
+    native "./Collections.js"
+
+// Add `value` to `set`, unless it is already there.
+export action add<T>(set: SET(T), value: T): VOID
+    native "./Collections.js"
+
+// Remove `value` from `set`, if it is there.
+export action remove<T>(set: SET(T), value: T): VOID
+    native "./Collections.js"
+
+// A new set of the elements in both `first` and `second`.
+export action intersect<T>(first: SET(T), second: SET(T)): SET(T)
+    native "./Collections.js"
+
+// A new set of the elements of `base` that aren't in `exclude`.
+export action difference<T>(base: SET(T), exclude: SET(T)): SET(T)
+    native "./Collections.js"
+
+// Whether every element of `subset` is also in `superset`.
+export action isSubset<T>(subset: SET(T), superset: SET(T)): BOOLEAN
+    native "./Collections.js"

@@ -257,3 +257,10 @@ test('keeps Windows line endings', () => {
 test('rejects source that is not valid Cant', () => {
   assert.throws(() => format('action ('), ParseError);
 });
+
+test("formats the standard library's type parameters and generic types", () => {
+  formatsTo(
+    lines('export action concat < C : Collection > ( src:C, tgt:C ):C', '    native "./c.js"', 'export action length<T>(coll: Collection< T >): NUMBER', '    native "./c.js"'),
+    lines('export action concat<C: Collection>(src: C, tgt: C): C', '    native "./c.js"', 'export action length<T>(coll: Collection<T>): NUMBER', '    native "./c.js"'),
+  );
+});

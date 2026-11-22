@@ -10,7 +10,6 @@ import type {
 import { dateTimeMilliseconds, durationMilliseconds } from '@dancrumb/cant-shared';
 import type { ModuleSymbol } from './modules.ts';
 import type { References } from './resolve.ts';
-import { INTERNAL_TYPES } from './stdlib.ts';
 
 export type BaseName = BaseType['name'];
 
@@ -55,7 +54,17 @@ export type Type =
    * The unnamed types of `@stdin`, and of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md).
    * With `file`, a `FILE` can be given too, as `cant::IO`'s `ReadStream` can (docs/adr/0042-io.md).
    */
-  | { kind: 'stream'; direction: 'input' | 'output'; file?: true };
+  | { kind: 'stream'; direction: 'input' | 'output'; file?: true }
+  /**
+   * `Collection<T>`: an array, map or set of `element` (docs/adr/0021-collections.md). Internal,
+   * so only standard library modules can write it (docs/adr/0043-standard-library-generics.md).
+   */
+  | { kind: 'collection'; element: Type }
+  /**
+   * A type parameter of a standard library action, such as `T` in `values<T>(map: {T}): [T]`. Each
+   * call works out the type it stands for from its arguments (docs/adr/0043-standard-library-generics.md).
+   */
+  | { kind: 'variable'; name: string; bound?: Type };
 
 export const BASE = (name: BaseName): Type => ({ kind: 'base', name });
 export const TEXT = BASE('TEXT');
@@ -104,12 +113,13 @@ export function describe(type: Type): string {
       return 'a value';
     case 'enum':
       return type.name ?? `enum(${[...type.values].map((value) => value.slice(value.indexOf(':') + 1)).join(', ')})`;
+    // With an element type that isn't known, such as a type parameter's, only the kind is said.
     case 'array':
-      return `[${describe(type.element)}]`;
+      return type.element.kind === 'unchecked' ? 'an array' : `[${describe(type.element)}]`;
     case 'map':
-      return `{${describe(type.value)}}`;
+      return type.value.kind === 'unchecked' ? 'a map' : `{${describe(type.value)}}`;
     case 'set':
-      return `SET(${describe(type.element)})`;
+      return type.element.kind === 'unchecked' ? 'a set' : `SET(${describe(type.element)})`;
     case 'model':
     case 'entity':
       return type.symbol.name;
@@ -125,6 +135,10 @@ export function describe(type: Type): string {
       return 'the type of @subject';
     case 'stream':
       return type.direction === 'input' ? (type.file === true ? 'an input stream or a FILE' : 'an input stream') : 'an output stream';
+    case 'collection':
+      return type.element.kind === 'unchecked' ? 'a collection' : `a collection of ${describe(type.element)}`;
+    case 'variable':
+      return type.name;
   }
 }
 
@@ -151,13 +165,21 @@ export function typeOf(ref: TypeRef, references: References): Type {
     case 'identifier':
     case 'qualifiedIdentifier':
       return typeOfSymbol(references.get(ref));
+    case 'genericType': {
+      // The only generic type is `Collection<T>`; others have been reported already.
+      const [element] = ref.arguments;
+      const name = ref.name.type === 'identifier' ? ref.name.value : undefined;
+      return name === 'Collection' && element !== undefined && ref.arguments.length === 1
+        ? { kind: 'collection', element: typeOf(element, references) }
+        : UNCHECKED;
+    }
   }
 }
 
 export function typeOfSymbol(symbol: ModuleSymbol | undefined): Type {
   const declaration = symbol?.declaration;
   if (symbol === undefined) return UNCHECKED;
-  if (symbol.typeKind === 'internal') return INTERNAL_TYPES.get(symbol.name) ?? UNCHECKED;
+  if (symbol.typeKind === 'internal') return symbol.internal ?? UNCHECKED;
   if (symbol.typeKind === 'error') {
     return declaration?.type === 'errorDeclaration' ? { kind: 'error', symbol, declaration } : { kind: 'error', symbol };
   }
@@ -220,6 +242,8 @@ export function holdsStream(type: Type): boolean {
       return [...type.fields.values()].some(holdsStream);
     case 'result':
       return holdsStream(type.value);
+    case 'collection':
+      return holdsStream(type.element);
     default:
       return false;
   }
@@ -229,6 +253,8 @@ export function holdsStream(type: Type): boolean {
 export function createAssignable(modelFields: ModelFields): Assignable {
   const assignable: Assignable = (from, to, options = {}) => {
     if (from.kind === 'unchecked' || to.kind === 'unchecked') return true;
+    // A call works out what each type parameter stands for before checking (see bindTypes).
+    if (from.kind === 'variable' || to.kind === 'variable') return true;
     // A result's value is what fits; whether it may hold an error is checked separately.
     if (from.kind === 'result') return assignable(from.value, to, options);
     if (to.kind === 'unknown') return from.kind !== 'void' && from.kind !== 'error' && !holdsStream(from);
@@ -281,6 +307,11 @@ export function createAssignable(modelFields: ModelFields): Assignable {
         return from.kind === 'subject';
       case 'stream':
         return (from.kind === 'stream' && from.direction === to.direction) || (to.file === true && isBase(from, 'FILE'));
+      case 'collection': {
+        // An array, a map or a set is a Collection<T> of its elements (docs/adr/0021-collections.md).
+        const element = from.kind === 'array' || from.kind === 'set' ? from.element : from.kind === 'map' ? from.value : undefined;
+        return element !== undefined && (element.kind === 'nothing' || assignable(element, to.element));
+      }
       case 'void':
       case 'nothing':
         return false;
@@ -307,4 +338,52 @@ export function createAssignable(modelFields: ModelFields): Assignable {
   };
 
   return assignable;
+}
+
+/** What each type parameter of a call stands for, by name (docs/adr/0043-standard-library-generics.md). */
+export type TypeBindings = Map<string, Type>;
+
+/**
+ * A type with each type parameter replaced by what it stands for. One a call gave no type for,
+ * such as `T` in `values` of an empty map, stands for NOTHING, so `[T]` becomes `[NOTHING]`, an
+ * empty collection's type (docs/adr/0021-collections.md).
+ */
+export function substitute(type: Type, bindings: TypeBindings, unbound: 'nothing' | 'bound' = 'nothing'): Type {
+  const again = (inner: Type): Type => substitute(inner, bindings, unbound);
+  switch (type.kind) {
+    case 'variable':
+      // To check an argument, a type parameter with no type stands for anything its bound allows.
+      return bindings.get(type.name) ?? (unbound === 'bound' ? (type.bound ?? UNCHECKED) : NOTHING);
+    case 'array':
+    case 'set':
+      return { kind: type.kind, element: again(type.element) };
+    case 'map':
+      return { kind: 'map', value: again(type.value) };
+    case 'collection':
+      return { kind: 'collection', element: again(type.element) };
+    case 'optional':
+      return optional(again(type.inner));
+    case 'result':
+      return { ...type, value: again(type.value) };
+    default:
+      return type;
+  }
+}
+
+/** Whether a type mentions a type parameter. */
+export function isGeneric(type: Type): boolean {
+  switch (type.kind) {
+    case 'variable':
+      return true;
+    case 'array':
+    case 'set':
+    case 'collection':
+      return isGeneric(type.element);
+    case 'map':
+      return isGeneric(type.value);
+    case 'optional':
+      return isGeneric(type.inner);
+    default:
+      return false;
+  }
 }

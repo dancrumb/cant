@@ -252,6 +252,8 @@ class Compiler {
         return { kind: 'set', element: this.typeRef(ref.elementType) };
       case 'mapType':
         return { kind: 'map', value: this.typeRef(ref.valueType) };
+      case 'genericType':
+        return this.fromType(this.checkedType(ref));
       case 'identifier':
       case 'qualifiedIdentifier': {
         // An internal type of the standard library has no declaration to name (docs/adr/0042-io.md).
@@ -295,6 +297,10 @@ class Compiler {
         return { kind: 'subject' };
       case 'stream':
         return { kind: 'stream', direction: type.direction, ...(type.file && { file: true }) };
+      case 'collection':
+        return { kind: 'collection', element: this.fromType(type.element) };
+      case 'variable':
+        return { kind: 'typeParameter', name: type.name };
     }
   }
 

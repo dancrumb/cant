@@ -152,7 +152,7 @@ Arrays, maps and sets are all subtypes of an internal type, `Collection<T>`: a `
 
 An array, a map or a set can be used wherever a `Collection<T>` is expected. This is how the actions of `cant::Collections` (below) accept any kind of collection, with any element type: their parameters are `Collection<T>`s. Since a program cannot write `Collection<T>`, only actions that Cant provides can take one.
 
-This is true of every generic type for now. `Optional<T>` and `Collection<T>` are internal, and a program cannot write a generic type, so the source EBNF's `Identifier<TypeRef>` form of `TypeRef` is not part of Cant. A program cannot declare a generic type or a generic action of its own.
+This is true of every generic type for now. `Optional<T>` and `Collection<T>` are internal, and a program cannot write a generic type, so the source EBNF's `Identifier<TypeRef>` form of `TypeRef` is not part of Cant for programs. A program cannot declare a generic type or a generic action of its own. Standard library modules can, with the syntax of [ADR 0043](0043-standard-library-generics.md), which is how `cant::Collections` is declared.
 
 ### Converting collections to text
 
@@ -258,10 +258,10 @@ count := Collections::length(scores)
 
 Without `into`, its actions are placed in the current namespace, so `import Collections` lets a program write `length(scores)`.
 
-For now, the module has these actions:
+For now, the module has these actions. Their declarations, with their generic signatures, are in [ADR 0043](0043-standard-library-generics.md):
 
-- **`length`** gives the length of an array, or the number of members in a map, as a `NUMBER`. An array's length counts its slots, including slots with no element, so it is one more than its highest index. On a three-element array, `a[5] := 1` makes the length `6`, and deleting an element does not change it.
-- **`size`** works like `length`, but skips empty slots: it gives the number of elements an array actually holds. On a three-element array, after `a[5] := 1`, `length` is `6` and `size` is `4`. For a map or a set, which have no empty slots, `size` and `length` are the same.
+- **`length(coll)`** gives the length of an array, or the number of members in a map, as a `NUMBER`. An array's length counts its slots, including slots with no element, so it is one more than its highest index. On a three-element array, `a[5] := 1` makes the length `6`, and deleting an element does not change it.
+- **`size(coll)`** works like `length`, but skips empty slots: it gives the number of elements an array actually holds. On a three-element array, after `a[5] := 1`, `length` is `6` and `size` is `4`. For a map or a set, which have no empty slots, `size` and `length` are the same.
 - **`concat(src, tgt)`** returns a new collection that holds the contents of `tgt` followed by the contents of `src`. Neither `src` nor `tgt` is changed:
   - For arrays, the new array has `tgt`'s elements, then `src`'s elements, in order. With `src` as `[3, 4]` and `tgt` as `[1, 2]`, `concat` returns `[1, 2, 3, 4]`. Slots with no element are kept: `src` starts at `tgt`'s full length, and the new array's length is the sum of the two lengths.
   - For maps, the new map has the members of both. Where both have a member with the same name, the new map has `src`'s value. With `src` as `{ b := 3, c := 4 }` and `tgt` as `{ a := 1, b := 2 }`, `concat` returns `{ a := 1, b := 3, c := 4 }`.

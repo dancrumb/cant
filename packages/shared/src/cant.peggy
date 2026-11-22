@@ -177,11 +177,13 @@ ActionImplementation
 
 // `VOID?` is a syntax error (docs/adr/0014-optionals.md).
 ActionSignature
-  = name:Identifier _ "(" _ parameters:ParameterList? _ ")" _ ":" _ returnType:ReturnType
+  = name:Identifier typeParameters:(_ "<" _ @TypeParameterList _ ">")?
+    _ "(" _ parameters:ParameterList? _ ")" _ ":" _ returnType:ReturnType
     optional:(_ @"?")? &{ return !(returnType.type === 'voidType' && optional !== null); }
     clauses:ErrorClauses? {
       return {
         name,
+        ...(typeParameters !== null && { typeParameters }),
         parameters: parameters ?? [],
         returnType,
         optional: optional !== null,
@@ -193,6 +195,16 @@ ActionSignature
 ReturnType
   = VoidType
   / TypeRef
+
+// `<T>` or `<C: Collection>` after an action's name. Only standard library modules can declare
+// type parameters, which later passes check (docs/adr/0043-standard-library-generics.md).
+TypeParameterList
+  = head:TypeParameter tail:(_ "," _ @TypeParameter)* { return [head, ...tail]; }
+
+TypeParameter
+  = name:Identifier bound:(_ ":" _ @TypeRef)? {
+      return u('typeParameter', { name, ...(bound && { bound }), position: toPosition(location()) });
+    }
 
 ParameterList
   = head:Parameter tail:(_ "," _ @Parameter)* { return [head, ...tail]; }
@@ -243,7 +255,15 @@ TypeRef
   / Enum
   / ArrayType
   / MapType
+  / GenericType
   / Name
+
+// `Collection<T>`: a generic type with its type arguments. Only standard library modules can
+// write one (docs/adr/0043-standard-library-generics.md).
+GenericType
+  = name:Name _ "<" _ head:TypeRef tail:(_ "," _ @TypeRef)* _ ">" {
+      return u('genericType', { name, arguments: [head, ...tail], position: toPosition(location()) });
+    }
 
 BaseType "type"
   = name:$("TEXT" / "NUMBER" / "BOOLEAN" / "DATE_TIME" / "DURATION" / "FILE") !IdentifierPart {

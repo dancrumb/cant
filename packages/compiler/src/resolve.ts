@@ -2,7 +2,8 @@ import type { Name, StringLiteral, TypeRef } from '@dancrumb/cant-shared';
 import type { Node } from 'unist';
 import { MAIN_NAMESPACE } from './declarations.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
-import { INTERNAL_TYPES, isStandardPath } from './stdlib.ts';
+import { GENERIC_TYPES, INTERNAL_TYPES, isStandardPath } from './stdlib.ts';
+import { typeOf, type Type } from './types.ts';
 import {
   describeName,
   fileFromUrl,
@@ -134,16 +135,35 @@ function resolveModule(module: Module, references: References, report: (diagnost
     }
   };
 
+  // The type parameters of the action whose signature is being resolved, by name.
+  let typeParameters = new Map<string, ModuleSymbol>();
+  const internal = (name: string, type: Type): ModuleSymbol => ({ kind: 'type', typeKind: 'internal', name, module: module.path, internal: type });
+
   const resolveType = (type: TypeRef, namespace: string, expected: 'value type' | 'type' = 'value type'): void => {
     switch (type.type) {
-      case 'identifier':
-        // Only the standard library can write its internal types (docs/adr/0036-native-modules.md).
-        if (standard && INTERNAL_TYPES.has(type.value)) {
-          references.set(type, { kind: 'type', typeKind: 'internal', name: type.value, module: module.path });
-          break;
-        }
-        resolve(type, namespace, expected);
+      case 'identifier': {
+        // Only the standard library can write type parameters and internal types
+        // (docs/adr/0036-native-modules.md, docs/adr/0043-standard-library-generics.md).
+        const parameter = typeParameters.get(type.value);
+        const builtIn = standard ? INTERNAL_TYPES.get(type.value) : undefined;
+        if (parameter !== undefined) references.set(type, parameter);
+        else if (builtIn !== undefined) references.set(type, internal(type.value, builtIn));
+        else resolve(type, namespace, expected);
         break;
+      }
+      case 'genericType': {
+        const name = type.name.type === 'identifier' ? type.name.value : undefined;
+        const arity = name === undefined ? undefined : GENERIC_TYPES.get(name);
+        if (!standard) {
+          report(error('generic-type', "A program can't write a generic type, such as Collection<T>. Only the standard library can (docs/adr/0021-collections.md).", type.position));
+        } else if (arity === undefined) {
+          report(error('unknown-name', `There is no generic type called ${describeName(type.name)}.`, type.name.position));
+        } else if (type.arguments.length !== arity) {
+          report(error('type-arguments', `${describeName(type.name)} takes ${String(arity)} type ${arity === 1 ? 'argument' : 'arguments'}, but this gives ${String(type.arguments.length)}.`, type.position));
+        }
+        for (const argument of type.arguments) resolveType(argument, namespace);
+        break;
+      }
       case 'qualifiedIdentifier':
         resolve(type, namespace, expected);
         break;
@@ -197,6 +217,23 @@ function resolveModule(module: Module, references: References, report: (diagnost
         namespace = declaration.name.value;
         break;
       case 'action': {
+        typeParameters = new Map();
+        if (declaration.typeParameters !== undefined && !standard) {
+          report(
+            error('generic-action', "A program can't declare type parameters, so its actions can't be generic. Only the standard library's can (docs/adr/0021-collections.md).", declaration.typeParameters[0]?.position ?? declaration.name.position),
+          );
+        }
+        for (const parameter of declaration.typeParameters ?? []) {
+          if (parameter.bound !== undefined) resolveType(parameter.bound, namespace);
+          const bound = parameter.bound === undefined ? undefined : typeOf(parameter.bound, references);
+          if (typeParameters.has(parameter.name.value)) {
+            report(error('duplicate-type-parameter', `${parameter.name.value} is already a type parameter of ${declaration.name.value}.`, parameter.name.position));
+          }
+          typeParameters.set(
+            parameter.name.value,
+            internal(parameter.name.value, { kind: 'variable', name: parameter.name.value, ...(bound !== undefined && { bound }) }),
+          );
+        }
         for (const parameter of declaration.parameters) {
           resolveType(parameter.valueType, namespace);
           walk(parameter.defaultValue, namespace);
@@ -206,6 +243,8 @@ function resolveModule(module: Module, references: References, report: (diagnost
         for (const name of declaration.passes) if (name.type !== 'builtIn') resolve(name, namespace, 'error');
         // The interpreter provides the standard library's implementations itself.
         if (declaration.native !== undefined && !standard) checkNative(module, declaration.native, report);
+        // A type parameter only means something in its action's signature.
+        typeParameters = new Map();
         walk(declaration.children, namespace);
         break;
       }

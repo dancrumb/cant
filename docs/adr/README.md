@@ -52,3 +52,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0040](0040-standard-streams.md) | Standard streams | Accepted |
 | [0041](0041-formatting.md) | Formatting | Accepted |
 | [0042](0042-io.md) | The `cant::IO` module | Accepted |
+| [0043](0043-standard-library-generics.md) | Generics in the standard library | Accepted |

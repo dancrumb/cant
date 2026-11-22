@@ -35,9 +35,11 @@ import {
   NUMBER,
   optional,
   sameSymbol,
+  substitute,
   TEXT,
   typeOf,
   typeOfSymbol,
+  type TypeBindings,
   UNCHECKED,
   UNKNOWN,
   VOID,
@@ -366,7 +368,7 @@ class TypeChecker {
   }
 
   /** What calling an action gives: its value, or one of the errors it raises or passes. */
-  private actionResult(action: ActionDeclaration, extra: readonly ModuleSymbol[] = []): Type {
+  private actionResult(action: ActionDeclaration, extra: readonly ModuleSymbol[] = [], bindings?: TypeBindings): Type {
     const errors: ModuleSymbol[] = [...extra];
     let anyError = false;
     for (const name of [...action.raises, ...action.passes]) {
@@ -377,7 +379,8 @@ class TypeChecker {
       const symbol = this.references.get(name);
       if (symbol !== undefined && !errors.some((other) => sameSymbol(other, symbol))) errors.push(symbol);
     }
-    return result(this.returnType(action), errors, anyError);
+    const returned = this.returnType(action);
+    return result(bindings === undefined ? returned : substitute(returned, bindings), errors, anyError);
   }
 
   private checkFields(fields: Field[]): void {
@@ -1231,6 +1234,7 @@ class TypeChecker {
       }
       return UNCHECKED;
     }
+    if (action.typeParameters !== undefined) return this.genericCall(action, expression, facts, symbol);
     let converted = false;
     for (const [argument, parameter] of this.matchArguments(action, expression.arguments)) {
       if (parameter === undefined) this.value(argument.value, facts);
@@ -1242,17 +1246,96 @@ class TypeChecker {
   }
 
   /**
+   * A call to a standard library action with type parameters (docs/adr/0043-standard-library-generics.md).
+   * The types its parameters stand for are worked out from the arguments, in the order the
+   * parameters are declared, and then each argument is checked against its parameter's type with
+   * them, so `concat`'s two collections must be of the same type, and the call's result has it too.
+   */
+  private genericCall(
+    action: ActionDeclaration,
+    expression: Extract<Expression, { type: 'call' }>,
+    facts: Facts,
+    symbol: ModuleSymbol | undefined,
+  ): Type {
+    const order = new Map(action.parameters.map((parameter, index) => [parameter, index]));
+    const given: { argument: Argument; parameter: Parameter; typed: Typed }[] = [];
+    for (const [argument, parameter] of this.matchArguments(action, expression.arguments)) {
+      const typed = this.value(argument.value, facts);
+      if (parameter !== undefined) given.push({ argument, parameter, typed });
+    }
+    given.sort((a, b) => (order.get(a.parameter) ?? 0) - (order.get(b.parameter) ?? 0));
+
+    const bindings: TypeBindings = new Map();
+    for (const { parameter, typed } of given) this.bindTypes(typeOf(parameter.valueType, this.references), typed.type, bindings);
+
+    for (const { argument, parameter, typed } of given) {
+      const declared = substitute(typeOf(parameter.valueType, this.references), bindings, 'bound');
+      const target = parameter.optional ? optional(declared) : declared;
+      this.shared.expected.set(argument.value, target);
+      const options: AssignOptions = { enumConversion: true, ...(typed.literal !== undefined && { literal: typed.literal }) };
+      if (!this.assignable(typed.type, target, options)) {
+        this.mismatch(typed.type, declared, argument.value.position, `The argument for ${parameter.name.value}`);
+      }
+    }
+
+    // Changing a relationship is a statement that can raise CardinalityViolation, which `ignore`
+    // before it ignores (docs/adr/0035-entity-relationships.md), so its type isn't checked.
+    if (symbol?.module === 'cant::Collections' && (symbol.name === 'add' || symbol.name === 'remove') && this.navigationChange(expression, facts)) {
+      return UNCHECKED;
+    }
+    return this.actionResult(action, [], bindings);
+  }
+
+  /**
+   * Work out what the type parameters in a parameter's type stand for, from the type of the
+   * argument given for it. A type parameter keeps the first type it is given, unless a later
+   * argument's type is wider, such as `[NUMBER]` after the `[NOTHING]` of an empty array. Types
+   * that don't match are left for the check that follows.
+   */
+  private bindTypes(declared: Type, given: Type, bindings: TypeBindings): void {
+    switch (declared.kind) {
+      case 'variable': {
+        // An empty collection's NOTHING, or a value this pass doesn't check, says nothing about it.
+        if (given.kind === 'nothing' || given.kind === 'unchecked' || given.kind === 'optional') return;
+        if (declared.bound !== undefined && !this.assignable(given, declared.bound)) return;
+        const bound = bindings.get(declared.name);
+        if (bound === undefined || (!this.assignable(given, bound) && this.assignable(bound, given))) bindings.set(declared.name, given);
+        return;
+      }
+      case 'array':
+      case 'set':
+        if (given.kind === declared.kind) this.bindTypes(declared.element, given.element, bindings);
+        return;
+      case 'map':
+        if (given.kind === 'map') this.bindTypes(declared.value, given.value, bindings);
+        // An object value can be a map (docs/adr/0021-collections.md).
+        else if (given.kind === 'anonymous') for (const field of given.fields.values()) this.bindTypes(declared.value, field, bindings);
+        return;
+      case 'collection': {
+        const element = given.kind === 'array' || given.kind === 'set' ? given.element : given.kind === 'map' ? given.value : undefined;
+        if (element !== undefined) this.bindTypes(declared.element, element, bindings);
+        return;
+      }
+      case 'optional':
+        this.bindTypes(declared.inner, given.kind === 'optional' ? given.inner : given, bindings);
+        return;
+      default:
+        return;
+    }
+  }
+
+  /**
    * `add` or `remove` on a to-many navigation field changes a relationship, so it is treated as
    * a statement that can raise CardinalityViolation (docs/adr/0035-entity-relationships.md).
    */
-  private navigationChange(expression: Extract<Expression, { type: 'call' }>, facts: Facts): void {
+  private navigationChange(expression: Extract<Expression, { type: 'call' }>, facts: Facts): boolean {
     const set = expression.arguments.find((argument) => argument.name?.value === 'set') ?? expression.arguments[0];
     const target = set?.value;
-    if (target?.type !== 'member') return;
+    if (target?.type !== 'member') return false;
     const object = this.peek(target.object, facts);
-    if (object.kind === 'entity' && this.shared.navigationOf(object.symbol).has(target.property.value)) {
-      this.requireRaised('CardinalityViolation', expression.position, this.ignoring, 'changing a relationship');
-    }
+    if (object.kind !== 'entity' || !this.shared.navigationOf(object.symbol).has(target.property.value)) return false;
+    this.requireRaised('CardinalityViolation', expression.position, this.ignoring, 'changing a relationship');
+    return true;
   }
 
   /** Whether the expression being checked is under `ignore`. */

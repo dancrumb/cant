@@ -1369,3 +1369,19 @@ test('rejects unterminated strings and interpolations', () => {
   assert.throws(() => parseString('"a ${b"'), ParseError);
   assert.throws(() => parse('action A():VOID\n  body\n    f("one\ntwo")'), ParseError);
 });
+
+test('parses type parameters and generic types, which only the standard library may use', () => {
+  const [concat, length] = parse(
+    ['action concat<C: Collection>(src: C, tgt: C): C', '    native "./c.js"', 'action length<T>(coll: Collection<T>): NUMBER', '    native "./c.js"'].join('\n'),
+  ).children as ActionDeclaration[];
+  assert.deepEqual(withoutPositions(concat?.typeParameters), [
+    { type: 'typeParameter', name: identifier('C'), bound: identifier('Collection') },
+  ]);
+  assert.deepEqual(withoutPositions(length?.parameters[0]?.valueType), {
+    type: 'genericType',
+    name: identifier('Collection'),
+    arguments: [identifier('T')],
+  });
+  // `<` after a name in an expression is still a comparison.
+  assert.doesNotThrow(() => parse(['action A(): VOID', '    body', '        x := a < b', '        y := v instanceOf Foo'].join('\n')));
+});

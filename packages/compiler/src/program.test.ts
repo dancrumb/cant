@@ -142,7 +142,8 @@ test('gives the standard library its names', () => {
         'trigger length on Start',
       ],
     }),
-    ['/app/main.cant unknown-name 3:85'],
+    // length's signature comes from stdlib/Collections.cant, so its missing argument is reported.
+    ['/app/main.cant unknown-name 3:85', '/app/main.cant missing-argument 5:9'],
   );
 });
 

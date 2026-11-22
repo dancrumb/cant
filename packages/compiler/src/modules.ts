@@ -14,6 +14,7 @@ import { MAIN_NAMESPACE, type ModuleSymbols, type TypeDeclaration } from './decl
 import { error, type Diagnostic } from './diagnostic.ts';
 import type { Host } from './host.ts';
 import { findManifest, MANIFEST, type Manifest } from './manifest.ts';
+import type { Type } from './types.ts';
 import { isStandardModule, isStandardPath, STANDARD_LIBRARY, STANDARD_SOURCES, standardPath } from './stdlib.ts';
 
 /** What a declared name is (docs/adr/0006-imports.md lists the constructs a module can export). */
@@ -36,6 +37,8 @@ export interface ModuleSymbol {
   module: string;
   /** Its declaration, unless it comes from the standard library. */
   declaration?: TypeDeclaration | ActionDeclaration | ConstDeclaration;
+  /** For an internal type, or a type parameter, the type it is (docs/adr/0036-native-modules.md). */
+  internal?: Type;
 }
 
 /** Where an import leads: a file, a standard library module, or nowhere it can be found. */
