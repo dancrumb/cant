@@ -1,11 +1,11 @@
-import { tokenize } from '@dancrumb/cant-shared';
+import { comments, tokenize } from '@dancrumb/cant-shared';
 import type { TokenKind } from '@dancrumb/cant-shared';
 import remarkParse from 'remark-parse';
 import { unified } from 'unified';
 import { visit } from 'unist-util-visit';
 
 /** The semantic token types this extension reports, in legend order. */
-export const TOKEN_TYPES = ['keyword', 'string', 'variable', 'operator', 'number'] as const;
+export const TOKEN_TYPES = ['keyword', 'string', 'variable', 'operator', 'number', 'comment'] as const;
 
 export type TokenType = (typeof TOKEN_TYPES)[number];
 
@@ -32,13 +32,21 @@ const TOKEN_TYPE_BY_KIND: Partial<Record<TokenKind, TokenType>> = {
   builtin: 'variable',
 };
 
-const cantTokens = (source: string, sourceOffset: number): SemanticToken[] =>
-  tokenize(source).flatMap((token) => {
+/** The tokens of Cant source, and its comments, which tokenizing leaves out, in source order. */
+const cantTokens = (source: string, sourceOffset: number): SemanticToken[] => {
+  const tokens = tokenize(source).flatMap((token) => {
     const type = TOKEN_TYPE_BY_KIND[token.kind];
     const { start, end } = token.position;
     if (type === undefined || start.offset === undefined || end.offset === undefined) return [];
     return [{ type, start: sourceOffset + start.offset, length: end.offset - start.offset }];
   });
+  const found = comments(source).flatMap(({ position }) => {
+    const { start, end } = position;
+    if (start.offset === undefined || end.offset === undefined) return [];
+    return [{ type: 'comment' as const, start: sourceOffset + start.offset, length: end.offset - start.offset }];
+  });
+  return [...tokens, ...found].sort((a, b) => a.start - b.start);
+};
 
 interface Region {
   start: number;

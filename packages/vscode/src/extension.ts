@@ -63,11 +63,9 @@ export function activate(context: vscode.ExtensionContext): void {
   startServer(context);
   context.subscriptions.push(
     vscode.commands.registerCommand('cant.restartServer', restartServer),
-    vscode.languages.registerDocumentSemanticTokensProvider(
-      [{ language: 'cant' }, { language: 'markdown' }],
-      provider,
-      legend,
-    ),
+    // The language server colours .cant files, knowing what each name is. Markdown's cant code
+    // blocks aren't documents it checks, so they are coloured here, from the tokenizer alone.
+    vscode.languages.registerDocumentSemanticTokensProvider([{ language: 'markdown' }], provider, legend),
   );
 }
 

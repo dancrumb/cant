@@ -3,7 +3,6 @@ import {
   checkProgram,
   fileSystemHost,
   MAIN_NAMESPACE,
-  symbolOf,
   type CheckedProgram,
   type Diagnostic as CantDiagnostic,
   type Host,
@@ -13,6 +12,8 @@ import {
 } from '@dancrumb/cant-compiler';
 import { KEYWORDS, type Identifier, type Name, type QualifiedIdentifier } from '@dancrumb/cant-shared';
 import type { Node, Position as UnistPosition } from 'unist';
+import { meaning, walk, type Meaning, type NameAt } from './names.ts';
+import { semanticTokens } from './semanticTokens.ts';
 import {
   CompletionItemKind,
   DiagnosticSeverity,
@@ -55,30 +56,6 @@ const offsetOf = (source: string, { line, character }: Position): number => {
 
 const contains = (position: UnistPosition | undefined, offset: number): boolean =>
   position?.start.offset !== undefined && position.end.offset !== undefined && position.start.offset <= offset && offset <= position.end.offset;
-
-/** A name in a module's syntax tree, and the node it is part of. */
-interface NameAt {
-  node: Identifier | QualifiedIdentifier;
-  parent: Node | undefined;
-}
-
-/** Every node of a syntax tree, each with its parent, in source order. */
-function* walk(node: unknown, parent?: Node): Generator<{ node: Node; parent: Node | undefined }> {
-  if (typeof node !== 'object' || node === null) return;
-  if (Array.isArray(node)) {
-    for (const child of node) yield* walk(child, parent);
-    return;
-  }
-  const typed = node as Partial<Node>;
-  const isNode = typeof typed.type === 'string';
-  if (isNode) yield { node: node as Node, parent };
-  for (const [key, value] of Object.entries(node)) {
-    if (key !== 'position') yield* walk(value, isNode ? (node as Node) : parent);
-  }
-}
-
-/** What a name at a position means: a top-level symbol, or a local binding. */
-type Meaning = { kind: 'symbol'; symbol: ModuleSymbol } | { kind: 'local'; binding: LocalBinding };
 
 const sameSymbol = (a: ModuleSymbol, b: ModuleSymbol): boolean => a.module === b.module && a.name === b.name && a.kind === b.kind;
 
@@ -206,6 +183,15 @@ export class Workspace {
     }
     if (best === undefined) return undefined;
     return { module, program, name: best, meaning: meaning(module, program, best) };
+  }
+
+  /** A document's semantic tokens, encoded as the Language Server Protocol sends them. */
+  semanticTokens(uri: Uri): number[] {
+    const path = toPath(uri);
+    const source = path === undefined ? undefined : this.documents.get(path);
+    if (source === undefined) return [];
+    const found = this.module(uri);
+    return semanticTokens(source, found?.module, found?.program);
   }
 
   /** Where the name at a position is declared. */
@@ -425,31 +411,6 @@ const toDiagnostic = (diagnostic: CantDiagnostic): Diagnostic => ({
 });
 
 const nameText = (name: Name): string => (name.type === 'qualifiedIdentifier' ? `${name.namespace.value}::${name.name.value}` : name.value);
-
-/** What a name means: the symbol it refers to, the local it is, or the symbol it declares. */
-function meaning(module: Module, program: CheckedProgram, { node, parent }: NameAt): Meaning | undefined {
-  const symbol = program.references.get(node);
-  if (symbol !== undefined) return { kind: 'symbol', symbol };
-  if (node.type === 'identifier') {
-    const binding = program.locals.get(node);
-    if (binding !== undefined) return { kind: 'local', binding };
-  }
-  // The name a top-level declaration declares.
-  const declaration = module.program?.children.find((child) => child === parent);
-  switch (declaration?.type) {
-    case 'action':
-    case 'const':
-    case 'model':
-    case 'entity':
-    case 'enumDeclaration':
-    case 'errorDeclaration':
-      if (declaration.name === node) return { kind: 'symbol', symbol: symbolOf(module.path, declaration) };
-      break;
-    default:
-      break;
-  }
-  return undefined;
-}
 
 /** A declaration's text: an action's signature, or the first lines of anything else. */
 function declarationText(source: string, declaration: Node & { type: string }): string | undefined {

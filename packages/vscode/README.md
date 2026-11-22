@@ -11,10 +11,12 @@ In `.cant` files:
 - **Hover**: what a name is, and its declaration.
 - **Outline**: the file's declarations, with their parameters, fields and enum members.
 - **Completion**: keywords, the names the module can see, and locals declared earlier.
-- **Highlighting**.
+- **Highlighting**: names coloured by what they are, such as actions, types, parameters, fields, enum members and namespaces, as well as keywords, strings, numbers and comments. How each looks depends on your colour theme.
 - **Formatting**: **Format Document**, and format on save if you turn on `editor.formatOnSave`, lay the file out as `cant fmt` does. A file with a syntax error is left as it is.
 
-In Markdown, `cant` and `cant-example` code blocks are highlighted.
+In Markdown, `cant` and `cant-example` code blocks are highlighted, including their comments, though without telling names apart.
+
+**Toggle Line Comment** comments lines out with `//`.
 
 ## Commands
 

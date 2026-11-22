@@ -81,3 +81,18 @@ test('reports numbers and built-in values', () => {
     'variable:@subject',
   ]);
 });
+
+test('reports comments, but not `//` inside a string, in Cant and in Markdown code blocks', () => {
+  assert.deepEqual(describeTokens('x := "a // b" // note\n// whole line', 'cant'), [
+    'variable:x',
+    'operator::=',
+    'string:"a // b"',
+    'comment:// note',
+    'comment:// whole line',
+  ]);
+  assert.deepEqual(describeTokens('Text // not code\n\n```cant\nimport IO // why\n```', 'markdown'), [
+    'keyword:import',
+    'variable:IO',
+    'comment:// why',
+  ]);
+});

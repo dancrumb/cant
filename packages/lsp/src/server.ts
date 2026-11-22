@@ -10,6 +10,7 @@ import {
   TextEdit,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
+import { SEMANTIC_TOKENS_LEGEND } from './semanticTokens.ts';
 import { Workspace, type Uri } from './workspace.ts';
 
 /** How long to wait after a change before checking again, so that typing isn't checked key by key. */
@@ -49,6 +50,7 @@ connection.onInitialize(() => ({
     documentSymbolProvider: true,
     completionProvider: { triggerCharacters: [':'] },
     documentFormattingProvider: true,
+    semanticTokensProvider: { legend: SEMANTIC_TOKENS_LEGEND, full: true },
   },
 }));
 
@@ -81,6 +83,9 @@ connection.onReferences(({ textDocument, position, context }) =>
 connection.onHover(({ textDocument, position }) => workspace.hover(textDocument.uri, position) ?? null);
 connection.onDocumentSymbol(({ textDocument }) => workspace.symbols(textDocument.uri));
 connection.onCompletion(({ textDocument, position }) => workspace.completions(textDocument.uri, position));
+
+/** Colour a document's names by what they are, such as actions, types and parameters. */
+connection.languages.semanticTokens.on(({ textDocument }) => ({ data: workspace.semanticTokens(textDocument.uri) }));
 
 /**
  * Format the whole document (docs/adr/0041-formatting.md) as one edit. A document with a syntax
