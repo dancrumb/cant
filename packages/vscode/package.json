@@ -38,6 +38,13 @@
     "onLanguage:markdown"
   ],
   "contributes": {
+    "commands": [
+      {
+        "command": "cant.restartServer",
+        "title": "Restart Language Server",
+        "category": "Cant"
+      }
+    ],
     "languages": [
       {
         "id": "cant",

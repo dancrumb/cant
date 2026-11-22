@@ -19,6 +19,25 @@ const provider: vscode.DocumentSemanticTokensProvider = {
 
 let client: LanguageClient | undefined;
 
+/**
+ * The most recent start, stop or restart of the client. Each one waits for the
+ * one before it, so a restart never begins while the client is still starting.
+ */
+let lifecycle: Promise<void> = Promise.resolve();
+
+const enqueue = (step: (client: LanguageClient) => Promise<void>): Promise<void> => {
+  const run = async (): Promise<void> => {
+    if (client !== undefined) await step(client);
+  };
+  // A failed step has already been reported, and must not stop the ones after it.
+  lifecycle = lifecycle.catch(() => undefined).then(run);
+  return lifecycle;
+};
+
+const stopClient = async (running: LanguageClient): Promise<void> => {
+  if (running.needsStop()) await running.stop();
+};
+
 /** Start the Cant language server, which is bundled beside the extension as `dist/server.cjs`. */
 const startServer = (context: vscode.ExtensionContext): void => {
   const module = context.asAbsolutePath('dist/server.cjs');
@@ -30,12 +49,20 @@ const startServer = (context: vscode.ExtensionContext): void => {
     documentSelector: [{ scheme: 'file', language: 'cant' }],
   };
   client = new LanguageClient('cant', 'Cant', server, options);
-  void client.start();
+  void enqueue((created) => created.start());
 };
+
+/** Stop the language server, if it is running, and start it again. */
+const restartServer = (): Promise<void> =>
+  enqueue(async (running) => {
+    await stopClient(running);
+    await running.start();
+  });
 
 export function activate(context: vscode.ExtensionContext): void {
   startServer(context);
   context.subscriptions.push(
+    vscode.commands.registerCommand('cant.restartServer', restartServer),
     vscode.languages.registerDocumentSemanticTokensProvider(
       [{ language: 'cant' }, { language: 'markdown' }],
       provider,
@@ -44,6 +71,6 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 }
 
-export function deactivate(): Promise<void> | undefined {
-  return client?.stop();
+export function deactivate(): Promise<void> {
+  return enqueue(stopClient);
 }

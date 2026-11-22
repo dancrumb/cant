@@ -15,6 +15,10 @@ In `.cant` files:
 
 In Markdown, `cant` and `cant-example` code blocks are highlighted.
 
+## Commands
+
+- **Cant: Restart Language Server**: stops the Cant language server and starts it again, for when problems or completions stop updating.
+
 ## Requirements
 
 None: the language server is bundled with the extension.
