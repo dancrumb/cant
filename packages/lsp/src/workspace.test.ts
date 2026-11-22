@@ -118,7 +118,9 @@ test('outlines a document', () => {
 test('completes keywords, visible names and earlier locals', () => {
   const workspace = open(...MAIN_LINES);
   const labels = workspace.completions(MAIN, { line: 4, character: 15 }).map(({ label }) => label);
-  for (const label of ['action', 'FindUser', 'User', 'Greet', 'email', 'user']) assert.ok(labels.includes(label), label);
+  for (const label of ['action', 'FindUser', 'User', 'Greet', 'email', 'user']) {
+assert.ok(labels.includes(label), label);
+}
 
   // While the file has a syntax error, the names from when it last parsed are offered.
   workspace.set(MAIN, [...MAIN_LINES, '        return (('].join('\n'));

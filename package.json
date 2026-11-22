@@ -14,11 +14,13 @@
     "clean": "turbo run clean",
     "test": "turbo run test",
     "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
     "fmt:check": "git ls-files -z '*.cant' | xargs -0 -r node packages/compiler/dist/cli.js fmt --check",
     "release": "./scripts/release.sh"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^6.0.1",
     "@types/node": "^24.0.0",
     "@typescript/native": "npm:typescript@^7.0.2",
     "eslint": "^10.14.0",

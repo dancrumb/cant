@@ -44,22 +44,30 @@ export function checkConstants(program: ConstantsInput): Diagnostic[] {
     // A constant expression that panics would fail when the program starts (docs/adr/0034-top-level-constants.md).
     const reportPanic = (value: Expression): void => {
       const result = values.evaluate(value);
-      if (result.kind === 'panic') report(error('constant-panics', `This constant expression can't be worked out: ${result.message}`, result.position));
+      if (result.kind === 'panic') {
+report(error('constant-panics', `This constant expression can't be worked out: ${result.message}`, result.position));
+}
     };
 
     for (const declaration of module.program?.children ?? []) {
       switch (declaration.type) {
         case 'const': {
           const offending = constants.offending(declaration.value);
-          if (offending !== undefined) report(notConstant(offending, `${declaration.name.value}'s value`));
-          else reportPanic(declaration.value);
+          if (offending !== undefined) {
+report(notConstant(offending, `${declaration.name.value}'s value`));
+} else {
+reportPanic(declaration.value);
+}
           break;
         }
         case 'trigger': {
           for (const parameter of declaration.parameters ?? []) {
             const offending = constants.offending(parameter.value, declaration.source.value === 'TestCase' && parameter.name.value === 'subject');
-            if (offending !== undefined) report(notConstant(offending, `The source parameter ${parameter.name.value}`));
-            else reportPanic(parameter.value);
+            if (offending !== undefined) {
+report(notConstant(offending, `The source parameter ${parameter.name.value}`));
+} else {
+reportPanic(parameter.value);
+}
           }
           if (declaration.source.value === 'TestCase') {
             const name = declaration.parameters?.find((parameter) => parameter.name.value === 'name')?.value;
@@ -67,8 +75,9 @@ export function checkConstants(program: ConstantsInput): Diagnostic[] {
             const text = value?.kind === 'text' ? value.value : undefined;
             if (name !== undefined && text !== undefined) {
               const earlier = testNames.get(text);
-              if (earlier === undefined) testNames.set(text, { file: module.path, position: name.position });
-              else {
+              if (earlier === undefined) {
+testNames.set(text, { file: module.path, position: name.position });
+} else {
                 report(
                   error(
                     'duplicate-test-case',
@@ -88,7 +97,9 @@ export function checkConstants(program: ConstantsInput): Diagnostic[] {
           checkDefaultCycles(declaration.fields, 'field', program.locals, report);
           break;
         case 'errorDeclaration':
-          if (Array.isArray(declaration.data)) checkDefaultCycles(declaration.data, 'field', program.locals, report);
+          if (Array.isArray(declaration.data)) {
+checkDefaultCycles(declaration.data, 'field', program.locals, report);
+}
           break;
         case 'entity':
           checkEntityModels(declaration, program.references, report);
@@ -150,15 +161,21 @@ class Constants {
         for (const part of expression.parts) {
           if (part.type === 'interpolation') {
             const offending = this.offending(part.expression);
-            if (offending !== undefined) return offending;
+            if (offending !== undefined) {
+return offending;
+}
           }
         }
         return undefined;
       case 'object':
         for (const item of expression.items) {
-          if (testSubject && item.name.type === 'builtIn') continue;
+          if (testSubject && item.name.type === 'builtIn') {
+continue;
+}
           const offending = this.offending(item.value);
-          if (offending !== undefined) return offending;
+          if (offending !== undefined) {
+return offending;
+}
         }
         return undefined;
       case 'identifier':
@@ -210,7 +227,9 @@ function checkDefaultCycles(
     const found: Identifier[] = [];
     collectNames(item.defaultValue, (identifier) => {
       const binding = locals.get(identifier);
-      if (binding?.kind === kind && byName.has(binding.declaration)) found.push(binding.declaration);
+      if (binding?.kind === kind && byName.has(binding.declaration)) {
+found.push(binding.declaration);
+}
     });
     dependencies.set(item.name, found);
   }
@@ -220,8 +239,12 @@ function checkDefaultCycles(
     const start = path.indexOf(name);
     if (start >= 0) {
       const cycle = path.slice(start);
-      if (cycle.some((member) => reported.has(member))) return;
-      for (const member of cycle) reported.add(member);
+      if (cycle.some((member) => reported.has(member))) {
+return;
+}
+      for (const member of cycle) {
+reported.add(member);
+}
       report(
         error(
           'default-cycle',
@@ -231,22 +254,36 @@ function checkDefaultCycles(
       );
       return;
     }
-    for (const next of dependencies.get(name) ?? []) visit(next, [...path, name]);
+    for (const next of dependencies.get(name) ?? []) {
+visit(next, [...path, name]);
+}
   };
-  for (const item of items) visit(item.name, []);
+  for (const item of items) {
+visit(item.name, []);
+}
 }
 
 /** Call `found` on every identifier in an expression. */
 function collectNames(expression: Expression | undefined, found: (identifier: Identifier) => void): void {
   const walk = (node: unknown): void => {
-    if (typeof node !== 'object' || node === null) return;
+    if (typeof node !== 'object' || node === null) {
+return;
+}
     if (Array.isArray(node)) {
-      for (const child of node) walk(child);
+      for (const child of node) {
+walk(child);
+}
       return;
     }
     const typed = node as { type?: unknown };
-    if (typed.type === 'identifier') found(node as Identifier);
-    for (const [key, value] of Object.entries(node)) if (key !== 'position') walk(value);
+    if (typed.type === 'identifier') {
+found(node as Identifier);
+}
+    for (const [key, value] of Object.entries(node)) {
+if (key !== 'position') {
+walk(value);
+}
+}
   };
   walk(expression);
 }
@@ -257,10 +294,14 @@ function collectNames(expression: Expression | undefined, found: (identifier: Id
  */
 function checkEntityModels(entity: EntityDeclaration, references: References, report: (diagnostic: Diagnostic) => void): void {
   for (const line of entity.lines) {
-    if (line.type !== 'modelsBlock') continue;
+    if (line.type !== 'modelsBlock') {
+continue;
+}
     for (const name of line.models) {
       const model = references.get(name)?.declaration;
-      if (model?.type !== 'model') continue;
+      if (model?.type !== 'model') {
+continue;
+}
       const field = fieldHoldingEntity(model, references, new Set());
       if (field !== undefined) {
         report(
@@ -277,7 +318,9 @@ function checkEntityModels(entity: EntityDeclaration, references: References, re
 
 /** The first field of a model that holds an entity, directly or through collections, optionals and other models. */
 function fieldHoldingEntity(model: ModelDeclaration, references: References, seen: Set<ModelDeclaration>): Identifier | undefined {
-  if (seen.has(model)) return undefined;
+  if (seen.has(model)) {
+return undefined;
+}
   seen.add(model);
   const holds = (type: TypeRef): boolean => {
     switch (type.type) {
@@ -289,7 +332,9 @@ function fieldHoldingEntity(model: ModelDeclaration, references: References, see
       case 'identifier':
       case 'qualifiedIdentifier': {
         const declaration = references.get(type)?.declaration;
-        if (declaration?.type === 'entity') return true;
+        if (declaration?.type === 'entity') {
+return true;
+}
         return declaration?.type === 'model' && fieldHoldingEntity(declaration, references, seen) !== undefined;
       }
       default:

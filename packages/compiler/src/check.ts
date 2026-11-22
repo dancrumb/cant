@@ -21,7 +21,9 @@ export function check(source: string): CheckResult {
   try {
     program = parse(source);
   } catch (caught) {
-    if (!(caught instanceof ParseError)) throw caught;
+    if (!(caught instanceof ParseError)) {
+throw caught;
+}
     const { start, end } = caught.location;
     return {
       diagnostics: [

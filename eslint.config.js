@@ -1,13 +1,17 @@
-import js from '@eslint/js';
-import { defineConfig, globalIgnores } from 'eslint/config';
-import tseslint from 'typescript-eslint';
+import js from "@eslint/js";
+import { defineConfig, globalIgnores } from "eslint/config";
+import tseslint from "typescript-eslint";
+import stylistic from "@stylistic/eslint-plugin";
 
 export default defineConfig(
-  globalIgnores(['**/dist/', '**/.turbo/', '**/src/generated/']),
+  globalIgnores(["**/dist/", "**/.turbo/", "**/src/generated/"]),
   js.configs.recommended,
   {
-    files: ['**/*.ts'],
-    extends: [tseslint.configs.strictTypeChecked, tseslint.configs.stylisticTypeChecked],
+    files: ["**/*.ts"],
+    extends: [
+      tseslint.configs.strictTypeChecked,
+      tseslint.configs.stylisticTypeChecked,
+    ],
     languageOptions: {
       parserOptions: {
         projectService: true,
@@ -16,14 +20,28 @@ export default defineConfig(
     },
     rules: {
       // node:test's test()/describe() return promises that the runner tracks itself.
-      '@typescript-eslint/no-floating-promises': [
-        'error',
+      "@typescript-eslint/no-floating-promises": [
+        "error",
         {
           allowForKnownSafeCalls: [
-            { from: 'package', package: 'node:test', name: ['test', 'it', 'describe', 'suite'] },
+            {
+              from: "package",
+              package: "node:test",
+              name: ["test", "it", "describe", "suite"],
+            },
           ],
         },
       ],
+    },
+  },
+  {
+    plugins: {
+      "@stylistic": stylistic,
+    },
+    rules: {
+      // Every `if`, `else`, `for`, `while` and `do` body is a block in braces, even one statement.
+      curly: ["error", "all"],
+      "@stylistic/brace-style": ["error", "1tbs", { allowSingleLine: false }],
     },
   },
 );

@@ -69,6 +69,7 @@
     "clean": "rm -rf dist",
     "test": "node --test \"dist/**/*.test.js\"",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "package": "vsce package --no-dependencies --out dist/cant.vsix",
     "publish:marketplace": "vsce publish --no-dependencies --packagePath dist/cant.vsix"
   },

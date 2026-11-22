@@ -43,7 +43,8 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist src/generated",
     "test": "node --test \"dist/**/*.test.js\"",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@types/unist": "^3.0.3",

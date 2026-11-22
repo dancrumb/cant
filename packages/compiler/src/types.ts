@@ -178,8 +178,12 @@ export function typeOf(ref: TypeRef, references: References): Type {
 
 export function typeOfSymbol(symbol: ModuleSymbol | undefined): Type {
   const declaration = symbol?.declaration;
-  if (symbol === undefined) return UNCHECKED;
-  if (symbol.typeKind === 'internal') return symbol.internal ?? UNCHECKED;
+  if (symbol === undefined) {
+return UNCHECKED;
+}
+  if (symbol.typeKind === 'internal') {
+return symbol.internal ?? UNCHECKED;
+}
   if (symbol.typeKind === 'error') {
     return declaration?.type === 'errorDeclaration' ? { kind: 'error', symbol, declaration } : { kind: 'error', symbol };
   }
@@ -252,17 +256,27 @@ export function holdsStream(type: Type): boolean {
 /** Make the assignability rules, given how to find a named model's fields. */
 export function createAssignable(modelFields: ModelFields): Assignable {
   const assignable: Assignable = (from, to, options = {}) => {
-    if (from.kind === 'unchecked' || to.kind === 'unchecked') return true;
+    if (from.kind === 'unchecked' || to.kind === 'unchecked') {
+return true;
+}
     // A call works out what each type parameter stands for before checking (see bindTypes).
-    if (from.kind === 'variable' || to.kind === 'variable') return true;
+    if (from.kind === 'variable' || to.kind === 'variable') {
+return true;
+}
     // A result's value is what fits; whether it may hold an error is checked separately.
-    if (from.kind === 'result') return assignable(from.value, to, options);
-    if (to.kind === 'unknown') return from.kind !== 'void' && from.kind !== 'error' && !holdsStream(from);
+    if (from.kind === 'result') {
+return assignable(from.value, to, options);
+}
+    if (to.kind === 'unknown') {
+return from.kind !== 'void' && from.kind !== 'error' && !holdsStream(from);
+}
     if (to.kind === 'optional') {
       return from.kind === 'optional' ? assignable(from.inner, to.inner, options) : assignable(from, to.inner, options);
     }
     // An unchecked optional can't be used where a plain value is needed (docs/adr/0014-optionals.md).
-    if (from.kind === 'optional') return false;
+    if (from.kind === 'optional') {
+return false;
+}
 
     switch (to.kind) {
       case 'base':
@@ -272,7 +286,9 @@ export function createAssignable(modelFields: ModelFields): Assignable {
           (from.kind === 'enum' && from.valueType === to.name)
         );
       case 'enum':
-        if (from.kind === 'enum') return [...from.values].every((value) => to.values.has(value));
+        if (from.kind === 'enum') {
+return [...from.values].every((value) => to.values.has(value));
+}
         if (from.kind === 'base' && options.enumConversion === true && from.name === to.valueType) {
           // A literal is checked now; any other value is checked when the program runs.
           return options.literal === undefined || to.values.has(options.literal);
@@ -282,11 +298,15 @@ export function createAssignable(modelFields: ModelFields): Assignable {
       case 'set':
         return from.kind === to.kind && (from.element.kind === 'nothing' || assignable(from.element, to.element));
       case 'map':
-        if (from.kind === 'map') return from.value.kind === 'nothing' || assignable(from.value, to.value);
+        if (from.kind === 'map') {
+return from.value.kind === 'nothing' || assignable(from.value, to.value);
+}
         // An object value can be a map when every member is of the map's type (docs/adr/0021-collections.md).
         return from.kind === 'anonymous' && [...from.fields.values()].every((field) => assignable(field, to.value));
       case 'model':
-        if (from.kind === 'model') return sameSymbol(from.symbol, to.symbol);
+        if (from.kind === 'model') {
+return sameSymbol(from.symbol, to.symbol);
+}
         return from.kind === 'anonymous' && anonymousFits(from, to);
       case 'anonymous':
         return (
@@ -327,12 +347,16 @@ export function createAssignable(modelFields: ModelFields): Assignable {
     for (const [name, field] of fields) {
       const given = from.fields.get(name);
       if (given === undefined) {
-        if (field.required) return false;
+        if (field.required) {
+return false;
+}
         continue;
       }
       // A member can't be an unchecked optional, even for an optional field.
       const target = field.type.kind === 'optional' ? field.type.inner : field.type;
-      if (!assignable(given, target)) return false;
+      if (!assignable(given, target)) {
+return false;
+}
     }
     return [...from.fields.keys()].every((name) => fields.has(name));
   };

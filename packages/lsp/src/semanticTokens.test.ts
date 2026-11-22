@@ -18,7 +18,9 @@ const names = (...lines: string[]): string[] => {
     line += deltaLine;
     character = deltaLine === 0 ? character + deltaStart : deltaStart;
     const kind = SEMANTIC_TOKENS_LEGEND.tokenTypes[type] ?? '?';
-    if (['keyword', 'operator', 'string', 'number'].includes(kind)) continue;
+    if (['keyword', 'operator', 'string', 'number'].includes(kind)) {
+continue;
+}
     const flags = SEMANTIC_TOKENS_LEGEND.tokenModifiers.filter((_, bit) => (modifiers & (1 << bit)) !== 0);
     const text = lines[line]?.slice(character, character + length) ?? '';
     described.push([`${text}:${kind}`, ...flags].join('+'));

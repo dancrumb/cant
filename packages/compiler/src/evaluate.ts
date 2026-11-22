@@ -36,7 +36,9 @@ export class ConstantValues {
   of(constant: ConstDeclaration): Evaluation {
     let result = this.values.get(constant);
     if (result === undefined) {
-      if (this.working.has(constant)) return { kind: 'notConstant', expression: constant.value };
+      if (this.working.has(constant)) {
+return { kind: 'notConstant', expression: constant.value };
+}
       this.working.add(constant);
       result = evaluate(constant.value, this.scope());
       this.working.delete(constant);
@@ -64,24 +66,34 @@ export class ConstantValues {
       value: (name) => {
         if (name.type === 'identifier') {
           const local = locals?.get(name);
-          if (local !== undefined) return localValues?.get(local.declaration);
+          if (local !== undefined) {
+return localValues?.get(local.declaration);
+}
         }
         const declaration = this.references.get(name)?.declaration;
-        if (declaration?.type !== 'const') return undefined;
+        if (declaration?.type !== 'const') {
+return undefined;
+}
         const result = this.of(declaration);
         return result.kind === 'value' ? result.value : undefined;
       },
       enumMember: (object, member) => {
         const symbol = this.references.get(object);
         const declaration = symbol?.declaration;
-        if (symbol === undefined || declaration?.type !== 'enumDeclaration') return undefined;
+        if (symbol === undefined || declaration?.type !== 'enumDeclaration') {
+return undefined;
+}
         const found = declaration.members.find((candidate) => candidate.name.value === member.value);
-        if (found === undefined) return undefined;
+        if (found === undefined) {
+return undefined;
+}
         // A member without a value has its name as its value (docs/adr/0013-enums.md).
         let value: BaseValue = { kind: 'text', value: found.name.value };
         if (found.value !== undefined) {
           const result = evaluate(found.value, this.scope());
-          if (result.kind !== 'value' || result.value.kind === 'enum' || result.value.kind === 'object') return undefined;
+          if (result.kind !== 'value' || result.value.kind === 'enum' || result.value.kind === 'object') {
+return undefined;
+}
           value = result.value;
         }
         return { kind: 'enum', enum: this.idOf(symbol), value };

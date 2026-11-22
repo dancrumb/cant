@@ -139,7 +139,9 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   const queue: { path: string; from?: { module: Module; declaration: ImportDeclaration } }[] = [{ path: entryPath }];
   while (queue.length > 0) {
     const next = queue.shift();
-    if (next === undefined || modules.has(next.path)) continue;
+    if (next === undefined || modules.has(next.path)) {
+continue;
+}
     // A standard library module's source is part of the compiler (../stdlib).
     const source = isStandardPath(next.path)
       ? STANDARD_SOURCES.get(next.path.slice('cant::'.length))
@@ -172,15 +174,21 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
       exports: new Map(),
     };
     modules.set(next.path, module);
-    for (const diagnostic of result.diagnostics) report(module, diagnostic);
+    for (const diagnostic of result.diagnostics) {
+report(module, diagnostic);
+}
 
     for (const { declaration } of module.symbols?.imports ?? []) {
       const target = resolveImport(module, declaration, manifest, (diagnostic) => {
         report(module, diagnostic);
       });
       module.imports.set(declaration, target);
-      if (target.kind === 'file') queue.push({ path: target.path, from: { module, declaration } });
-      if (target.kind === 'standard') queue.push({ path: standardPath(target.name), from: { module, declaration } });
+      if (target.kind === 'file') {
+queue.push({ path: target.path, from: { module, declaration } });
+}
+      if (target.kind === 'standard') {
+queue.push({ path: standardPath(target.name), from: { module, declaration } });
+}
     }
   }
 
@@ -189,10 +197,14 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   // survive cycles. There, only that module's own exported declarations are seen.
   const state = new Map<Module, 'working' | 'done'>();
   const exportsOf = (module: Module): Map<string, ModuleSymbol> => {
-    if (state.has(module)) return module.exports;
+    if (state.has(module)) {
+return module.exports;
+}
     state.set(module, 'working');
     for (const [name, declaration] of module.symbols?.exports ?? []) {
-      if (declaration.type !== 'reExport') module.exports.set(name, symbolOf(module.path, declaration));
+      if (declaration.type !== 'reExport') {
+module.exports.set(name, symbolOf(module.path, declaration));
+}
     }
     placeImports(module);
     for (const { namespace, declaration } of module.symbols?.reExports ?? []) {
@@ -227,14 +239,18 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
     // A standard library module is loaded from its source, as a file is (see stdlib.ts).
     const path = target.kind === 'standard' ? standardPath(target.name) : target.kind === 'file' ? target.path : undefined;
     const imported = path === undefined ? undefined : modules.get(path);
-    if (imported !== undefined) return exportsOf(imported);
+    if (imported !== undefined) {
+return exportsOf(imported);
+}
     return new Map();
   };
 
   // Put each import's symbols in its namespace, and report names that clash there.
   const placed = new Set<Module>();
   const placeImports = (module: Module): void => {
-    if (placed.has(module)) return;
+    if (placed.has(module)) {
+return;
+}
     placed.add(module);
     for (const { namespace, declaration } of module.symbols?.imports ?? []) {
       const target = module.imports.get(declaration) ?? { kind: 'unresolved' };
@@ -269,13 +285,17 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
             );
             continue;
           }
-          if (earlier === undefined) names.set(name, { symbol, via: declaration });
+          if (earlier === undefined) {
+names.set(name, { symbol, via: declaration });
+}
         }
       }
     }
   };
 
-  for (const module of modules.values()) exportsOf(module);
+  for (const module of modules.values()) {
+exportsOf(module);
+}
 
   return { entry: entryPath, ...(manifest && { manifest }), modules, diagnostics };
 }
@@ -286,8 +306,12 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
  * (docs/adr/0006-imports.md, docs/adr/0038-namespaces-from-imports.md).
  */
 function namespacesFor(declaration: ImportDeclaration, current: string): string[] {
-  if (declaration.namespace !== undefined) return [declaration.namespace.value];
-  if (declaration.module.type !== 'moduleName') return [current];
+  if (declaration.namespace !== undefined) {
+return [declaration.namespace.value];
+}
+  if (declaration.module.type !== 'moduleName') {
+return [current];
+}
   const named = declaration.module.name.value;
   return named === current ? [current] : [current, named];
 }
@@ -329,7 +353,9 @@ function resolveImport(
   const scope = identifier.scope?.value ?? 'cant';
   const name = identifier.name.value;
   if (scope === 'cant') {
-    if (isStandardModule(name)) return { kind: 'standard', name };
+    if (isStandardModule(name)) {
+return { kind: 'standard', name };
+}
     report(error('module-not-found', `The standard library has no module called cant::${name}.`, identifier.position));
     return { kind: 'unresolved' };
   }
@@ -354,14 +380,18 @@ function resolveImport(
  * if it is a remote URL (docs/adr/0031-module-resolution.md).
  */
 export function fileFromUrl(modulePath: string, url: string): string | undefined {
-  if (HAS_SCHEME.test(url) && !url.startsWith('file:')) return undefined;
+  if (HAS_SCHEME.test(url) && !url.startsWith('file:')) {
+return undefined;
+}
   return fileURLToPath(new URL(url, pathToFileURL(modulePath)));
 }
 
 /** The module's own declaration of `name` in `namespace` that a symbol of `kind` would clash with. */
 function localSymbol(module: Module, namespace: string, name: string, kind: SymbolKind): ModuleSymbol | undefined {
   const declared = module.symbols?.namespaces.get(namespace);
-  if (declared === undefined) return undefined;
+  if (declared === undefined) {
+return undefined;
+}
   const candidates = [
     declared.types.get(name),
     declared.actions.get(name),
@@ -375,10 +405,14 @@ export function symbolsNamed(module: Module, namespace: string, name: string): M
   const found: ModuleSymbol[] = [];
   const declared = module.symbols?.namespaces.get(namespace);
   for (const declaration of [declared?.types.get(name), declared?.actions.get(name), declared?.constants.get(name)]) {
-    if (declaration !== undefined) found.push(symbolOf(module.path, declaration));
+    if (declaration !== undefined) {
+found.push(symbolOf(module.path, declaration));
+}
   }
   const imported = module.imported.get(namespace)?.get(name)?.symbol;
-  if (imported !== undefined && !found.some((symbol) => clashes(symbol.kind, imported.kind))) found.push(imported);
+  if (imported !== undefined && !found.some((symbol) => clashes(symbol.kind, imported.kind))) {
+found.push(imported);
+}
   return found;
 }
 

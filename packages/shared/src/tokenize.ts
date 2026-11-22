@@ -104,14 +104,20 @@ const NUMBER = new RegExp(
 const TEXT = String.raw`(?:[^"\\$\r\n]|\\(?:[^\r\n]|(?=[\r\n]|$))|\$(?!\{))`;
 
 const wordKind = (word: string): TokenKind => {
-  if (KEYWORDS.has(word)) return 'keyword';
-  if (WORD_OPERATORS.has(word)) return 'operator';
+  if (KEYWORDS.has(word)) {
+return 'keyword';
+}
+  if (WORD_OPERATORS.has(word)) {
+return 'operator';
+}
   return 'identifier';
 };
 
 /** Abandon any strings and interpolations that a line break has left unfinished. */
 const resetAtLineBreak = (ctx: { state(): string; pop(): string }) => {
-  while (ctx.state() !== 'default') ctx.pop();
+  while (ctx.state() !== 'default') {
+ctx.pop();
+}
 };
 
 // Tokenizing uses a stack of states:
@@ -220,7 +226,9 @@ const isWord = (token: RawToken | undefined, ...words: string[]): boolean =>
   token?.kind === 'identifier' && words.includes(token.text);
 
 const markKeyword = (token: RawToken | undefined): void => {
-  if (token !== undefined) token.kind = 'keyword';
+  if (token !== undefined) {
+token.kind = 'keyword';
+}
 };
 
 /**
@@ -236,13 +244,18 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
   const lines = new Map<number, RawToken[]>();
   for (const token of tokens) {
     const line = lines.get(token.line);
-    if (line === undefined) lines.set(token.line, [token]);
-    else line.push(token);
+    if (line === undefined) {
+lines.set(token.line, [token]);
+} else {
+line.push(token);
+}
   }
 
   for (const line of lines.values()) {
     const [first] = line;
-    if (first === undefined) continue;
+    if (first === undefined) {
+continue;
+}
 
     if (first.column === 1) {
       const head = first.text === 'export' ? line[1] : first;
@@ -254,11 +267,19 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
 
     // 0006: `into` and `as` on an import line.
     if (first.text === 'import' && first.kind === 'keyword') {
-      for (const token of line.slice(1)) if (isWord(token, 'into', 'as')) markKeyword(token);
+      for (const token of line.slice(1)) {
+if (isWord(token, 'into', 'as')) {
+markKeyword(token);
+}
+}
     }
     // 0006: `as` in a re-export, `export accounts::FindUser as LookupUser`.
     if (first.text === 'export' && first.kind === 'keyword') {
-      for (const token of line.slice(2)) if (isWord(token, 'as')) markKeyword(token);
+      for (const token of line.slice(2)) {
+if (isWord(token, 'as')) {
+markKeyword(token);
+}
+}
     }
 
     if (first.column === 1) {
@@ -267,16 +288,24 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
         let depth = 0;
         let closed = false;
         for (const token of line) {
-          if (token.text === '(') depth += 1;
+          if (token.text === '(') {
+depth += 1;
+}
           if (token.text === ')') {
             depth -= 1;
-            if (depth === 0) closed = true;
+            if (depth === 0) {
+closed = true;
+}
           }
-          if (closed && depth === 0 && isWord(token, 'raises', 'passes')) markKeyword(token);
+          if (closed && depth === 0 && isWord(token, 'raises', 'passes')) {
+markKeyword(token);
+}
         }
       }
       // 0010: `permissions <group> has <role>`.
-      if (declaration === 'permissions' && isWord(line[2], 'has')) markKeyword(line[2]);
+      if (declaration === 'permissions' && isWord(line[2], 'has')) {
+markKeyword(line[2]);
+}
     } else if (first.column === blockColumn) {
       if (line.length === 1 && BLOCK_HEADERS[declaration]?.has(first.text) === true) {
         markKeyword(first);
@@ -284,7 +313,9 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
       if (line.length > 1 && LINE_STARTS[declaration]?.has(first.text) === true) {
         markKeyword(first);
         // 0032: `with` in `membership user in organization with roles`.
-        if (first.text === 'membership' && isWord(line[4], 'with')) markKeyword(line[4]);
+        if (first.text === 'membership' && isWord(line[4], 'with')) {
+markKeyword(line[4]);
+}
       }
     } else if (declaration === 'entity' && line.length === 3 && isWord(line[1], 'as')) {
       // 0022: `field as name` in an entity's `expose` block.
@@ -295,13 +326,17 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
       // 0023: `raise <error> with <value>`.
       if (token.text === 'raise' && token.kind === 'keyword') {
         const name = line[index + 1]?.text === '::' ? index + 3 : index + 1;
-        if (isWord(line[name + 1], 'with')) markKeyword(line[name + 1]);
+        if (isWord(line[name + 1], 'with')) {
+markKeyword(line[name + 1]);
+}
       }
       // 0010: `@subject can ...` and `@subject is ...`, each with an optional `within`.
       if (token.text === '@subject' && isWord(line[index + 1], 'can', 'is')) {
         markKeyword(line[index + 1]);
         for (const later of line.slice(index + 2, index + 5)) {
-          if (isWord(later, 'within')) markKeyword(later);
+          if (isWord(later, 'within')) {
+markKeyword(later);
+}
         }
       }
     }

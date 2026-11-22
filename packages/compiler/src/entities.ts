@@ -54,7 +54,9 @@ export function checkEntities(program: LoadedProgram, references: References): {
   for (const module of program.modules.values()) {
     for (const namespace of module.symbols?.namespaces.values() ?? []) {
       for (const declaration of namespace.types.values()) {
-        if (declaration.type !== 'entity') continue;
+        if (declaration.type !== 'entity') {
+continue;
+}
         const modelName = declaration.lines.find((line) => line.type === 'modelsBlock')?.models[0];
         const model = modelName === undefined ? undefined : references.get(modelName)?.declaration;
         entities.set(`${module.path}::${declaration.name.value}`, {
@@ -73,7 +75,9 @@ export function checkEntities(program: LoadedProgram, references: References): {
     for (const { declaration: relation } of module.symbols?.relations ?? []) {
       const left = references.get(relation.left.entity);
       const right = references.get(relation.right.entity);
-      if (left === undefined || right === undefined) continue;
+      if (left === undefined || right === undefined) {
+continue;
+}
       const ends: [ModuleSymbol, Identifier, ModuleSymbol, Cardinality][] = [
         [left, relation.left.field, right, relation.right.cardinality],
         [right, relation.right.field, left, relation.left.cardinality],
@@ -105,7 +109,9 @@ export function checkEntities(program: LoadedProgram, references: References): {
   const groups = new Map<string, GroupKind>();
   for (const { module, declaration } of entities.values()) {
     const group = declaration.lines.find((line) => line.type === 'groupLine');
-    if (group === undefined) continue;
+    if (group === undefined) {
+continue;
+}
     const earlier = groups.get(group.name.value);
     if (earlier !== undefined) {
       reportIn(module)(
@@ -133,7 +139,9 @@ export function checkEntities(program: LoadedProgram, references: References): {
   for (const module of program.modules.values()) {
     const report = reportIn(module);
     for (const { declaration } of module.symbols?.permissions ?? []) {
-      for (const permission of declaration.permissions) permissions.add(textOf(permission));
+      for (const permission of declaration.permissions) {
+permissions.add(textOf(permission));
+}
       const group = groups.get(declaration.group.value);
       if (group === undefined) {
         report(error('unknown-group', `No entity declares a group kind called ${declaration.group.value}.`, declaration.group.position));
@@ -217,7 +225,9 @@ function checkEntity(
   }
 
   // Without a model, the field names can't be checked.
-  if (model === undefined) return;
+  if (model === undefined) {
+return;
+}
   const fields = new Map(model.fields.map((field) => [field.name.value, field]));
 
   const unknownField = (name: Identifier, where: string): void => {
@@ -234,18 +244,27 @@ function checkEntity(
   for (const line of declaration.lines) {
     if (line.type === 'exposeBlock') {
       for (const item of line.items) {
-        if (item.type === 'builtIn') continue;
-        if (!fields.has(item.field.value)) unknownField(item.field, 'its `expose` block');
+        if (item.type === 'builtIn') {
+continue;
+}
+        if (!fields.has(item.field.value)) {
+unknownField(item.field, 'its `expose` block');
+}
         exposed.add(item.field.value);
       }
     }
   }
   for (const line of declaration.lines) {
-    if (line.type !== 'hideBlock') continue;
+    if (line.type !== 'hideBlock') {
+continue;
+}
     for (const item of line.items) {
-      if (item.type === 'builtIn') continue;
-      if (!fields.has(item.value)) unknownField(item, 'its `hide` block');
-      else if (exposed.has(item.value)) {
+      if (item.type === 'builtIn') {
+continue;
+}
+      if (!fields.has(item.value)) {
+unknownField(item, 'its `hide` block');
+} else if (exposed.has(item.value)) {
         report(
           error('exposed-and-hidden', `${item.value} is listed in both the \`expose\` and \`hide\` blocks.`, item.position),
         );
@@ -255,7 +274,9 @@ function checkEntity(
 
   // A field that reaches exactly one entity: a model field, or a navigation field whose far end is `1`.
   const single = (name: Identifier, where: string): NavigationField | 'model' | undefined => {
-    if (fields.has(name.value)) return 'model';
+    if (fields.has(name.value)) {
+return 'model';
+}
     const field = navigation.get(name.value);
     if (field === undefined) {
       unknownField(name, where);
@@ -277,7 +298,9 @@ function checkEntity(
   const identity = declaration.lines.find((line) => line.type === 'identityLine');
   for (const name of identity?.fields ?? []) {
     const field = single(name, 'its `identity` line');
-    if (!isSubject || field === undefined) continue;
+    if (!isSubject || field === undefined) {
+continue;
+}
     // A subject's identity is matched against claims, which carry text, numbers, booleans and enum values.
     const type = field === 'model' ? fields.get(name.value)?.valueType : undefined;
     const claimable =
@@ -309,7 +332,9 @@ function checkEntity(
     } else if (group !== undefined && !entities.get(keyOf(group.far))?.declaration.lines.some((line) => line.type === 'groupLine')) {
       report(error('not-group', `${membership.group.value} reaches ${group.far.name}, which isn't a group entity.`, membership.group.position));
     }
-    if (membership.roles !== undefined && !fields.has(membership.roles.value)) unknownField(membership.roles, 'its `membership` line');
+    if (membership.roles !== undefined && !fields.has(membership.roles.value)) {
+unknownField(membership.roles, 'its `membership` line');
+}
   }
 }
 
@@ -322,13 +347,23 @@ type Predicate = Extract<Expression, { type: 'canPredicate' | 'rolePredicate' }>
 function visitPredicates(module: Module, visit: (predicate: Predicate) => void): void {
   const walk = (node: unknown): void => {
     if (Array.isArray(node)) {
-      for (const child of node) walk(child);
+      for (const child of node) {
+walk(child);
+}
       return;
     }
-    if (typeof node !== 'object' || node === null) return;
+    if (typeof node !== 'object' || node === null) {
+return;
+}
     const typed = node as { type?: unknown; position?: Position } & Record<string, unknown>;
-    if (typed.type === 'canPredicate' || typed.type === 'rolePredicate') visit(typed as unknown as Predicate);
-    for (const [key, value] of Object.entries(typed)) if (key !== 'position') walk(value);
+    if (typed.type === 'canPredicate' || typed.type === 'rolePredicate') {
+visit(typed as unknown as Predicate);
+}
+    for (const [key, value] of Object.entries(typed)) {
+if (key !== 'position') {
+walk(value);
+}
+}
   };
   walk(module.program?.children);
 }

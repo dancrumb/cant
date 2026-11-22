@@ -35,9 +35,13 @@ const STANDARD_PACKAGE = '@dancrumb/cant-compiler';
  * ordinary module.
  */
 export function isStandardFile(path: string, host: Host): boolean {
-  if (extname(path) !== '.cant' || basename(dirname(path)) !== 'stdlib' || !STANDARD_SOURCES.has(basename(path, '.cant'))) return false;
+  if (extname(path) !== '.cant' || basename(dirname(path)) !== 'stdlib' || !STANDARD_SOURCES.has(basename(path, '.cant'))) {
+return false;
+}
   const manifest = host.readFile(join(dirname(dirname(path)), 'package.json'));
-  if (manifest === undefined) return false;
+  if (manifest === undefined) {
+return false;
+}
   try {
     return (JSON.parse(manifest) as { name?: unknown }).name === STANDARD_PACKAGE;
   } catch {

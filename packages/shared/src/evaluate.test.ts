@@ -14,28 +14,40 @@ const run = (...lines: string[]): string => {
   const constants = new Map<string, ConstDeclaration>();
   const enums = new Map<string, EnumDeclaration>();
   for (const declaration of program.children) {
-    if (declaration.type === 'const') constants.set(declaration.name.value, declaration);
-    if (declaration.type === 'enumDeclaration') enums.set(declaration.name.value, declaration);
+    if (declaration.type === 'const') {
+constants.set(declaration.name.value, declaration);
+}
+    if (declaration.type === 'enumDeclaration') {
+enums.set(declaration.name.value, declaration);
+}
   }
   const scope: EvaluationScope = {
     value(name) {
       const constant = name.type === 'identifier' ? constants.get(name.value) : undefined;
-      if (constant === undefined) return undefined;
+      if (constant === undefined) {
+return undefined;
+}
       const result = evaluate(constant.value, scope);
       return result.kind === 'value' ? result.value : undefined;
     },
     enumMember(object, member) {
       const declaration = object.type === 'identifier' ? enums.get(object.value) : undefined;
       const found = declaration?.members.find((candidate) => candidate.name.value === member.value);
-      if (declaration === undefined || found === undefined) return undefined;
+      if (declaration === undefined || found === undefined) {
+return undefined;
+}
       const result: Evaluation =
         found.value === undefined ? { kind: 'value', value: { kind: 'text', value: found.name.value } } : evaluate(found.value, scope);
-      if (result.kind !== 'value' || result.value.kind === 'enum' || result.value.kind === 'object') return undefined;
+      if (result.kind !== 'value' || result.value.kind === 'enum' || result.value.kind === 'object') {
+return undefined;
+}
       return { kind: 'enum', enum: `main#${declaration.name.value}`, value: result.value };
     },
   };
   const last = [...constants.values()].at(-1);
-  if (last === undefined) throw new Error('no constant');
+  if (last === undefined) {
+throw new Error('no constant');
+}
   return describe(evaluate(last.value, scope));
 };
 

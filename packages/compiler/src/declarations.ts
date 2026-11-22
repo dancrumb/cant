@@ -154,11 +154,15 @@ export function collectDeclarations(program: Program): CollectedDeclarations {
       case 'action':
         addAction(current, declaration, diagnostics);
         checkUnique(declaration.parameters.map((parameter) => parameter.name), 'duplicate-parameter', 'a parameter', diagnostics);
-        if (declaration.exported === true) addExport(declaration.name, declaration);
+        if (declaration.exported === true) {
+addExport(declaration.name, declaration);
+}
         break;
       case 'const':
         addConstant(current, declaration, diagnostics);
-        if (declaration.exported === true) addExport(declaration.name, declaration);
+        if (declaration.exported === true) {
+addExport(declaration.name, declaration);
+}
         break;
       case 'enumDeclaration':
       case 'model':
@@ -166,7 +170,9 @@ export function collectDeclarations(program: Program): CollectedDeclarations {
       case 'errorDeclaration':
         addType(current, declaration, diagnostics);
         checkInsideType(declaration, diagnostics);
-        if (declaration.exported === true) addExport(declaration.name, declaration);
+        if (declaration.exported === true) {
+addExport(declaration.name, declaration);
+}
         break;
     }
   }
@@ -267,7 +273,9 @@ function checkEnum(declaration: EnumDeclaration, diagnostics: Diagnostic[]): voi
   const names = new Set<string>();
   for (const member of declaration.members) {
     // A member whose name repeats an earlier one has already been reported.
-    if (names.has(member.name.value)) continue;
+    if (names.has(member.name.value)) {
+continue;
+}
     names.add(member.name.value);
     // A member with no `:=` has its name as its `TEXT` value.
     const key = member.value === undefined ? `TEXT:${member.name.value}` : constantKey(member.value).key;
@@ -297,7 +305,9 @@ const AT_MOST_ONE = {
 function checkEntity(declaration: EntityDeclaration, diagnostics: Diagnostic[]): void {
   const seen = new Map<string, Position>();
   for (const entityLine of declaration.lines) {
-    if (!(entityLine.type in AT_MOST_ONE)) continue;
+    if (!(entityLine.type in AT_MOST_ONE)) {
+continue;
+}
     const what = AT_MOST_ONE[entityLine.type as keyof typeof AT_MOST_ONE];
     const earlier = seen.get(entityLine.type);
     if (earlier === undefined) {

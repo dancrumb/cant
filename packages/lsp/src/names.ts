@@ -10,16 +10,24 @@ export interface NameAt {
 
 /** Every node of a syntax tree, each with its parent, in source order. */
 export function* walk(node: unknown, parent?: Node): Generator<{ node: Node; parent: Node | undefined }> {
-  if (typeof node !== 'object' || node === null) return;
+  if (typeof node !== 'object' || node === null) {
+return;
+}
   if (Array.isArray(node)) {
-    for (const child of node) yield* walk(child, parent);
+    for (const child of node) {
+yield* walk(child, parent);
+}
     return;
   }
   const typed = node as Partial<Node>;
   const isNode = typeof typed.type === 'string';
-  if (isNode) yield { node: node as Node, parent };
+  if (isNode) {
+yield { node: node as Node, parent };
+}
   for (const [key, value] of Object.entries(node)) {
-    if (key !== 'position') yield* walk(value, isNode ? (node as Node) : parent);
+    if (key !== 'position') {
+yield* walk(value, isNode ? (node as Node) : parent);
+}
   }
 }
 
@@ -29,10 +37,14 @@ export type Meaning = { kind: 'symbol'; symbol: ModuleSymbol } | { kind: 'local'
 /** What a name means: the symbol it refers to, the local it is, or the symbol it declares. */
 export function meaning(module: Module, program: CheckedProgram, { node, parent }: NameAt): Meaning | undefined {
   const symbol = program.references.get(node);
-  if (symbol !== undefined) return { kind: 'symbol', symbol };
+  if (symbol !== undefined) {
+return { kind: 'symbol', symbol };
+}
   if (node.type === 'identifier') {
     const binding = program.locals.get(node);
-    if (binding !== undefined) return { kind: 'local', binding };
+    if (binding !== undefined) {
+return { kind: 'local', binding };
+}
   }
   // The name a top-level declaration declares.
   const declaration = module.program?.children.find((child) => child === parent);
@@ -43,7 +55,9 @@ export function meaning(module: Module, program: CheckedProgram, { node, parent 
     case 'entity':
     case 'enumDeclaration':
     case 'errorDeclaration':
-      if (declaration.name === node) return { kind: 'symbol', symbol: symbolOf(module.path, declaration) };
+      if (declaration.name === node) {
+return { kind: 'symbol', symbol: symbolOf(module.path, declaration) };
+}
       break;
     default:
       break;

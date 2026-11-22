@@ -37,12 +37,16 @@ const cantTokens = (source: string, sourceOffset: number): SemanticToken[] => {
   const tokens = tokenize(source).flatMap((token) => {
     const type = TOKEN_TYPE_BY_KIND[token.kind];
     const { start, end } = token.position;
-    if (type === undefined || start.offset === undefined || end.offset === undefined) return [];
+    if (type === undefined || start.offset === undefined || end.offset === undefined) {
+return [];
+}
     return [{ type, start: sourceOffset + start.offset, length: end.offset - start.offset }];
   });
   const found = comments(source).flatMap(({ position }) => {
     const { start, end } = position;
-    if (start.offset === undefined || end.offset === undefined) return [];
+    if (start.offset === undefined || end.offset === undefined) {
+return [];
+}
     return [{ type: 'comment' as const, start: sourceOffset + start.offset, length: end.offset - start.offset }];
   });
   return [...tokens, ...found].sort((a, b) => a.start - b.start);
@@ -60,12 +64,18 @@ const cantBlocks = (markdown: string): Region[] => {
   visit(unified().use(remarkParse).parse(markdown), 'code', (node) => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
-    if (start === undefined || end === undefined) return;
-    if (node.lang == null || !CANT_BLOCK_LANGUAGES.has(node.lang)) return;
+    if (start === undefined || end === undefined) {
+return;
+}
+    if (node.lang == null || !CANT_BLOCK_LANGUAGES.has(node.lang)) {
+return;
+}
 
     const block = markdown.slice(start, end);
     const openingFenceEnd = block.indexOf('\n');
-    if (openingFenceEnd === -1) return;
+    if (openingFenceEnd === -1) {
+return;
+}
 
     // A block that runs to the end of the document has no closing fence to leave out.
     const lastLineStart = block.lastIndexOf('\n') + 1;

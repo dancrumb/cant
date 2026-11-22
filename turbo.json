@@ -36,6 +36,13 @@
         "generate"
       ]
     },
+    "lint:fix": {
+      "dependsOn": [
+        "^build",
+        "generate"
+      ],
+      "cache": false
+    },
     "clean": {
       "cache": false
     }

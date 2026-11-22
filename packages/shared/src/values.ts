@@ -52,7 +52,9 @@ export const dateTimeMilliseconds = (text: string): number => Date.parse(text);
  */
 export function durationMilliseconds(text: string): number {
   const match = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?)?$/.exec(text);
-  if (match === null) return Number.NaN;
+  if (match === null) {
+return Number.NaN;
+}
   const [days = '0', hours = '0', minutes = '0', seconds = '0'] = match.slice(1);
   return Math.round(((Number(days) * 24 + Number(hours)) * 60 + Number(minutes)) * 60_000 + Number(seconds) * 1000);
 }
@@ -63,7 +65,9 @@ export function durationMilliseconds(text: string): number {
  * are the same object.
  */
 export function equal(a: Value, b: Value): boolean {
-  if (a.kind === 'object' || b.kind === 'object') return a === b;
+  if (a.kind === 'object' || b.kind === 'object') {
+return a === b;
+}
   const left = a.kind === 'enum' ? a.value : a;
   const right = b.kind === 'enum' ? b.value : b;
   return left.kind === right.kind && left.value === right.value;
@@ -75,10 +79,14 @@ export function equal(a: Value, b: Value): boolean {
  * enum values by their members' values.
  */
 export function compare(a: Value, b: Value): number | undefined {
-  if (a.kind === 'object' || b.kind === 'object') return undefined;
+  if (a.kind === 'object' || b.kind === 'object') {
+return undefined;
+}
   const left = a.kind === 'enum' ? a.value : a;
   const right = b.kind === 'enum' ? b.value : b;
-  if (left.kind !== right.kind || left.kind === 'boolean') return undefined;
+  if (left.kind !== right.kind || left.kind === 'boolean') {
+return undefined;
+}
   return left.value < right.value ? -1 : left.value > right.value ? 1 : 0;
 }
 
@@ -115,7 +123,9 @@ const modelName = (object: ObjectInstance): string =>
 export function numberToText(value: number): string {
   const written = String(value);
   const exponentAt = written.indexOf('e');
-  if (exponentAt === -1) return written;
+  if (exponentAt === -1) {
+return written;
+}
 
   const negative = written.startsWith('-');
   const mantissa = written.slice(negative ? 1 : 0, exponentAt);
@@ -139,7 +149,9 @@ export function numberToText(value: number): string {
  * and left out when it is zero (docs/adr/0026-dates-and-times.md).
  */
 export function durationToText(milliseconds: number): string {
-  if (milliseconds === 0) return 'PT0S';
+  if (milliseconds === 0) {
+return 'PT0S';
+}
   const sign = milliseconds < 0 ? '-' : '';
   let rest = Math.abs(milliseconds);
   const days = Math.floor(rest / 86_400_000);
@@ -152,9 +164,16 @@ export function durationToText(milliseconds: number): string {
   const fraction = rest - seconds * 1000;
 
   let time = '';
-  if (hours > 0) time += `${String(hours)}H`;
-  if (minutes > 0) time += `${String(minutes)}M`;
-  if (fraction > 0) time += `${String(seconds)}.${String(fraction).padStart(3, '0')}S`;
-  else if (seconds > 0) time += `${String(seconds)}S`;
+  if (hours > 0) {
+time += `${String(hours)}H`;
+}
+  if (minutes > 0) {
+time += `${String(minutes)}M`;
+}
+  if (fraction > 0) {
+time += `${String(seconds)}.${String(fraction).padStart(3, '0')}S`;
+} else if (seconds > 0) {
+time += `${String(seconds)}S`;
+}
   return `${sign}P${days > 0 ? `${String(days)}D` : ''}${time === '' ? '' : `T${time}`}`;
 }

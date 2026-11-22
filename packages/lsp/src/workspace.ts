@@ -47,7 +47,9 @@ const offsetOf = (source: string, { line, character }: Position): number => {
   let offset = 0;
   for (let current = 0; current < line; current++) {
     const next = source.indexOf('\n', offset);
-    if (next === -1) return source.length;
+    if (next === -1) {
+return source.length;
+}
     offset = next + 1;
   }
   const lineEnd = source.indexOf('\n', offset);
@@ -100,7 +102,9 @@ export class Workspace {
   /** Open or change a document. */
   set(uri: Uri, text: string): void {
     const path = toPath(uri);
-    if (path === undefined) return;
+    if (path === undefined) {
+return;
+}
     this.documents.set(path, text);
     this.programs.clear();
   }
@@ -108,7 +112,9 @@ export class Workspace {
   /** Close a document: it is read from disk again. */
   close(uri: Uri): void {
     const path = toPath(uri);
-    if (path === undefined) return;
+    if (path === undefined) {
+return;
+}
     this.documents.delete(path);
     this.programs.clear();
   }
@@ -128,14 +134,20 @@ export class Workspace {
     if (program === undefined) {
       program = checkProgram(path, this.host);
       this.programs.set(path, program);
-      for (const module of program.modules.values()) if (module.program !== undefined) this.lastParsed.set(module.path, module);
+      for (const module of program.modules.values()) {
+if (module.program !== undefined) {
+this.lastParsed.set(module.path, module);
+}
+}
     }
     return program;
   }
 
   private module(uri: Uri): { program: CheckedProgram; module: Module } | undefined {
     const path = toPath(uri);
-    if (path === undefined) return undefined;
+    if (path === undefined) {
+return undefined;
+}
     const program = this.program(path);
     const module = program.modules.get(path);
     return module === undefined ? undefined : { program, module };
@@ -150,16 +162,26 @@ export class Workspace {
     const seen = new Set<string>();
     for (const path of this.documents.keys()) {
       const program = this.program(path);
-      for (const module of program.modules.keys()) if (isFile(module) && !byFile.has(module)) byFile.set(module, []);
+      for (const module of program.modules.keys()) {
+if (isFile(module) && !byFile.has(module)) {
+byFile.set(module, []);
+}
+}
       for (const diagnostic of program.diagnostics) {
         const file = diagnostic.file ?? path;
-        if (!isFile(file)) continue;
+        if (!isFile(file)) {
+continue;
+}
         // A module that several open documents import is reported once.
         const key = `${file}:${String(diagnostic.position.start.offset)}:${diagnostic.code}:${diagnostic.message}`;
-        if (seen.has(key)) continue;
+        if (seen.has(key)) {
+continue;
+}
         seen.add(key);
         let list = byFile.get(file);
-        if (list === undefined) byFile.set(file, (list = []));
+        if (list === undefined) {
+byFile.set(file, (list = []));
+}
         list.push(toDiagnostic(diagnostic));
       }
     }
@@ -169,7 +191,9 @@ export class Workspace {
   /** The name at a position in a document, and what it means. */
   private meaningAt(uri: Uri, position: Position): { module: Module; program: CheckedProgram; name: NameAt; meaning: Meaning | undefined } | undefined {
     const found = this.module(uri);
-    if (found?.module.program === undefined) return undefined;
+    if (found?.module.program === undefined) {
+return undefined;
+}
     const { module, program } = found;
     const offset = offsetOf(module.source, position);
 
@@ -177,11 +201,15 @@ export class Workspace {
     for (const { node, parent } of walk(module.program)) {
       if ((node.type === 'identifier' || node.type === 'qualifiedIdentifier') && contains(node.position, offset)) {
         // The innermost name wins, except that a part of a qualified name means the whole.
-        if (best?.node.type === 'qualifiedIdentifier' && node.type === 'identifier' && parent === best.node) continue;
+        if (best?.node.type === 'qualifiedIdentifier' && node.type === 'identifier' && parent === best.node) {
+continue;
+}
         best = { node: node as Identifier | QualifiedIdentifier, parent };
       }
     }
-    if (best === undefined) return undefined;
+    if (best === undefined) {
+return undefined;
+}
     return { module, program, name: best, meaning: meaning(module, program, best) };
   }
 
@@ -189,7 +217,9 @@ export class Workspace {
   semanticTokens(uri: Uri): number[] {
     const path = toPath(uri);
     const source = path === undefined ? undefined : this.documents.get(path);
-    if (source === undefined) return [];
+    if (source === undefined) {
+return [];
+}
     const found = this.module(uri);
     return semanticTokens(source, found?.module, found?.program);
   }
@@ -197,24 +227,36 @@ export class Workspace {
   /** Where the name at a position is declared. */
   definition(uri: Uri, position: Position): Location | undefined {
     const found = this.meaningAt(uri, position);
-    if (found?.meaning === undefined) return undefined;
-    if (found.meaning.kind === 'local') return { uri, range: toRange(found.meaning.binding.declaration.position) };
+    if (found?.meaning === undefined) {
+return undefined;
+}
+    if (found.meaning.kind === 'local') {
+return { uri, range: toRange(found.meaning.binding.declaration.position) };
+}
     const { symbol } = found.meaning;
-    if (symbol.declaration === undefined || !isFile(symbol.module)) return undefined;
+    if (symbol.declaration === undefined || !isFile(symbol.module)) {
+return undefined;
+}
     return { uri: toUri(symbol.module), range: toRange(symbol.declaration.name.position) };
   }
 
   /** Everywhere the name at a position is used, in the program of the document it is in. */
   references(uri: Uri, position: Position, includeDeclaration: boolean): Location[] {
     const found = this.meaningAt(uri, position);
-    if (found?.meaning === undefined) return [];
+    if (found?.meaning === undefined) {
+return [];
+}
     const { meaning, program } = found;
     const locations: Location[] = [];
 
     if (meaning.kind === 'local') {
       for (const [identifier, binding] of program.locals) {
-        if (binding.declaration !== meaning.binding.declaration) continue;
-        if (identifier === binding.declaration && !includeDeclaration) continue;
+        if (binding.declaration !== meaning.binding.declaration) {
+continue;
+}
+        if (identifier === binding.declaration && !includeDeclaration) {
+continue;
+}
         locations.push({ uri, range: toRange(identifier.position) });
       }
     } else {
@@ -223,9 +265,13 @@ export class Workspace {
         locations.push({ uri: toUri(symbol.module), range: toRange(symbol.declaration.name.position) });
       }
       for (const module of program.modules.values()) {
-        if (!isFile(module.path)) continue;
+        if (!isFile(module.path)) {
+continue;
+}
         for (const { node } of walk(module.program)) {
-          if (node.type !== 'identifier' && node.type !== 'qualifiedIdentifier') continue;
+          if (node.type !== 'identifier' && node.type !== 'qualifiedIdentifier') {
+continue;
+}
           const referred = program.references.get(node as Name);
           if (referred !== undefined && sameSymbol(referred, symbol)) {
             locations.push({ uri: toUri(module.path), range: toRange((node as Name).position) });
@@ -239,7 +285,9 @@ export class Workspace {
   /** What the name at a position is: its declaration, as it is written. */
   hover(uri: Uri, position: Position): Hover | undefined {
     const found = this.meaningAt(uri, position);
-    if (found?.meaning === undefined) return undefined;
+    if (found?.meaning === undefined) {
+return undefined;
+}
     const { meaning, program, module, name } = found;
     const range = toRange(name.node.position);
 
@@ -250,7 +298,9 @@ export class Workspace {
     const { symbol } = meaning;
     const where = symbol.declaration === undefined ? 'the standard library' : symbol.module === module.path ? undefined : symbol.module;
     const title = `(${describeKind(symbol)}) ${symbol.name}${where === undefined ? '' : ` — from ${where.startsWith('cant::') ? symbol.module : where}`}`;
-    if (symbol.declaration === undefined) return markdown(title, undefined, range);
+    if (symbol.declaration === undefined) {
+return markdown(title, undefined, range);
+}
     const source = program.modules.get(symbol.module)?.source;
     return markdown(title, source === undefined ? undefined : declarationText(source, symbol.declaration), range);
   }
@@ -258,11 +308,15 @@ export class Workspace {
   /** The outline of a document: its top-level declarations, and their parameters, fields and members. */
   symbols(uri: Uri): DocumentSymbol[] {
     const found = this.module(uri);
-    if (found?.module.program === undefined) return [];
+    if (found?.module.program === undefined) {
+return [];
+}
     const symbols: DocumentSymbol[] = [];
     for (const declaration of found.module.program.children) {
       const kind = SYMBOL_KINDS[declaration.type];
-      if (kind === undefined) continue;
+      if (kind === undefined) {
+continue;
+}
       const range = toRange(declaration.position);
       const symbol = (name: string, selection: UnistPosition, children: DocumentSymbol[] = []): DocumentSymbol => ({
         name,
@@ -352,22 +406,36 @@ export class Workspace {
    */
   completions(uri: Uri, position: Position): CompletionItem[] {
     const path = toPath(uri);
-    if (path === undefined) return [];
+    if (path === undefined) {
+return [];
+}
     const current = this.module(uri)?.module;
     const module = current?.program === undefined ? this.lastParsed.get(path) : current;
     const items = new Map<string, CompletionItem>();
     const add = (item: CompletionItem): void => {
-      if (!items.has(item.label)) items.set(item.label, item);
+      if (!items.has(item.label)) {
+items.set(item.label, item);
+}
     };
 
-    for (const keyword of KEYWORDS) add({ label: keyword, kind: CompletionItemKind.Keyword });
-    if (module === undefined) return [...items.values()];
+    for (const keyword of KEYWORDS) {
+add({ label: keyword, kind: CompletionItemKind.Keyword });
+}
+    if (module === undefined) {
+return [...items.values()];
+}
 
     const prefix = (namespace: string): string => (namespace === MAIN_NAMESPACE ? '' : `${namespace}::`);
     for (const [namespace, declared] of module.symbols?.namespaces ?? []) {
-      for (const name of declared.types.keys()) add({ label: prefix(namespace) + name, kind: CompletionItemKind.Class });
-      for (const name of declared.actions.keys()) add({ label: prefix(namespace) + name, kind: CompletionItemKind.Function });
-      for (const name of declared.constants.keys()) add({ label: prefix(namespace) + name, kind: CompletionItemKind.Constant });
+      for (const name of declared.types.keys()) {
+add({ label: prefix(namespace) + name, kind: CompletionItemKind.Class });
+}
+      for (const name of declared.actions.keys()) {
+add({ label: prefix(namespace) + name, kind: CompletionItemKind.Function });
+}
+      for (const name of declared.constants.keys()) {
+add({ label: prefix(namespace) + name, kind: CompletionItemKind.Constant });
+}
     }
     for (const [namespace, imported] of module.imported) {
       for (const [name, { symbol }] of imported) {
@@ -415,18 +483,26 @@ const nameText = (name: Name): string => (name.type === 'qualifiedIdentifier' ? 
 /** A declaration's text: an action's signature, or the first lines of anything else. */
 function declarationText(source: string, declaration: Node & { type: string }): string | undefined {
   const { start, end } = declaration.position ?? {};
-  if (start?.offset === undefined || end?.offset === undefined) return undefined;
+  if (start?.offset === undefined || end?.offset === undefined) {
+return undefined;
+}
   const lines = source.slice(start.offset, end.offset).split(/\r?\n/);
-  if (declaration.type === 'action') return lines[0];
+  if (declaration.type === 'action') {
+return lines[0];
+}
   const shown = lines.slice(0, HOVER_LINES);
-  if (lines.length > HOVER_LINES) shown.push('    …');
+  if (lines.length > HOVER_LINES) {
+shown.push('    …');
+}
   return shown.join('\n');
 }
 
 /** The line that declares a local: its parameter or field, or the statement that assigns it. */
 function declarationOfLocal(module: Module, binding: LocalBinding): string | undefined {
   for (const { node, parent } of walk(module.program)) {
-    if (node !== binding.declaration || parent?.position?.start.offset === undefined) continue;
+    if (node !== binding.declaration || parent?.position?.start.offset === undefined) {
+continue;
+}
     if (parent.type === 'parameter' || parent.type === 'field') {
       return module.source.slice(parent.position.start.offset, parent.position.end.offset);
     }

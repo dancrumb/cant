@@ -145,7 +145,9 @@ class BodyResolver {
           this.fields(declaration.fields);
           break;
         case 'errorDeclaration':
-          if (Array.isArray(declaration.data)) this.fields(declaration.data);
+          if (Array.isArray(declaration.data)) {
+this.fields(declaration.data);
+}
           break;
         case 'trigger':
           this.trigger(declaration);
@@ -167,7 +169,9 @@ class BodyResolver {
       parameters.names.set(parameter.name.value, { kind: 'parameter', declaration: parameter.name });
     }
     for (const parameter of declaration.parameters) {
-      if (parameter.defaultValue !== undefined) this.expression(parameter.defaultValue, parameters);
+      if (parameter.defaultValue !== undefined) {
+this.expression(parameter.defaultValue, parameters);
+}
     }
     this.block(declaration.children, new Scope(parameters));
   }
@@ -176,8 +180,14 @@ class BodyResolver {
   private fields(fields: Field[]): void {
     this.context = 'field';
     const scope = new Scope();
-    for (const field of fields) scope.names.set(field.name.value, { kind: 'field', declaration: field.name });
-    for (const field of fields) if (field.defaultValue !== undefined) this.expression(field.defaultValue, scope);
+    for (const field of fields) {
+scope.names.set(field.name.value, { kind: 'field', declaration: field.name });
+}
+    for (const field of fields) {
+if (field.defaultValue !== undefined) {
+this.expression(field.defaultValue, scope);
+}
+}
   }
 
   private trigger(declaration: TriggerDeclaration): void {
@@ -202,8 +212,12 @@ class BodyResolver {
     }
 
     this.context = 'trigger';
-    if (declaration.auth !== undefined) this.expression(declaration.auth, scope);
-    for (const argument of declaration.arguments ?? []) this.expression(argument.value, scope);
+    if (declaration.auth !== undefined) {
+this.expression(declaration.auth, scope);
+}
+    for (const argument of declaration.arguments ?? []) {
+this.expression(argument.value, scope);
+}
     const action = this.references.get(declaration.action);
     if (action?.declaration?.type === 'action') {
       this.checkArguments(
@@ -223,7 +237,9 @@ class BodyResolver {
   // ----- Statements -----
 
   private block(statements: Statement[], scope: Scope): void {
-    for (const statement of statements) this.statement(statement, scope);
+    for (const statement of statements) {
+this.statement(statement, scope);
+}
   }
 
   private statement(statement: Statement, scope: Scope): void {
@@ -233,8 +249,11 @@ class BodyResolver {
         break;
       case 'assignment':
         this.expression(statement.value, scope);
-        if (statement.target.type === 'identifier') this.declare(statement.target, scope, 'local');
-        else this.expression(statement.target, scope);
+        if (statement.target.type === 'identifier') {
+this.declare(statement.target, scope, 'local');
+} else {
+this.expression(statement.target, scope);
+}
         break;
       case 'delete':
         this.expression(statement.target, scope);
@@ -248,15 +267,21 @@ class BodyResolver {
         }
         break;
       case 'raise':
-        for (const argument of statement.arguments ?? []) this.expression(argument.value, scope);
-        if (statement.data !== undefined) this.expression(statement.data, scope);
+        for (const argument of statement.arguments ?? []) {
+this.expression(argument.value, scope);
+}
+        if (statement.data !== undefined) {
+this.expression(statement.data, scope);
+}
         break;
       case 'pass':
         this.expression(statement.argument, scope);
         break;
       case 'assert':
         this.expression(statement.test, scope);
-        if (statement.message !== undefined) this.expression(statement.message, scope);
+        if (statement.message !== undefined) {
+this.expression(statement.message, scope);
+}
         break;
       case 'break':
       case 'continue':
@@ -286,8 +311,11 @@ class BodyResolver {
       case 'if':
         this.expression(statement.test, scope);
         for (const branch of statement.children) {
-          if (branch.type === 'if') this.statement(branch, scope);
-          else this.block(branch.children, new Scope(scope));
+          if (branch.type === 'if') {
+this.statement(branch, scope);
+} else {
+this.block(branch.children, new Scope(scope));
+}
         }
         break;
     }
@@ -332,11 +360,17 @@ class BodyResolver {
         this.builtIn(expression);
         break;
       case 'string':
-        for (const part of expression.parts) if (part.type === 'interpolation') this.expression(part.expression, scope);
+        for (const part of expression.parts) {
+if (part.type === 'interpolation') {
+this.expression(part.expression, scope);
+}
+}
         break;
       case 'array':
       case 'set':
-        for (const element of expression.elements) this.expression(element, scope);
+        for (const element of expression.elements) {
+this.expression(element, scope);
+}
         break;
       case 'object':
         for (const item of expression.items) {
@@ -364,7 +398,9 @@ class BodyResolver {
         }
         break;
       case 'member':
-        if (!this.enumMember(expression, scope)) this.expression(expression.object, scope);
+        if (!this.enumMember(expression, scope)) {
+this.expression(expression.object, scope);
+}
         break;
       case 'index':
         this.expression(expression.object, scope);
@@ -385,7 +421,9 @@ class BodyResolver {
         break;
       case 'canPredicate':
         this.builtIn(expression.subject);
-        if (expression.group !== undefined) this.expression(expression.group, scope);
+        if (expression.group !== undefined) {
+this.expression(expression.group, scope);
+}
         break;
       case 'rolePredicate':
         this.builtIn(expression.subject);
@@ -480,12 +518,20 @@ class BodyResolver {
   /** `Status.InProgress`, when `Status` names an enum and isn't shadowed by a local. Returns whether it was one. */
   private enumMember(expression: Extract<Expression, { type: 'member' }>, scope: Scope): boolean {
     const object = expression.object;
-    if (object.type !== 'identifier' && object.type !== 'qualifiedIdentifier') return false;
-    if (object.type === 'identifier' && scope.find(object.value) !== undefined) return false;
+    if (object.type !== 'identifier' && object.type !== 'qualifiedIdentifier') {
+return false;
+}
+    if (object.type === 'identifier' && scope.find(object.value) !== undefined) {
+return false;
+}
     const candidates = this.topLevel(object);
-    if (candidates.some((candidate) => candidate.kind === 'const')) return false;
+    if (candidates.some((candidate) => candidate.kind === 'const')) {
+return false;
+}
     const symbol = candidates.find((candidate) => candidate.typeKind === 'enum');
-    if (symbol === undefined) return false;
+    if (symbol === undefined) {
+return false;
+}
     this.references.set(object, symbol);
     const declaration = symbol.declaration;
     if (declaration?.type === 'enumDeclaration' && !declaration.members.some((member) => member.name.value === expression.property.value)) {
@@ -501,7 +547,9 @@ class BodyResolver {
   }
 
   private call(expression: CallExpression, scope: Scope): void {
-    for (const argument of expression.arguments) this.expression(argument.value, scope);
+    for (const argument of expression.arguments) {
+this.expression(argument.value, scope);
+}
 
     const callee = expression.callee;
     if (callee.type !== 'identifier' && callee.type !== 'qualifiedIdentifier') {

@@ -27,7 +27,9 @@ export function formatDiagnostic(file: string, source: string, diagnostic: Diagn
   const { start, end } = diagnostic.position;
   const header = `${file}:${String(start.line)}:${String(start.column)}: ${diagnostic.severity}: ${diagnostic.message}`;
   const line = source.split(/\r?\n/)[start.line - 1];
-  if (line === undefined) return header;
+  if (line === undefined) {
+return header;
+}
 
   // Underline to the end of the position, or to the end of the line if it runs onto later lines.
   const width = end.line === start.line ? Math.max(1, end.column - start.column) : Math.max(1, line.length - start.column + 1);

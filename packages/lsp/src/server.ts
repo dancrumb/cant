@@ -27,14 +27,20 @@ let timer: NodeJS.Timeout | undefined;
 const publish = (): void => {
   const diagnostics = workspace.diagnostics();
   for (const uri of published) {
-    if (!diagnostics.has(uri)) void connection.sendDiagnostics({ uri, diagnostics: [] });
+    if (!diagnostics.has(uri)) {
+void connection.sendDiagnostics({ uri, diagnostics: [] });
+}
   }
-  for (const [uri, list] of diagnostics) void connection.sendDiagnostics({ uri, diagnostics: list });
+  for (const [uri, list] of diagnostics) {
+void connection.sendDiagnostics({ uri, diagnostics: list });
+}
   published = new Set(diagnostics.keys());
 };
 
 const schedule = (): void => {
-  if (timer !== undefined) clearTimeout(timer);
+  if (timer !== undefined) {
+clearTimeout(timer);
+}
   timer = setTimeout(() => {
     timer = undefined;
     publish();
@@ -93,16 +99,22 @@ connection.languages.semanticTokens.on(({ textDocument }) => ({ data: workspace.
  */
 connection.onDocumentFormatting(({ textDocument }) => {
   const document = documents.get(textDocument.uri);
-  if (document === undefined) return [];
+  if (document === undefined) {
+return [];
+}
   const source = document.getText();
   let formatted: string;
   try {
     formatted = format(source);
   } catch (caught) {
-    if (!(caught instanceof ParseError)) connection.console.error(`Couldn't format ${textDocument.uri}: ${String(caught)}`);
+    if (!(caught instanceof ParseError)) {
+connection.console.error(`Couldn't format ${textDocument.uri}: ${String(caught)}`);
+}
     return [];
   }
-  if (formatted === source) return [];
+  if (formatted === source) {
+return [];
+}
   return [TextEdit.replace(Range.create(document.positionAt(0), document.positionAt(source.length)), formatted)];
 });
 

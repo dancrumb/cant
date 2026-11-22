@@ -48,7 +48,9 @@ export type CompileResult = { program: CompiledProgram; sourceMap: SourceMap; ro
  */
 export function compile(entry: string, host: Host = fileSystemHost): CompileResult {
   const checked = checkProgram(entry, host);
-  if (checked.diagnostics.length > 0) return { diagnostics: checked.diagnostics };
+  if (checked.diagnostics.length > 0) {
+return { diagnostics: checked.diagnostics };
+}
   return new Compiler(checked).compile();
 }
 
@@ -88,7 +90,9 @@ class Compiler {
   // ----- Names -----
 
   private moduleId(path: string): string {
-    if (path.startsWith('cant::')) return path;
+    if (path.startsWith('cant::')) {
+return path;
+}
     return relative(this.root, path).split(sep).join('/');
   }
 
@@ -123,7 +127,9 @@ class Compiler {
     for (const module of this.checked.modules.values()) {
       this.module = module;
       for (const declaration of module.program?.children ?? []) {
-        if (declaration.type !== 'relation') continue;
+        if (declaration.type !== 'relation') {
+continue;
+}
         this.relationIndexes.set(declaration, program.relations.length);
         program.relations.push(this.relation(declaration));
       }
@@ -173,7 +179,9 @@ class Compiler {
             break;
           case 'trigger':
             // Only the entry module's triggers take effect (docs/adr/0006-imports.md).
-            if (module.path === this.checked.entry) program.triggers.push(this.trigger(declaration));
+            if (module.path === this.checked.entry) {
+program.triggers.push(this.trigger(declaration));
+}
             break;
           default:
             break;
@@ -185,7 +193,9 @@ class Compiler {
 
     program.build = createHash('sha256').update(JSON.stringify(program)).digest('hex').slice(0, 16);
     const sources: Record<string, string> = {};
-    for (const module of this.checked.modules.values()) sources[this.moduleId(module.path)] = module.source;
+    for (const module of this.checked.modules.values()) {
+sources[this.moduleId(module.path)] = module.source;
+}
     return { program, sourceMap: { format: COMPILED_FORMAT, build: program.build, sources }, root: this.root };
   }
 
@@ -195,9 +205,13 @@ class Compiler {
    * its declarations; for any other, they come from its source. None of them has data.
    */
   private standardLibrary(program: CompiledProgram): void {
-    if (this.checked.modules.has(standardPath('Errors'))) return;
+    if (this.checked.modules.has(standardPath('Errors'))) {
+return;
+}
     for (const declaration of parse(STANDARD_SOURCES.get('Errors') ?? '').children) {
-      if (declaration.type === 'errorDeclaration') program.types[`${standardPath('Errors')}#${declaration.name.value}`] = { kind: 'error' };
+      if (declaration.type === 'errorDeclaration') {
+program.types[`${standardPath('Errors')}#${declaration.name.value}`] = { kind: 'error' };
+}
     }
   }
 
@@ -208,7 +222,9 @@ class Compiler {
   /** The symbol ID a name in a declaration refers to. */
   private reference(name: Expression | TypeRef): string {
     const symbol = name.type === 'identifier' || name.type === 'qualifiedIdentifier' ? this.checked.references.get(name) : undefined;
-    if (symbol === undefined) throw new Error(`The compiler couldn't resolve a name at ${this.where(name.position)}.`);
+    if (symbol === undefined) {
+throw new Error(`The compiler couldn't resolve a name at ${this.where(name.position)}.`);
+}
     return this.symbolId(symbol);
   }
 
@@ -242,7 +258,9 @@ class Compiler {
       case 'identifier':
       case 'qualifiedIdentifier': {
         // An internal type of the standard library has no declaration to name (docs/adr/0042-io.md).
-        if (this.checked.references.get(ref)?.typeKind === 'internal') return this.fromType(this.checkedType(ref));
+        if (this.checked.references.get(ref)?.typeKind === 'internal') {
+return this.fromType(this.checkedType(ref));
+}
         return { kind: 'named', symbol: this.reference(ref) };
       }
     }
@@ -260,7 +278,9 @@ class Compiler {
       case 'nothing':
         return { kind: 'nothing' };
       case 'enum':
-        if (type.symbol !== undefined) return { kind: 'named', symbol: this.symbolId(type.symbol) };
+        if (type.symbol !== undefined) {
+return { kind: 'named', symbol: this.symbolId(type.symbol) };
+}
         return { kind: 'enum', values: [...type.values].map(baseFromKey) };
       case 'array':
       case 'set':
@@ -327,27 +347,39 @@ class Compiler {
     const order: number[] = [];
     const done = new Set<number>();
     const visit = (index: number): void => {
-      if (done.has(index)) return;
+      if (done.has(index)) {
+return;
+}
       done.add(index);
       const item = items[index];
-      if (item?.defaultValue === undefined) return;
+      if (item?.defaultValue === undefined) {
+return;
+}
       walk(item.defaultValue, (node) => {
-        if (node.type !== 'identifier') return;
+        if (node.type !== 'identifier') {
+return;
+}
         const binding = this.checked.locals.get(node as Identifier);
         const used = binding?.kind === kind ? indexes.get(binding.declaration) : undefined;
-        if (used !== undefined) visit(used);
+        if (used !== undefined) {
+visit(used);
+}
       });
       order.push(index);
     };
     items.forEach((item, index) => {
-      if (item.defaultValue !== undefined) visit(index);
+      if (item.defaultValue !== undefined) {
+visit(index);
+}
     });
     return order;
   }
 
   private action(action: ActionDeclaration): CompiledAction {
     const frame = new Frame();
-    for (const parameter of action.parameters) frame.slot(parameter.name);
+    for (const parameter of action.parameters) {
+frame.slot(parameter.name);
+}
     const parameters = action.parameters.map((parameter) => ({
       name: parameter.name.value,
       type: this.typeRef(parameter.valueType),
@@ -397,11 +429,19 @@ class Compiler {
       entity.lines.filter((line) => line.type === 'hideBlock').flatMap((line) => line.items.flatMap((item) => (item.type === 'identifier' ? [item.value] : []))),
     );
     if (items.some((item) => item.type === 'builtIn')) {
-      for (const name of modelFields) if (!hidden.has(name)) exposed.set(name, name);
+      for (const name of modelFields) {
+if (!hidden.has(name)) {
+exposed.set(name, name);
+}
+}
     }
     for (const item of items) {
-      if (item.type === 'builtIn') continue;
-      if (item.as !== undefined) exposed.delete(item.field.value);
+      if (item.type === 'builtIn') {
+continue;
+}
+      if (item.as !== undefined) {
+exposed.delete(item.field.value);
+}
       exposed.set(item.as?.value ?? item.field.value, item.field.value);
     }
 
@@ -455,10 +495,14 @@ class Compiler {
         continue;
       }
       const value = this.values.value(parameter.value);
-      if (value !== undefined) parameters[parameter.name.value] = value;
+      if (value !== undefined) {
+parameters[parameter.name.value] = value;
+}
     }
     const args: Record<string, CompiledExpression> = {};
-    for (const argument of trigger.arguments ?? []) args[argument.name.value] = this.expression(argument.value, frame);
+    for (const argument of trigger.arguments ?? []) {
+args[argument.name.value] = this.expression(argument.value, frame);
+}
     return {
       action: this.reference(trigger.action),
       source: trigger.source.value,
@@ -479,11 +523,15 @@ class Compiler {
     const entityName = value.items.find((item) => item.name.type === 'builtIn' && item.name.name === 'entity')?.value;
     const entity = entityName === undefined ? undefined : this.checked.references.get(entityName as Identifier);
     const declaration = entity?.declaration;
-    if (entity === undefined || declaration?.type !== 'entity') return undefined;
+    if (entity === undefined || declaration?.type !== 'entity') {
+return undefined;
+}
     const modelName = declaration.lines.find((line) => line.type === 'modelsBlock')?.models[0];
     const model = modelName === undefined ? undefined : this.checked.references.get(modelName);
     const fields = this.values.value(value);
-    if (fields === undefined || model?.declaration?.type !== 'model') return undefined;
+    if (fields === undefined || model?.declaration?.type !== 'model') {
+return undefined;
+}
     return { entity: this.symbolId(entity), fields: this.convertValue(fields, { kind: 'model', symbol: model, declaration: model.declaration }) };
   }
 
@@ -503,17 +551,25 @@ class Compiler {
       const members: [string, Value][] = [];
       for (const field of declaration.fields) {
         const member = given.get(field.name.value);
-        if (member !== undefined) known.set(field.name, this.convertValue(member, this.checkedType(field.valueType)));
+        if (member !== undefined) {
+known.set(field.name, this.convertValue(member, this.checkedType(field.valueType)));
+}
       }
       for (const index of this.defaultOrder(declaration.fields, 'field')) {
         const field = declaration.fields[index];
-        if (field?.defaultValue === undefined || given.has(field.name.value)) continue;
+        if (field?.defaultValue === undefined || given.has(field.name.value)) {
+continue;
+}
         const defaulted = this.values.value(field.defaultValue, this.checked.locals, known);
-        if (defaulted !== undefined) known.set(field.name, defaulted);
+        if (defaulted !== undefined) {
+known.set(field.name, defaulted);
+}
       }
       for (const field of declaration.fields) {
         const member = known.get(field.name);
-        if (member !== undefined) members.push([field.name.value, member]);
+        if (member !== undefined) {
+members.push([field.name.value, member]);
+}
       }
       const object: ObjectInstance = { kind: 'object', model: this.symbolId(type.symbol), members };
       return object;
@@ -543,14 +599,22 @@ class Compiler {
         return this.statement(statement.statement, frame, true);
       case 'return': {
         const argument = statement.argument;
-        if (argument === undefined) return { type: 'return', position };
-        if (argument.type === 'nothing') return { type: 'return', value: { type: 'nothing' }, position };
+        if (argument === undefined) {
+return { type: 'return', position };
+}
+        if (argument.type === 'nothing') {
+return { type: 'return', value: { type: 'nothing' }, position };
+}
         return { type: 'return', value: this.expression(argument, frame), position };
       }
       case 'raise': {
         const error = this.reference(statement.error);
-        if (statement.data !== undefined) return { type: 'raise', error, data: this.expression(statement.data, frame), position };
-        if (statement.arguments === undefined) return { type: 'raise', error, position };
+        if (statement.data !== undefined) {
+return { type: 'raise', error, data: this.expression(statement.data, frame), position };
+}
+        if (statement.arguments === undefined) {
+return { type: 'raise', error, position };
+}
         // The data's fields, which the interpreter makes into the error's data, filling in defaults.
         const members: [string, CompiledExpression][] = statement.arguments.map((argument) => [
           argument.name?.value ?? (argument.value.type === 'identifier' ? argument.value.value : ''),
@@ -616,7 +680,9 @@ class Compiler {
     if (target !== undefined && expression.type === 'object' && (target.kind === 'model' || target.kind === 'map')) {
       const fields = target.kind === 'model' ? this.checked.types.modelFields(target.declaration) : undefined;
       const members = this.members(expression, frame, (name) => {
-        if (target.kind === 'map') return target.value;
+        if (target.kind === 'map') {
+return target.value;
+}
         const field = fields?.get(name)?.type;
         return field?.kind === 'optional' ? field.inner : field;
       });
@@ -634,13 +700,23 @@ class Compiler {
     }
 
     let node = this.plain(expression, frame);
-    if (this.checked.types.unwrapped.has(expression)) node = { type: 'unwrap', value: node, position };
-    if (target === undefined) return node;
+    if (this.checked.types.unwrapped.has(expression)) {
+node = { type: 'unwrap', value: node, position };
+}
+    if (target === undefined) {
+return node;
+}
 
     let from = this.checked.types.types.get(expression);
-    if (from?.kind === 'result') from = from.value;
-    if (from?.kind === 'optional') from = from.inner;
-    if (from === undefined) return node;
+    if (from?.kind === 'result') {
+from = from.value;
+}
+    if (from?.kind === 'optional') {
+from = from.inner;
+}
+    if (from === undefined) {
+return node;
+}
 
     // A value of an enum's value type, given for the enum (docs/adr/0013-enums.md).
     if (target.kind === 'enum' && from.kind === 'base') {
@@ -650,8 +726,12 @@ class Compiler {
       }
       return { type: 'toEnum', enum: enumType, value: node, position };
     }
-    if (target.kind === 'model' && from.kind === 'anonymous') return { type: 'construct', model: this.symbolId(target.symbol), value: node, position };
-    if (target.kind === 'map' && from.kind === 'anonymous') return { type: 'toMap', value: node, position };
+    if (target.kind === 'model' && from.kind === 'anonymous') {
+return { type: 'construct', model: this.symbolId(target.symbol), value: node, position };
+}
+    if (target.kind === 'map' && from.kind === 'anonymous') {
+return { type: 'toMap', value: node, position };
+}
     return node;
   }
 
@@ -659,7 +739,9 @@ class Compiler {
   private members(expression: Extract<Expression, { type: 'object' }>, frame: Frame, expected: (name: string) => Type | undefined): [string, CompiledExpression][] {
     const members: [string, CompiledExpression][] = [];
     for (const item of expression.items) {
-      if (item.name.type === 'builtIn') continue;
+      if (item.name.type === 'builtIn') {
+continue;
+}
       const name = item.name.type === 'identifier' ? item.name.value : this.text(item.name);
       members.push([name, this.expression(item.value, frame, expected(name))]);
     }
@@ -676,7 +758,9 @@ class Compiler {
       case 'duration':
         return { type: 'value', value: this.base(expression), position };
       case 'string':
-        if (expression.parts.every((part) => part.type === 'text')) return { type: 'value', value: { kind: 'text', value: this.text(expression) }, position };
+        if (expression.parts.every((part) => part.type === 'text')) {
+return { type: 'value', value: { kind: 'text', value: this.text(expression) }, position };
+}
         return {
           type: 'template',
           parts: expression.parts.map((part) => (part.type === 'text' ? part.value : this.expression(part.expression, frame))),
@@ -707,7 +791,9 @@ class Compiler {
         const enumSymbol = object.type === 'identifier' || object.type === 'qualifiedIdentifier' ? this.checked.references.get(object) : undefined;
         if (enumSymbol?.typeKind === 'enum' && (object.type !== 'identifier' || this.checked.locals.get(object) === undefined)) {
           const value = this.values.value(expression);
-          if (value !== undefined) return { type: 'value', value, position };
+          if (value !== undefined) {
+return { type: 'value', value, position };
+}
         }
         return { type: 'member', object: this.expression(object, frame), name: expression.property.value, position };
       }
@@ -745,7 +831,9 @@ class Compiler {
     const position = this.position(expression.position);
     const callee = expression.callee;
     const symbol = callee.type === 'identifier' || callee.type === 'qualifiedIdentifier' ? this.checked.references.get(callee) : undefined;
-    if (symbol === undefined) throw new Error(`The compiler couldn't resolve a call at ${this.where(expression.position)}.`);
+    if (symbol === undefined) {
+throw new Error(`The compiler couldn't resolve a call at ${this.where(expression.position)}.`);
+}
     const action = symbol.declaration;
     if (action?.type !== 'action') {
       return {
@@ -769,7 +857,9 @@ class Compiler {
           : expression.arguments.length === 1 && required.length === 1
             ? required[0]?.name.value
             : undefined);
-      if (name !== undefined) byParameter.set(name, argument.value);
+      if (name !== undefined) {
+byParameter.set(name, argument.value);
+}
     }
     return {
       type: 'call',
@@ -804,13 +894,23 @@ function baseFromKey(key: string): BaseValue {
 
 /** Call `visit` on every node in an expression. */
 function walk(node: unknown, visit: (node: { type: string }) => void): void {
-  if (typeof node !== 'object' || node === null) return;
+  if (typeof node !== 'object' || node === null) {
+return;
+}
   if (Array.isArray(node)) {
-    for (const child of node) walk(child, visit);
+    for (const child of node) {
+walk(child, visit);
+}
     return;
   }
   const typed = node as { type?: unknown };
-  if (typeof typed.type === 'string') visit(node as { type: string });
-  for (const [key, value] of Object.entries(node)) if (key !== 'position') walk(value, visit);
+  if (typeof typed.type === 'string') {
+visit(node as { type: string });
+}
+  for (const [key, value] of Object.entries(node)) {
+if (key !== 'position') {
+walk(value, visit);
+}
+}
 }
 

@@ -60,7 +60,9 @@ export function evaluate(expression: Expression, scope: EvaluationScope): Evalua
   try {
     return { kind: 'value', value: new Evaluator(scope).value(expression) };
   } catch (stop) {
-    if (stop instanceof Stop) return stop.result;
+    if (stop instanceof Stop) {
+return stop.result;
+}
     throw stop;
   }
 }
@@ -94,7 +96,9 @@ class Evaluator {
         for (const item of expression.items) {
           // A built-in name, such as `@entity` in a test case's subject, names a type, not a
           // value (docs/adr/0037-test-case-trigger-source.md), so it isn't a member.
-          if (item.name.type === 'builtIn') continue;
+          if (item.name.type === 'builtIn') {
+continue;
+}
           const name = item.name.type === 'identifier' ? item.name.value : this.text(item.name);
           members.push([name, this.value(item.value)]);
         }
@@ -104,7 +108,9 @@ class Evaluator {
         const object = expression.object;
         if (object.type === 'identifier' || object.type === 'qualifiedIdentifier') {
           const member = this.scope.enumMember(object, expression.property);
-          if (member !== undefined) return member;
+          if (member !== undefined) {
+return member;
+}
         }
         return this.member(this.value(object), expression.property.value, expression);
       }
@@ -128,7 +134,9 @@ class Evaluator {
   }
 
   private member(object: Value, name: string, expression: Expression): Value {
-    if (object.kind !== 'object') return notConstant(expression);
+    if (object.kind !== 'object') {
+return notConstant(expression);
+}
     return object.members.find(([member]) => member === name)?.[1] ?? notConstant(expression);
   }
 
@@ -138,8 +146,12 @@ class Evaluator {
       case '!':
         return argument.kind === 'boolean' ? boolean(!argument.value) : notConstant(expression);
       case '-':
-        if (argument.kind === 'number') return number(-argument.value);
-        if (argument.kind === 'duration') return { kind: 'duration', value: 0 - argument.value };
+        if (argument.kind === 'number') {
+return number(-argument.value);
+}
+        if (argument.kind === 'duration') {
+return { kind: 'duration', value: 0 - argument.value };
+}
         return notConstant(expression);
       default:
         // `isEmpty` and `ignore` need optionals and results, which constants never are.
@@ -152,18 +164,28 @@ class Evaluator {
     if (operator === 'and' || operator === 'or') {
       // Short-circuiting: the right-hand side is only evaluated when it decides the result.
       const left = this.boolean(expression.left);
-      if (operator === 'and' ? !left : left) return boolean(left);
+      if (operator === 'and' ? !left : left) {
+return boolean(left);
+}
       return boolean(this.boolean(expression.right));
     }
-    if (operator === 'orElse' || operator === 'in') return notConstant(expression);
+    if (operator === 'orElse' || operator === 'in') {
+return notConstant(expression);
+}
 
     const leftValue = this.value(expression.left);
     const rightValue = this.value(expression.right);
-    if (operator === '==') return boolean(equal(leftValue, rightValue));
-    if (operator === '!=') return boolean(!equal(leftValue, rightValue));
+    if (operator === '==') {
+return boolean(equal(leftValue, rightValue));
+}
+    if (operator === '!=') {
+return boolean(!equal(leftValue, rightValue));
+}
     if (operator === '<' || operator === '<=' || operator === '>' || operator === '>=') {
       const order = compare(leftValue, rightValue);
-      if (order === undefined) return notConstant(expression);
+      if (order === undefined) {
+return notConstant(expression);
+}
       return boolean(operator === '<' ? order < 0 : operator === '<=' ? order <= 0 : operator === '>' ? order > 0 : order >= 0);
     }
 
@@ -187,11 +209,17 @@ class Evaluator {
         case '**':
           return this.finite(left.value ** right.value, expression);
         case '/':
-          if (right.value === 0) return raise('DivisionByZero', expression);
+          if (right.value === 0) {
+return raise('DivisionByZero', expression);
+}
           return this.finite(left.value / right.value, expression);
         case '%':
-          if (right.value === 0) return raise('DivisionByZero', expression);
-          if (!Number.isInteger(left.value) || !Number.isInteger(right.value)) return raise('FractionalModulo', expression);
+          if (right.value === 0) {
+return raise('DivisionByZero', expression);
+}
+          if (!Number.isInteger(left.value) || !Number.isInteger(right.value)) {
+return raise('FractionalModulo', expression);
+}
           // A mathematical modulo: the result has the sign of the right operand.
           return number((((left.value % right.value) + right.value) % right.value) + 0);
         default:
@@ -225,10 +253,14 @@ class Evaluator {
       case 'number * duration':
         return duration(left.value as number * (right.value as number));
       case 'duration / number':
-        if (right.value === 0) return raise('DivisionByZero', expression);
+        if (right.value === 0) {
+return raise('DivisionByZero', expression);
+}
         return duration(left.value as number / (right.value as number));
       case 'duration / duration':
-        if (right.value === 0) return raise('DivisionByZero', expression);
+        if (right.value === 0) {
+return raise('DivisionByZero', expression);
+}
         return number(left.value as number / (right.value as number));
       default:
         return notConstant(expression);
@@ -237,7 +269,9 @@ class Evaluator {
 
   /** Cant has no `Infinity` or `NaN` (docs/adr/0019-operators.md), so a result that would be one panics. */
   private finite(value: number, expression: Expression): Value {
-    if (!Number.isFinite(value)) panic('The result is not a number Cant can hold: it is too large, or not a real number.', expression);
+    if (!Number.isFinite(value)) {
+panic('The result is not a number Cant can hold: it is too large, or not a real number.', expression);
+}
     return number(value + 0);
   }
 

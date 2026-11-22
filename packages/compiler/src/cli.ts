@@ -40,11 +40,15 @@ const checkFiles = (files: string[]): void => {
 
   for (const file of files) {
     const program = checkProgram(file, fileSystemHost);
-    if (unreadable(program.diagnostics, program.entry)) missing = true;
+    if (unreadable(program.diagnostics, program.entry)) {
+missing = true;
+}
     for (const diagnostic of program.diagnostics) {
       // A module imported by several entry files is only reported once.
       const key = `${diagnostic.file ?? ''}:${String(diagnostic.position.start.offset)}:${diagnostic.code}:${diagnostic.message}`;
-      if (seen.has(key)) continue;
+      if (seen.has(key)) {
+continue;
+}
       seen.add(key);
       problems.push(diagnostic);
     }
@@ -81,8 +85,11 @@ const build = (file: string, options: BuildOptions): void => {
 
   mkdirSync(dirname(output), { recursive: true });
   writeFileSync(output, `${JSON.stringify(result.program)}\n`);
-  if (options.sourceMap) writeFileSync(map, `${JSON.stringify(result.sourceMap)}\n`);
-  else rmSync(map, { force: true });
+  if (options.sourceMap) {
+writeFileSync(map, `${JSON.stringify(result.sourceMap)}\n`);
+} else {
+rmSync(map, { force: true });
+}
   console.log(`Wrote ${shown(output)}${options.sourceMap ? ` and ${shown(map)}` : ''}.`);
 };
 
@@ -115,13 +122,17 @@ const formatFiles = (files: string[], options: FormatOptions): void => {
     try {
       formatted = format(source);
     } catch (caught) {
-      if (!(caught instanceof ParseError)) throw caught;
+      if (!(caught instanceof ParseError)) {
+throw caught;
+}
       problems.push({ ...error('syntax', caught.message, caught.location), file: path });
       continue;
     }
 
     if (options.check === true) {
-      if (formatted !== source) unformatted.push(path);
+      if (formatted !== source) {
+unformatted.push(path);
+}
     } else if (options.write === true) {
       if (formatted !== source) {
         writeFileSync(path, formatted);
@@ -133,7 +144,9 @@ const formatFiles = (files: string[], options: FormatOptions): void => {
   }
 
   printProblems(problems);
-  for (const path of unformatted) console.error(`${shown(path)} isn't formatted.`);
+  for (const path of unformatted) {
+console.error(`${shown(path)} isn't formatted.`);
+}
   if (unformatted.length > 0) {
     const one = unformatted.length === 1;
     console.error(

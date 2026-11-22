@@ -53,7 +53,9 @@ const cat = (...docs: Doc[]): Doc => {
   const out: Doc = [];
   for (const doc of docs) {
     const [first, ...rest] = doc;
-    if (first === undefined) continue;
+    if (first === undefined) {
+continue;
+}
     const last = out.at(-1);
     if (last === undefined) {
       out.push(...doc.map((line) => ({ ...line })));
@@ -62,7 +64,9 @@ const cat = (...docs: Doc[]): Doc => {
     last.text += first.text;
     last.start = earliest(last.start, first.start);
     last.end = latest(last.end, first.end);
-    if (first.opens) last.opens = true;
+    if (first.opens) {
+last.opens = true;
+}
     // Lines after the first are relative to the line they continue from.
     out.push(...rest.map((line) => ({ ...line, depth: line.depth + last.depth })));
   }
@@ -76,8 +80,12 @@ const join = (docs: Doc[], separator: string): Doc =>
 const withBlock = (header: Doc, children: Doc[]): Doc => {
   const out = header.map((line) => ({ ...line }));
   const last = out.at(-1);
-  if (children.length === 0 && last !== undefined) last.opens = true;
-  for (const child of children) out.push(...child.map((line) => ({ ...line, depth: line.depth + 1 })));
+  if (children.length === 0 && last !== undefined) {
+last.opens = true;
+}
+  for (const child of children) {
+out.push(...child.map((line) => ({ ...line, depth: line.depth + 1 })));
+}
   return out;
 };
 
@@ -133,9 +141,15 @@ const precedence = (node: Ast.Expression): number => {
 /** The loosest operands each side of a binary operator takes without parentheses. */
 const operandPrecedence = (operator: Ast.BinaryOperator): [left: number, right: number] => {
   const own = BINARY_PRECEDENCE[operator];
-  if (operator === '**') return [PREFIX, own]; // right-associative, and its base is a prefix expression
-  if (operator === 'orElse') return [own, POSTFIX];
-  if (own === COMPARISON) return [own + 1, own + 1]; // comparisons don't chain
+  if (operator === '**') {
+return [PREFIX, own];
+} // right-associative, and its base is a prefix expression
+  if (operator === 'orElse') {
+return [own, POSTFIX];
+}
+  if (own === COMPARISON) {
+return [own + 1, own + 1];
+} // comparisons don't chain
   return [own, own + 1]; // left-associative
 };
 
@@ -398,10 +412,14 @@ class Printer {
 
   private errorData(node: Ast.ErrorDeclaration): Doc[] {
     const { data } = node;
-    if (data === undefined) return [];
+    if (data === undefined) {
+return [];
+}
     if (Array.isArray(data)) {
       const first = data[0];
-      if (first === undefined) return [];
+      if (first === undefined) {
+return [];
+}
       return [withBlock(this.keyword('data', this.tokenBefore(startOf(first))), data.map((field) => this.field(field)))];
     }
     return [cat(this.keyword('data ', this.tokenBefore(startOf(data))), this.name(data))];
@@ -456,7 +474,9 @@ class Printer {
       case 'ignoredStatement':
         return cat(text('ignore ', start), this.statement(node.statement));
       case 'return':
-        if (node.argument === undefined) return text('return', start);
+        if (node.argument === undefined) {
+return text('return', start);
+}
         return cat(
           text('return ', start),
           node.argument.type === 'nothing' ? text('NOTHING', startOf(node.argument)) : this.expression(node.argument),
@@ -501,7 +521,9 @@ class Printer {
       cat(text('if ', startOf(node)), this.expression(node.test)),
       consequent.children.map((statement) => this.statement(statement)),
     );
-    if (alternate === undefined) return head;
+    if (alternate === undefined) {
+return head;
+}
 
     const elseStart = this.tokenAfter('else', endOf(consequent));
     return stack(
@@ -581,7 +603,9 @@ class Printer {
         return cat(this.operand(node.callee, POSTFIX), text('('), this.arguments(node.arguments), text(')'));
       case 'unary': {
         const argument = this.operand(node.argument, PREFIX);
-        if (WORD_OPERATORS.has(node.operator)) return cat(text(`${node.operator} `, start), argument);
+        if (WORD_OPERATORS.has(node.operator)) {
+return cat(text(`${node.operator} `, start), argument);
+}
         // `- -a`, not `--a`, which reads as a different operator.
         const spaced = node.operator === '-' && (argument[0]?.text.startsWith('-') ?? false);
         return cat(text(spaced ? '- ' : node.operator, start), argument);
@@ -636,7 +660,9 @@ class Printer {
   }
 
   private string(node: Ast.StringLiteral): Doc {
-    if (node.parts.every((part) => part.type === 'text')) return this.slice(node);
+    if (node.parts.every((part) => part.type === 'text')) {
+return this.slice(node);
+}
     return cat(
       text('"', startOf(node)),
       ...node.parts.map((part) =>
@@ -655,7 +681,9 @@ class Printer {
     const end = endOf(node);
     const spansLines = node.position.start.line !== node.position.end.line;
     if (!spansLines || (items.length === 0 && !this.hasComment(start, end))) {
-      if (items.length === 0) return text(`${open}${close}`, start, end);
+      if (items.length === 0) {
+return text(`${open}${close}`, start, end);
+}
       const pad = open === '{' ? ' ' : '';
       return cat(text(`${open}${pad}`, start), join(items, ', '), text(`${pad}${close}`, end - close.length, end));
     }
@@ -722,12 +750,18 @@ const layout = (lines: Line[], comments: Comment[], source: string): OutputLine[
   const depthOf = (comment: Comment, nextIndex: number): number => {
     const column = comment.position.start.column - 1;
     const next = code[nextIndex];
-    if (next !== undefined && columnOf(source, next.start) === column) return next.depth;
+    if (next !== undefined && columnOf(source, next.start) === column) {
+return next.depth;
+}
     for (let index = nextIndex - 1; index >= 0; index -= 1) {
       const line = code[index];
-      if (line === undefined) continue;
+      if (line === undefined) {
+continue;
+}
       const lineColumn = columnOf(source, line.start);
-      if (lineColumn > column) continue;
+      if (lineColumn > column) {
+continue;
+}
       return lineColumn < column && opens(index) ? line.depth + 1 : line.depth;
     }
     return 0;
@@ -788,11 +822,18 @@ const render = (lines: OutputLine[], eol: string): string => {
     if (previous !== undefined && (line.trailing === undefined || line.blankBefore || line.depth !== previous.depth)) {
       flush();
     }
-    if (line.blankBefore && rendered.length > 0) rendered.push('');
-    if (line.trailing === undefined) rendered.push(INDENT.repeat(line.depth) + line.text);
-    else run.push(line);
+    if (line.blankBefore && rendered.length > 0) {
+rendered.push('');
+}
+    if (line.trailing === undefined) {
+rendered.push(INDENT.repeat(line.depth) + line.text);
+} else {
+run.push(line);
+}
   }
-  if (run.length > 0) flush();
+  if (run.length > 0) {
+flush();
+}
 
   return rendered.length === 0 ? '' : rendered.join(eol) + eol;
 };
@@ -801,8 +842,12 @@ const render = (lines: OutputLine[], eol: string): string => {
 
 /** Copy a tree without its `position` fields, so that two trees can be compared by shape. */
 const withoutPositions = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(withoutPositions);
-  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+return value.map(withoutPositions);
+}
+  if (value === null || typeof value !== 'object') {
+return value;
+}
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => key !== 'position')

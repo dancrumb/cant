@@ -5,8 +5,12 @@ import { parse, ParseError } from './parse.ts';
 
 /** Copy a tree without its `position` fields, so tests can compare just its shape. */
 const withoutPositions = (value: unknown): unknown => {
-  if (Array.isArray(value)) return value.map(withoutPositions);
-  if (value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+return value.map(withoutPositions);
+}
+  if (value === null || typeof value !== 'object') {
+return value;
+}
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => key !== 'position')

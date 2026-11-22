@@ -27,7 +27,9 @@ let lifecycle: Promise<void> = Promise.resolve();
 
 const enqueue = (step: (client: LanguageClient) => Promise<void>): Promise<void> => {
   const run = async (): Promise<void> => {
-    if (client !== undefined) await step(client);
+    if (client !== undefined) {
+await step(client);
+}
   };
   // A failed step has already been reported, and must not stop the ones after it.
   lifecycle = lifecycle.catch(() => undefined).then(run);
@@ -35,7 +37,9 @@ const enqueue = (step: (client: LanguageClient) => Promise<void>): Promise<void>
 };
 
 const stopClient = async (running: LanguageClient): Promise<void> => {
-  if (running.needsStop()) await running.stop();
+  if (running.needsStop()) {
+await running.stop();
+}
 };
 
 /** Start the Cant language server, which is bundled beside the extension as `dist/server.cjs`. */

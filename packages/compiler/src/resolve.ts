@@ -86,7 +86,9 @@ export function resolveNames(program: LoadedProgram): { references: References; 
 }
 
 function resolveModule(module: Module, references: References, report: (diagnostic: Diagnostic) => void): void {
-  if (module.program === undefined) return;
+  if (module.program === undefined) {
+return;
+}
   const { standard } = module;
 
   const resolve = (name: Name, namespace: string, expected: Expected): void => {
@@ -146,9 +148,13 @@ function resolveModule(module: Module, references: References, report: (diagnost
         // (docs/adr/0036-native-modules.md, docs/adr/0043-standard-library-generics.md).
         const parameter = typeParameters.get(type.value);
         const builtIn = standard ? INTERNAL_TYPES.get(type.value) : undefined;
-        if (parameter !== undefined) references.set(type, parameter);
-        else if (builtIn !== undefined) references.set(type, internal(type.value, builtIn));
-        else resolve(type, namespace, expected);
+        if (parameter !== undefined) {
+references.set(type, parameter);
+} else if (builtIn !== undefined) {
+references.set(type, internal(type.value, builtIn));
+} else {
+resolve(type, namespace, expected);
+}
         break;
       }
       case 'genericType': {
@@ -161,7 +167,9 @@ function resolveModule(module: Module, references: References, report: (diagnost
         } else if (type.arguments.length !== arity) {
           report(error('type-arguments', `${describeName(type.name)} takes ${String(arity)} type ${arity === 1 ? 'argument' : 'arguments'}, but this gives ${String(type.arguments.length)}.`, type.position));
         }
-        for (const argument of type.arguments) resolveType(argument, namespace);
+        for (const argument of type.arguments) {
+resolveType(argument, namespace);
+}
         break;
       }
       case 'qualifiedIdentifier':
@@ -183,15 +191,21 @@ function resolveModule(module: Module, references: References, report: (diagnost
   // `instanceOf`, the errors in `raise` statements and the entities in `@subject is <type>`.
   const walk = (node: unknown, namespace: string): void => {
     if (Array.isArray(node)) {
-      for (const child of node) walk(child, namespace);
+      for (const child of node) {
+walk(child, namespace);
+}
       return;
     }
-    if (typeof node !== 'object' || node === null) return;
+    if (typeof node !== 'object' || node === null) {
+return;
+}
     const typed = node as Node & Record<string, unknown>;
     switch (typed.type) {
       case 'instanceOf': {
         const target = typed.target as TypeRef | { type: 'errorType' };
-        if (target.type !== 'errorType') resolveType(target, namespace, 'type');
+        if (target.type !== 'errorType') {
+resolveType(target, namespace, 'type');
+}
         break;
       }
       case 'raise':
@@ -199,14 +213,18 @@ function resolveModule(module: Module, references: References, report: (diagnost
         break;
       case 'isPredicate': {
         const subjectType = typed.subjectType as Name | { type: 'builtIn' };
-        if (subjectType.type === 'identifier') resolve(subjectType, namespace, 'entity');
+        if (subjectType.type === 'identifier') {
+resolve(subjectType, namespace, 'entity');
+}
         break;
       }
       default:
         break;
     }
     for (const [key, value] of Object.entries(typed)) {
-      if (key !== 'position' && typeof value === 'object') walk(value, namespace);
+      if (key !== 'position' && typeof value === 'object') {
+walk(value, namespace);
+}
     }
   };
 
@@ -224,7 +242,9 @@ function resolveModule(module: Module, references: References, report: (diagnost
           );
         }
         for (const parameter of declaration.typeParameters ?? []) {
-          if (parameter.bound !== undefined) resolveType(parameter.bound, namespace);
+          if (parameter.bound !== undefined) {
+resolveType(parameter.bound, namespace);
+}
           const bound = parameter.bound === undefined ? undefined : typeOf(parameter.bound, references);
           if (typeParameters.has(parameter.name.value)) {
             report(error('duplicate-type-parameter', `${parameter.name.value} is already a type parameter of ${declaration.name.value}.`, parameter.name.position));
@@ -238,18 +258,30 @@ function resolveModule(module: Module, references: References, report: (diagnost
           resolveType(parameter.valueType, namespace);
           walk(parameter.defaultValue, namespace);
         }
-        if (declaration.returnType.type !== 'voidType') resolveType(declaration.returnType, namespace);
-        for (const name of declaration.raises) resolve(name, namespace, 'error');
-        for (const name of declaration.passes) if (name.type !== 'builtIn') resolve(name, namespace, 'error');
+        if (declaration.returnType.type !== 'voidType') {
+resolveType(declaration.returnType, namespace);
+}
+        for (const name of declaration.raises) {
+resolve(name, namespace, 'error');
+}
+        for (const name of declaration.passes) {
+if (name.type !== 'builtIn') {
+resolve(name, namespace, 'error');
+}
+}
         // The interpreter provides the standard library's implementations itself.
-        if (declaration.native !== undefined && !standard) checkNative(module, declaration.native, report);
+        if (declaration.native !== undefined && !standard) {
+checkNative(module, declaration.native, report);
+}
         // A type parameter only means something in its action's signature.
         typeParameters = new Map();
         walk(declaration.children, namespace);
         break;
       }
       case 'const':
-        if (declaration.valueType !== undefined) resolveType(declaration.valueType, namespace);
+        if (declaration.valueType !== undefined) {
+resolveType(declaration.valueType, namespace);
+}
         walk(declaration.value, namespace);
         break;
       case 'model':
@@ -270,7 +302,11 @@ function resolveModule(module: Module, references: References, report: (diagnost
         break;
       case 'entity':
         for (const line of declaration.lines) {
-          if (line.type === 'modelsBlock') for (const model of line.models) resolve(model, namespace, 'model');
+          if (line.type === 'modelsBlock') {
+for (const model of line.models) {
+resolve(model, namespace, 'model');
+}
+}
         }
         break;
       case 'relation':

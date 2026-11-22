@@ -65,8 +65,12 @@ function roleOfMeaning(found: Meaning, declares: boolean): Role {
     }
   }
   const { symbol } = found;
-  if (symbol.kind === 'action') return { type: 'function', modifiers };
-  if (symbol.kind === 'const') return { type: 'variable', modifiers: [...modifiers, 'readonly'] };
+  if (symbol.kind === 'action') {
+return { type: 'function', modifiers };
+}
+  if (symbol.kind === 'const') {
+return { type: 'variable', modifiers: [...modifiers, 'readonly'] };
+}
   switch (symbol.typeKind) {
     case 'enum':
       return { type: 'enum', modifiers };
@@ -99,7 +103,9 @@ function roleOfPlace(node: Identifier, parent: Node | undefined, enumMembers: Re
       // `Collection` in `Collection<T>`, which only the standard library writes (docs/adr/0043-standard-library-generics.md).
       return at.name === node ? { type: 'type', modifiers: ['defaultLibrary'] } : undefined;
     case 'member':
-      if (at.property !== node) return undefined;
+      if (at.property !== node) {
+return undefined;
+}
       return enumMembers.has(at) ? { type: 'enumMember' } : { type: 'property' };
     case 'objectItem':
       return at.name === node ? { type: 'property' } : undefined;
@@ -131,22 +137,32 @@ function roleOfPlace(node: Identifier, parent: Node | undefined, enumMembers: Re
 /** The roles of the names in a module, by the offset each starts at. */
 function nameRoles(module: Module, program: CheckedProgram): Map<number, Role> {
   const roles = new Map<number, Role>();
-  if (module.program === undefined) return roles;
+  if (module.program === undefined) {
+return roles;
+}
 
   // `Status.paid`: a member of an enum, rather than a field (docs/adr/0013-enums.md).
   const enumMembers = new Set<Node>();
   for (const { node } of walk(module.program)) {
     const member = node as Node & { type: string; object?: Node };
-    if (member.type !== 'member' || member.object === undefined) continue;
+    if (member.type !== 'member' || member.object === undefined) {
+continue;
+}
     const object = member.object as Node & { type: string };
-    if (object.type !== 'identifier' && object.type !== 'qualifiedIdentifier') continue;
+    if (object.type !== 'identifier' && object.type !== 'qualifiedIdentifier') {
+continue;
+}
     const found = program.references.get(object as Identifier | QualifiedIdentifier);
-    if (found?.typeKind === 'enum') enumMembers.add(member);
+    if (found?.typeKind === 'enum') {
+enumMembers.add(member);
+}
   }
 
   const set = (node: Identifier, role: Role): void => {
     const offset = node.position.start.offset;
-    if (offset !== undefined) roles.set(offset, role);
+    if (offset !== undefined) {
+roles.set(offset, role);
+}
   };
 
   for (const { node, parent } of walk(module.program)) {
@@ -155,17 +171,23 @@ function nameRoles(module: Module, program: CheckedProgram): Map<number, Role> {
       const qualified = node as QualifiedIdentifier;
       set(qualified.namespace, { type: 'namespace' });
       const found = meaning(module, program, { node: qualified, parent });
-      if (found !== undefined) set(qualified.name, roleOfMeaning(found, false));
+      if (found !== undefined) {
+set(qualified.name, roleOfMeaning(found, false));
+}
       continue;
     }
-    if (node.type !== 'identifier' || parent?.type === 'qualifiedIdentifier') continue;
+    if (node.type !== 'identifier' || parent?.type === 'qualifiedIdentifier') {
+continue;
+}
     const identifier = node as Identifier;
     const found = meaning(module, program, { node: identifier, parent });
     // A declaration's own name, or where a local is first given a value.
     const declares =
       (parent as { name?: unknown } | undefined)?.name === identifier || (found?.kind === 'local' && found.binding.declaration === identifier);
     const role = found === undefined ? roleOfPlace(identifier, parent, enumMembers) : roleOfMeaning(found, declares);
-    if (role !== undefined) set(identifier, role);
+    if (role !== undefined) {
+set(identifier, role);
+}
   }
   return roles;
 }
@@ -181,14 +203,18 @@ export function semanticTokens(source: string, module: Module | undefined, progr
   for (const token of tokenize(source)) {
     const { start, end } = token.position;
     const base = ROLE_BY_KIND[token.kind];
-    if (base === undefined || start.offset === undefined || end.offset === undefined) continue;
+    if (base === undefined || start.offset === undefined || end.offset === undefined) {
+continue;
+}
     // A keyword can be a name too, as `body` is in `request.body`.
     const role = token.kind === 'identifier' || token.kind === 'keyword' ? (roles.get(start.offset) ?? base) : base;
     tokens.push({ line: start.line - 1, character: start.column - 1, length: end.offset - start.offset, role });
   }
   for (const { position } of comments(source)) {
     const { start, end } = position;
-    if (start.offset === undefined || end.offset === undefined) continue;
+    if (start.offset === undefined || end.offset === undefined) {
+continue;
+}
     tokens.push({ line: start.line - 1, character: start.column - 1, length: end.offset - start.offset, role: { type: 'comment' } });
   }
   tokens.sort((a, b) => a.line - b.line || a.character - b.character);

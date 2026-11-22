@@ -12,7 +12,9 @@ const memory = (files: Record<string, string[]>): Host => ({
 /** Compile `/app/main.cant` and the other files given, and fail if the program has problems. */
 const compiled = (files: Record<string, string[]>): { program: CompiledProgram; sourceMap: SourceMap } => {
   const result = compile('/app/main.cant', memory(files));
-  if ('diagnostics' in result) assert.fail(result.diagnostics.map(({ code, message }) => `${code}: ${message}`).join('\n'));
+  if ('diagnostics' in result) {
+assert.fail(result.diagnostics.map(({ code, message }) => `${code}: ${message}`).join('\n'));
+}
   return result;
 };
 

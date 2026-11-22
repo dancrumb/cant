@@ -24,7 +24,9 @@ const START: Position = { start: { line: 1, column: 1, offset: 0 }, end: { line:
 /** The position of the first `"text"` in `source`, or the start of the file if it isn't there. */
 function positionOf(source: string, text: string): Position {
   const offset = source.indexOf(JSON.stringify(text));
-  if (offset < 0) return START;
+  if (offset < 0) {
+return START;
+}
   const before = source.slice(0, offset).split('\n');
   const line = before.length;
   const column = (before.at(-1)?.length ?? 0) + 1;
@@ -45,9 +47,13 @@ export function findManifest(entry: string, host: Host): LoadedManifest {
   for (;;) {
     const path = join(directory, MANIFEST);
     const source = host.readFile(path);
-    if (source !== undefined) return readManifest(path, source);
+    if (source !== undefined) {
+return readManifest(path, source);
+}
     const parent = dirname(directory);
-    if (parent === directory) return { diagnostics: [] };
+    if (parent === directory) {
+return { diagnostics: [] };
+}
     directory = parent;
   }
 }
@@ -72,7 +78,9 @@ export function readManifest(path: string, source: string): LoadedManifest {
 
   const scopes = new Map<string, string>();
   const declared: unknown = (parsed as Record<string, unknown>).scopes;
-  if (declared === undefined) return { manifest: { path, scopes }, diagnostics };
+  if (declared === undefined) {
+return { manifest: { path, scopes }, diagnostics };
+}
   if (typeof declared !== 'object' || declared === null || Array.isArray(declared)) {
     return fail('manifest', '`scopes` must be an object that maps each scope to a directory.', positionOf(source, 'scopes'));
   }
