@@ -6,30 +6,15 @@ import type { Type } from './types.ts';
  * (docs/adr/0031-module-resolution.md). They are native modules whose declarations can use
  * internal types that other Cant source can't write (docs/adr/0036-native-modules.md).
  *
- * A module with Cant source in ../stdlib, such as `cant::IO`, is loaded from it like any other
- * module, so calls to its actions are checked against their declarations. The others are
- * described here only by the names they export, until they have source of their own.
+ * Each one is declared in Cant, in ../stdlib, which the compiler embeds. A program that imports
+ * one loads it like any other module, so calls to its actions are checked against their
+ * declarations.
  */
 
 export { STANDARD_SOURCES };
 
-/** What a standard library module exports a name as. */
-export type StandardKind = 'action' | 'error';
-
-/** The standard library modules that have no Cant source yet, by the names they export. */
-export const STANDARD_LIBRARY: ReadonlyMap<string, ReadonlyMap<string, StandardKind>> = new Map([
-  // docs/adr/0023-error-handling.md, docs/adr/0035-entity-relationships.md
-  [
-    'Errors',
-    errors(
-      'DivisionByZero', 'FractionalModulo', 'InvalidEnumValue', 'IndexBeforeStart',
-      'DefaultUnavailable', 'RequiredField', 'UnknownField', 'CardinalityViolation',
-    ),
-  ],
-]);
-
 /** Whether the standard library has a module called `name`. */
-export const isStandardModule = (name: string): boolean => STANDARD_LIBRARY.has(name) || STANDARD_SOURCES.has(name);
+export const isStandardModule = (name: string): boolean => STANDARD_SOURCES.has(name);
 
 /** The path a standard library module with Cant source is loaded as, such as `cant::IO`. */
 export const standardPath = (name: string): string => `cant::${name}`;
@@ -53,7 +38,3 @@ export const INTERNAL_TYPES: ReadonlyMap<string, Type> = new Map<string, Type>([
 
 /** The generic types that only standard library modules can write, by how many type arguments they take. */
 export const GENERIC_TYPES: ReadonlyMap<string, number> = new Map([['Collection', 1]]);
-
-function errors(...names: string[]): Map<string, StandardKind> {
-  return new Map(names.map((name) => [name, 'error']));
-}

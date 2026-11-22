@@ -1,0 +1,29 @@
+// cant::Errors, the standard library module of built-in errors (docs/adr/0023-error-handling.md).
+// The interpreter raises them from operators, statements and conversions, whether or not a
+// program imports this module; a program imports it to name them. None of them has data. The
+// compiler embeds this file.
+
+// The right-hand side of `/` or `%` is zero (docs/adr/0019-operators.md).
+export error DivisionByZero
+
+// An operand of `%` is not a whole number (docs/adr/0019-operators.md).
+export error FractionalModulo
+
+// A value converted to an enum is not one of the enum's values (docs/adr/0013-enums.md).
+export error InvalidEnumValue
+
+// A value is assigned to a negative index before the start of an array (docs/adr/0021-collections.md).
+export error IndexBeforeStart
+
+// A model field's default value can't be worked out when an object is created (docs/adr/0027-object-shapes.md).
+export error DefaultUnavailable
+
+// A required field, named by an expression, is deleted (docs/adr/0027-object-shapes.md).
+export error RequiredField
+
+// A value is assigned to a field that the model doesn't have, named by an expression (docs/adr/0027-object-shapes.md).
+export error UnknownField
+
+// A change to a relationship, or a delete, would break a relation's cardinality
+// (docs/adr/0035-entity-relationships.md).
+export error CardinalityViolation

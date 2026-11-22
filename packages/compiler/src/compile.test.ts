@@ -365,3 +365,15 @@ test("compiles a test case: its parameters, subject, arguments and assertions", 
   ]);
   assert.deepEqual(trigger.position, { module: 'main.cant', start: { line: 11, column: 1 }, end: trigger.position.end });
 });
+
+test("records cant::Errors' built-in errors, from its source, whether or not the program imports it", () => {
+  const builtIns = (program: CompiledProgram): [string, unknown][] =>
+    Object.entries(program.types).filter(([id]) => id.startsWith('cant::Errors#'));
+  const plain = compiled({ '/app/main.cant': ['action A(): VOID', '    body', '        return'] }).program;
+  const imports = compiled({
+    '/app/main.cant': ['import cant::Errors into Errors', 'action A(): VOID raises Errors::DivisionByZero', '    body', '        return'],
+  }).program;
+  assert.equal(builtIns(plain).length, 8);
+  assert.ok(builtIns(plain).every(([, type]) => JSON.stringify(type) === JSON.stringify({ kind: 'error' })));
+  assert.deepEqual(builtIns(imports), builtIns(plain));
+});

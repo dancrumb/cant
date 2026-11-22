@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { dirname, relative, resolve, sep } from 'node:path';
 import {
   COMPILED_FORMAT,
+  parse,
   type ActionDeclaration,
   type BaseValue,
   type CompiledAction,
@@ -35,7 +36,7 @@ import { ConstantValues } from './evaluate.ts';
 import { fileSystemHost, type Host } from './host.ts';
 import { symbolOf, type Module, type ModuleSymbol } from './modules.ts';
 import { checkProgram, type CheckedProgram } from './program.ts';
-import { isStandardPath, STANDARD_LIBRARY } from './stdlib.ts';
+import { isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
 import { typeOf, type Type } from './types.ts';
 
 export type CompileResult = { program: CompiledProgram; sourceMap: SourceMap; root: string } | { diagnostics: Diagnostic[] };
@@ -189,30 +190,14 @@ class Compiler {
   }
 
   /**
-   * The standard library modules' actions and errors, which the interpreter provides. `cant::Errors`
-   * is always included, since the interpreter raises its errors whether or not it is imported.
+   * The built-in errors of `cant::Errors`, which the interpreter raises whether or not a program
+   * imports it (docs/adr/0023-error-handling.md). A program that imports it has them already, from
+   * its declarations; for any other, they come from its source. None of them has data.
    */
   private standardLibrary(program: CompiledProgram): void {
-    const modules = new Set(['Errors']);
-    for (const module of this.checked.modules.values()) {
-      for (const target of module.imports.values()) if (target.kind === 'standard') modules.add(target.name);
-    }
-    for (const name of modules) {
-      for (const [member, kind] of STANDARD_LIBRARY.get(name) ?? []) {
-        const id = `cant::${name}#${member}`;
-        if (kind === 'error') program.types[id] = { kind: 'error' };
-        else {
-          program.actions[id] = {
-            parameters: [],
-            returns: { kind: 'unknown' },
-            optional: false,
-            raises: [],
-            passes: [],
-            defaultOrder: [],
-            implementation: { kind: 'standard' },
-          };
-        }
-      }
+    if (this.checked.modules.has(standardPath('Errors'))) return;
+    for (const declaration of parse(STANDARD_SOURCES.get('Errors') ?? '').children) {
+      if (declaration.type === 'errorDeclaration') program.types[`${standardPath('Errors')}#${declaration.name.value}`] = { kind: 'error' };
     }
   }
 

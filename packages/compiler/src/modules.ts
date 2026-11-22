@@ -15,7 +15,7 @@ import { error, type Diagnostic } from './diagnostic.ts';
 import type { Host } from './host.ts';
 import { findManifest, MANIFEST, type Manifest } from './manifest.ts';
 import type { Type } from './types.ts';
-import { isStandardModule, isStandardPath, STANDARD_LIBRARY, STANDARD_SOURCES, standardPath } from './stdlib.ts';
+import { isStandardModule, isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
 
 /** What a declared name is (docs/adr/0006-imports.md lists the constructs a module can export). */
 export type SymbolKind = 'type' | 'action' | 'const';
@@ -173,9 +173,7 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
       });
       module.imports.set(declaration, target);
       if (target.kind === 'file') queue.push({ path: target.path, from: { module, declaration } });
-      if (target.kind === 'standard' && STANDARD_SOURCES.has(target.name)) {
-        queue.push({ path: standardPath(target.name), from: { module, declaration } });
-      }
+      if (target.kind === 'standard') queue.push({ path: standardPath(target.name), from: { module, declaration } });
     }
   }
 
@@ -219,23 +217,10 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   };
 
   const exportsOfTarget = (target: ImportTarget): Map<string, ModuleSymbol> => {
-    if (target.kind === 'standard') {
-      const loaded = modules.get(standardPath(target.name));
-      if (loaded !== undefined) return exportsOf(loaded);
-      const standard = STANDARD_LIBRARY.get(target.name);
-      return new Map(
-        [...(standard ?? [])].map(([name, kind]) => [
-          name,
-          kind === 'action'
-            ? { kind: 'action', name, module: `cant::${target.name}` }
-            : { kind: 'type', typeKind: 'error', name, module: `cant::${target.name}` },
-        ]),
-      );
-    }
-    if (target.kind === 'file') {
-      const imported = modules.get(target.path);
-      if (imported !== undefined) return exportsOf(imported);
-    }
+    // A standard library module is loaded from its source, as a file is (see stdlib.ts).
+    const path = target.kind === 'standard' ? standardPath(target.name) : target.kind === 'file' ? target.path : undefined;
+    const imported = path === undefined ? undefined : modules.get(path);
+    if (imported !== undefined) return exportsOf(imported);
     return new Map();
   };
 
