@@ -26,14 +26,6 @@ export const STANDARD_LIBRARY: ReadonlyMap<string, ReadonlyMap<string, StandardK
       'DefaultUnavailable', 'RequiredField', 'UnknownField', 'CardinalityViolation',
     ),
   ],
-  // docs/adr/0026-dates-and-times.md
-  [
-    'Time',
-    new Map([
-      ...actions('addDays', 'addMonths', 'addYears', 'format', 'parse'),
-      ...errors('UnknownTimeZone', 'NotWholeNumber', 'InvalidDateTime'),
-    ]),
-  ],
 ]);
 
 /** Whether the standard library has a module called `name`. */
@@ -61,10 +53,6 @@ export const INTERNAL_TYPES: ReadonlyMap<string, Type> = new Map<string, Type>([
 
 /** The generic types that only standard library modules can write, by how many type arguments they take. */
 export const GENERIC_TYPES: ReadonlyMap<string, number> = new Map([['Collection', 1]]);
-
-function actions(...names: string[]): Map<string, StandardKind> {
-  return new Map(names.map((name) => [name, 'action']));
-}
 
 function errors(...names: string[]): Map<string, StandardKind> {
   return new Map(names.map((name) => [name, 'error']));

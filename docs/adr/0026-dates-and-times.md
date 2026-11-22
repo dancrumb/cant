@@ -120,10 +120,12 @@ Everything that needs a calendar or a time zone is an action in a standard libra
 | `parse(text: TEXT): DATE_TIME` | The instant that `text` names, written as a `DATE_TIME` literal's string is |
 
 - **Calendar moves.** `days`, `months` and `years` can be negative, and must be whole numbers. Adding days keeps the local time of day in `zone`, so across a daylight saving change, one day can be 23 or 25 hours. Adding months or years keeps the day of the month where it can, and otherwise uses the month's last day, so 31 January plus one month is 28 or 29 February. A local time that doesn't exist in `zone`, because the clocks went forward, is moved later by the length of the gap.
-- **Errors.** Each action that takes a `zone` raises `Time::UnknownTimeZone` when `zone` isn't a time zone the interpreter knows. `addDays`, `addMonths` and `addYears` raise `Time::NotWholeNumber` when given a fractional number. `parse` raises `Time::InvalidDateTime` when `text` isn't a valid timestamp. These errors are declared in `cant::Time`, so a program imports it to name them ([ADR 0023](0023-error-handling.md)). The examples here import it `into Time`.
+- **Errors.** Each action that takes a `zone` raises `Time::UnknownTimeZone` when `zone` isn't a time zone the interpreter knows. `addDays`, `addMonths` and `addYears` raise `Time::NotWholeNumber` when given a fractional number. `parse` raises `Time::InvalidDateTime` when `text` isn't a valid timestamp. These errors are declared in `cant::Time`, with no `data`, so a program imports it to name them ([ADR 0023](0023-error-handling.md)). The examples here import it `into Time`.
 - **Exact moves.** Moving by an exact length of time needs no action: it is `+` or `-` with a `DURATION`.
 
 More actions can be added to the module later.
+
+`cant::Time` is declared in Cant, in `stdlib/Time.cant` in `@dancrumb/cant-compiler`, with the signatures above, so the compiler checks calls to it, as it does calls to `cant::IO` and `cant::Collections` ([ADR 0042](0042-io.md), [ADR 0043](0043-standard-library-generics.md)). Its `raises` clauses are the errors above: `addDays`, `addMonths` and `addYears` raise `UnknownTimeZone` and `NotWholeNumber`, `format` raises `UnknownTimeZone`, and `parse` raises `InvalidDateTime`. The interpreter implements its actions.
 
 ### Native code
 

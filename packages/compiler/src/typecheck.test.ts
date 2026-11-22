@@ -438,3 +438,22 @@ test("doesn't let a program declare type parameters or write a generic type", ()
     ['generic-action 1:14', 'generic-type 3:21'],
   );
 });
+
+test("checks calls against cant::Time's declarations", () => {
+  assert.deepEqual(
+    problems(
+      'import Time into Time',
+      'action A(): TEXT passes Time::UnknownTimeZone',
+      '    body',
+      '        due := Time::addDays(time := @now, days := 30, zone := "Europe/London")',
+      '        if due instanceOf Time::UnknownTimeZone or due instanceOf Time::NotWholeNumber',
+      '            return "bad"',
+      '        later := due + DURATION("PT1H")',
+      '        when := Time::parse("2026-11-21T09:30:00Z")',
+      '        ignore Time::addMonths(time := "today", months := 1, zone := "UTC")',
+      '        ignore Time::format(time := later, zone := "UTC", style := "weekday")',
+      '        pass Time::format(time := later, zone := "UTC", style := "date")',
+    ),
+    ['type-mismatch 9:40', 'type-mismatch 10:68', 'unhandled-result 8:9'],
+  );
+});

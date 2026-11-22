@@ -1,0 +1,36 @@
+// cant::Time, the standard library module of calendar arithmetic, time zones and formatting
+// (docs/adr/0026-dates-and-times.md). It is a native module (docs/adr/0036-native-modules.md),
+// whose actions the interpreter implements. The compiler embeds this file, and checks calls to
+// cant::Time against it.
+//
+// A time zone is named by its IANA name, such as "Europe/London" or "UTC".
+
+// A time zone the interpreter doesn't know.
+export error UnknownTimeZone
+
+// A number of days, months or years that isn't whole.
+export error NotWholeNumber
+
+// Text that doesn't name an instant the way a DATE_TIME literal's string does.
+export error InvalidDateTime
+
+// `time` moved by whole calendar days in `zone`, keeping its local time of day.
+export action addDays(time: DATE_TIME, days: NUMBER, zone: TEXT): DATE_TIME raises UnknownTimeZone, NotWholeNumber
+    native "./Time.js"
+
+// `time` moved by whole calendar months in `zone`, keeping the day of the month where it can.
+export action addMonths(time: DATE_TIME, months: NUMBER, zone: TEXT): DATE_TIME raises UnknownTimeZone, NotWholeNumber
+    native "./Time.js"
+
+// `time` moved by whole calendar years in `zone`, keeping the day of the month where it can.
+export action addYears(time: DATE_TIME, years: NUMBER, zone: TEXT): DATE_TIME raises UnknownTimeZone, NotWholeNumber
+    native "./Time.js"
+
+// `time` written for people, in `zone`, following the locale's conventions, as JavaScript's
+// Intl.DateTimeFormat writes it.
+export action format(time: DATE_TIME, zone: TEXT, locale?: TEXT := "en", style?: enum("date", "time", "dateTime") := "dateTime"): TEXT raises UnknownTimeZone
+    native "./Time.js"
+
+// The instant that `text` names, written as a DATE_TIME literal's string is.
+export action parse(text: TEXT): DATE_TIME raises InvalidDateTime
+    native "./Time.js"
