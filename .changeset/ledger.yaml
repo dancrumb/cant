@@ -14,6 +14,13 @@
   dir: packages/compiler
   intents:
     - formatter
+"@dancrumb/cant-compiler@0.13.0":
+  dir: packages/compiler
+  intents:
+    - cant-collections
+    - cant-errors
+    - cant-io
+    - cant-time
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -48,6 +55,13 @@
   dir: packages/lsp
   intents:
     - formatter
+"@dancrumb/cant-lsp@0.13.0":
+  dir: packages/lsp
+  intents:
+    - cant-collections
+    - cant-errors
+    - cant-io
+    - cant-time
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -68,6 +82,11 @@
   dir: packages/shared
   intents:
     - formatter
+"@dancrumb/cant-shared@0.13.0":
+  dir: packages/shared
+  intents:
+    - cant-collections
+    - cant-io
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -123,6 +142,13 @@ cant-vscode@0.12.0:
   intents:
     - formatter
     - restart-language-server
+cant-vscode@0.13.0:
+  dir: packages/vscode
+  intents:
+    - cant-collections
+    - cant-errors
+    - cant-io
+    - cant-time
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
