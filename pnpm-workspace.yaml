@@ -7,6 +7,7 @@ versioning:
   # Release all the packages together at one shared version.
   fixed:
     - - 'cant'
+      - '@dancrumb/cant'
       - '@dancrumb/cant-compiler'
       - '@dancrumb/cant-interpreter'
       - '@dancrumb/cant-lsp'

@@ -2,7 +2,8 @@ import type { Position } from 'unist';
 
 /** A problem the compiler found in a module, and where in its source it is. */
 export interface Diagnostic {
-  severity: 'error';
+  /** `panic` for a panic the interpreter reports, which the `cant` command writes like a diagnostic. */
+  severity: 'error' | 'panic';
   /** A short, stable name for the kind of problem, such as `duplicate-type`. */
   code: string;
   message: string;

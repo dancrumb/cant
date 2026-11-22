@@ -1,0 +1,39 @@
+{
+  "name": "@dancrumb/cant",
+  "version": "0.15.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dancrumb/cant.git",
+    "directory": "packages/cli"
+  },
+  "description": "The cant command: check, build, format and run Cant programs",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "cant": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.test.*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@dancrumb/cant-compiler": "workspace:^",
+    "@dancrumb/cant-interpreter": "workspace:^",
+    "@dancrumb/cant-shared": "workspace:^",
+    "commander": "^15.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "node --test \"dist/**/*.test.js\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  }
+}

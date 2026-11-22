@@ -16,7 +16,6 @@
     }
   },
   "bin": {
-    "cant": "./dist/cli.js",
     "weave": "./dist/weave.js"
   },
   "files": [

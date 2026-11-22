@@ -33,6 +33,21 @@ importers:
         specifier: ^8.72.2
         version: 8.72.2(@typescript/typescript6@6.0.2)(eslint@10.14.0)
 
+  packages/cli:
+    dependencies:
+      '@dancrumb/cant-compiler':
+        specifier: workspace:^
+        version: link:../compiler
+      '@dancrumb/cant-interpreter':
+        specifier: workspace:^
+        version: link:../interpreter
+      '@dancrumb/cant-shared':
+        specifier: workspace:^
+        version: link:../shared
+      commander:
+        specifier: ^15.1.0
+        version: 15.1.0
+
   packages/compiler:
     dependencies:
       '@dancrumb/cant-shared':

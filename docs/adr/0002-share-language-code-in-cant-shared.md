@@ -11,6 +11,8 @@ Cant has several tools that need to understand Cant source: the compiler, the in
 
 Code that understands the language itself, such as the tokenizer, the parser and the syntax tree types, lives in `@dancrumb/cant-shared`. The other packages depend on it, not on each other.
 
+In particular, the compiler and the interpreter never depend on each other. Tools that need both depend on both: the `cant` command, in `@dancrumb/cant`, compiles programs with the compiler and runs them with the interpreter ([ADR 0039](0039-compiled-programs.md)).
+
 ## Consequences
 
 - Every tool reads Cant the same way, and a change to the language is made in one place.

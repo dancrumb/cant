@@ -318,6 +318,8 @@ run(program: CompiledProgram, options: { root: string; sourceMap?: SourceMap; â€
 
 #### On the command line
 
+The `cant` command is in its own package, `@dancrumb/cant`, which depends on the compiler and the interpreter, so neither of them depends on the other ([ADR 0002](0002-share-language-code-in-cant-shared.md)).
+
 `cant build` compiles a program and writes the compiled program and its source map to disk, as JSON, for running later or elsewhere:
 
 ```sh
