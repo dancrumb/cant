@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { PassThrough } from 'node:stream';
+import { PassThrough, Readable } from 'node:stream';
 import { test } from 'node:test';
-import { COMPILED_FORMAT, type CompiledAction, type CompiledExpression, type CompiledProgram, type CompiledTrigger, type SourcePosition } from '@dancrumb/cant-shared';
+import { COMPILED_FORMAT, type CompiledAction, type CompiledExpression, type CompiledProgram, type CompiledStatement, type CompiledTrigger, type SourcePosition } from '@dancrumb/cant-shared';
 import { Panic, run } from './run.ts';
 
 const at = (line: number): SourcePosition => ({ module: 'main.cant', start: { line, column: 1 }, end: { line, column: 2 } });
@@ -52,12 +52,12 @@ const write = (message: CompiledExpression, stream?: string): CompiledExpression
   position: at(1),
 });
 
-/** Run a program, and give what it wrote to standard output and standard error. */
-const output = async (compiled: CompiledProgram): Promise<{ stdout: string; stderr: string }> => {
+/** Run a program, with `stdin` as its standard input, and give what it wrote to standard output and standard error. */
+const output = async (compiled: CompiledProgram, stdin: Readable = new PassThrough()): Promise<{ stdout: string; stderr: string }> => {
   const stdout = new PassThrough();
   const stderr = new PassThrough();
   const read = (stream: PassThrough): string => (stream.read() as Buffer | null)?.toString('utf8') ?? '';
-  await run(compiled, { root: '/app', streams: { stdin: new PassThrough(), stdout, stderr } });
+  await run(compiled, { root: '/app', streams: { stdin, stdout, stderr } });
   return { stdout: read(stdout), stderr: read(stderr) };
 };
 
@@ -171,6 +171,75 @@ test('constructs an object of a model: given fields, then defaults that use othe
     assert.equal(caught.position?.start.line, 9);
     return true;
   });
+});
+
+/** `cant::IO#read`, as a compiled program records it (packages/compiler/stdlib/IO.cant). */
+const READ: CompiledAction = {
+  parameters: [{ name: 'stream', type: { kind: 'stream', direction: 'input', file: true }, optional: true, default: { type: 'builtIn', name: 'stdin', position: at(1) } }],
+  returns: { kind: 'array', element: { kind: 'base', name: 'NUMBER' } },
+  optional: false,
+  raises: ['cant::IO#StreamError'],
+  passes: [],
+  defaultOrder: [0],
+  implementation: { kind: 'standard' },
+  position: at(1),
+};
+
+/** `bytes := IO::read()`, then `if bytes instanceOf IO::StreamError`, writing the error, or else the bytes. */
+const readOrOops = (): CompiledProgram => {
+  const bytes: CompiledExpression = { type: 'local', slot: 0, position: at(1) };
+  const compiled = program(
+    {
+      'cant::IO#read': READ,
+      'main.cant#Main': body([], 1, [
+        { type: 'let', slot: 0, value: { type: 'call', action: 'cant::IO#read', arguments: [{ type: 'omitted' }], position: at(1) }, position: at(1) },
+        {
+          type: 'if',
+          test: { type: 'instanceOf', value: bytes, target: { kind: 'named', symbol: 'cant::IO#StreamError' }, position: at(1) },
+          then: [
+            { type: 'expression', expression: write({ type: 'template', parts: ['OOPS: ', bytes], position: at(1) }), position: at(1) },
+            { type: 'return', value: { type: 'unary', operator: '-', argument: { type: 'value', value: { kind: 'number', value: 1 }, position: at(1) }, position: at(1) }, position: at(1) },
+          ],
+          else: [{ type: 'expression', expression: write({ type: 'template', parts: ['Read ', bytes], position: at(1) }), position: at(1) }],
+          position: at(1),
+        },
+      ]),
+    },
+    [{}],
+  );
+  compiled.types['cant::IO#StreamError'] = { kind: 'error', data: { fields: [{ name: 'reason', type: { kind: 'base', name: 'TEXT' }, optional: false }], defaultOrder: [] } };
+  return compiled;
+};
+
+test('takes an array from native code, and checks a result with instanceOf in an if', async () => {
+  assert.deepEqual(await output(readOrOops(), Readable.from([Buffer.from('hi')])), { stdout: 'Read 104, 105', stderr: '' });
+  const broken = new Readable({
+    read() {
+      this.destroy(new Error('broken'));
+    },
+  });
+  assert.deepEqual(await output(readOrOops(), broken), { stdout: 'OOPS: StreamError: reason: broken', stderr: '' });
+});
+
+test('makes arrays and sets, applies prefix operators, and checks base types with instanceOf', async () => {
+  const value = (held: Extract<CompiledExpression, { type: 'value' }>['value']): CompiledExpression => ({ type: 'value', value: held, position: at(1) });
+  const one = value({ kind: 'number', value: 1 });
+  const show = (expression: CompiledExpression): CompiledStatement => ({ type: 'expression', expression: write({ type: 'template', parts: [expression, ';'], position: at(1) }), position: at(1) });
+  const compiled = program(
+    {
+      'main.cant#Main': body([], 0, [
+        show({ type: 'array', element: { kind: 'base', name: 'NUMBER' }, elements: [one, value({ kind: 'number', value: 2 }), one], position: at(1) }),
+        show({ type: 'set', element: { kind: 'base', name: 'NUMBER' }, elements: [one, value({ kind: 'number', value: 2 }), one], position: at(1) }),
+        show({ type: 'unary', operator: '-', argument: one, position: at(1) }),
+        show({ type: 'unary', operator: '!', argument: value({ kind: 'boolean', value: true }), position: at(1) }),
+        show({ type: 'instanceOf', value: one, target: { kind: 'base', name: 'NUMBER' }, position: at(1) }),
+        show({ type: 'instanceOf', value: one, target: { kind: 'base', name: 'TEXT' }, position: at(1) }),
+        show({ type: 'instanceOf', value: one, target: { kind: 'anyError' }, position: at(1) }),
+      ]),
+    },
+    [{}],
+  );
+  assert.deepEqual(await output(compiled), { stdout: '1, 2, 1;1, 2;-1;false;true;false;false;', stderr: '' });
 });
 
 test('skips test cases, and runs Start triggers in order', async () => {

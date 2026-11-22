@@ -20,8 +20,8 @@ import { STANDARD_ACTIONS } from './stdlib/index.ts';
  * The interpreter (docs/adr/0039-compiled-programs.md): it runs a compiled program by walking its
  * code. For now it runs a program's `Start` triggers (docs/adr/0025-trigger-sources.md), and
  * covers enough of the language for them to call actions, with arguments, defaults, locals,
- * strings with interpolations, and the standard library. Anything else panics, saying the
- * interpreter can't run it yet.
+ * strings with interpolations, collections, objects, `if`, `instanceOf`, prefix operators and the
+ * standard library. Anything else panics, saying the interpreter can't run it yet.
  */
 
 /** The process's standard streams, which `@stdin`, `@stdout` and `@stderr` stand for (docs/adr/0040-standard-streams.md). */
@@ -60,6 +60,10 @@ type StreamName = keyof Streams;
 type RuntimeValue =
   | Value
   | { kind: 'stream'; name: StreamName }
+  /** An array (docs/adr/0021-collections.md#arrays): its elements, in order, with `undefined` for an empty slot. */
+  | { kind: 'array'; elements: (RuntimeValue | undefined)[] }
+  /** A set (docs/adr/0021-collections.md#sets): its elements, in their stable order. */
+  | { kind: 'set'; elements: RuntimeValue[] }
   /** A map (docs/adr/0021-collections.md#maps): its members, by name, in their stable order. */
   | { kind: 'map'; members: [name: string, value: RuntimeValue][] }
   /** `NOTHING`, or a parameter or result with no value. */
@@ -207,6 +211,14 @@ class Interpreter {
         return undefined;
       case 'return':
         return statement.value === undefined || statement.value.type === 'nothing' ? NOTHING : this.evaluate(statement.value, frame);
+      case 'if': {
+        const test = await this.evaluate(statement.test, frame);
+        if (test.kind !== 'boolean') {
+          throw new Panic(`An if needs a BOOLEAN, not a ${test.kind}.`, statement.test.position);
+        }
+        const branch = test.value ? statement.then : statement.else;
+        return branch === undefined ? undefined : this.block(branch, frame);
+      }
       default:
         throw new Panic(`The interpreter can't run ${statement.type} statements yet.`, statement.position);
     }
@@ -258,6 +270,18 @@ class Interpreter {
         }
         return { kind: 'map', members: value.members.map(([name, member]): [string, RuntimeValue] => [name, member]) };
       }
+      case 'array':
+      case 'set': {
+        const elements: RuntimeValue[] = [];
+        for (const element of expression.elements) {
+          const value = await this.evaluate(element, frame, fields);
+          // A set holds no two equal values (docs/adr/0021-collections.md#sets).
+          if (expression.type === 'array' || !elements.some((held) => equal(held, value))) {
+            elements.push(value);
+          }
+        }
+        return { kind: expression.type, elements };
+      }
       case 'map': {
         const members: [string, RuntimeValue][] = [];
         for (const [name, member] of expression.members) {
@@ -279,6 +303,10 @@ class Interpreter {
         }
         return { kind: 'object', members };
       }
+      case 'unary':
+        return this.unary(expression.operator, await this.evaluate(expression.argument, frame, fields), expression.position);
+      case 'instanceOf':
+        return { kind: 'boolean', value: this.isInstance(await this.evaluate(expression.value, frame, fields), expression.target, expression.position) };
       case 'construct': {
         const given = await this.evaluate(expression.value, frame, fields);
         if (given.kind !== 'object') {
@@ -289,6 +317,79 @@ class Interpreter {
       default:
         throw new Panic(`The interpreter can't evaluate ${expression.type} expressions yet.`, expression.position);
     }
+  }
+
+  /** A prefix operator's value (docs/adr/0019-operators.md). */
+  private unary(operator: '!' | '-' | 'isEmpty' | 'ignore', value: RuntimeValue, position: SourcePosition): RuntimeValue {
+    switch (operator) {
+      case '!':
+        if (value.kind === 'boolean') {
+          return { kind: 'boolean', value: !value.value };
+        }
+        break;
+      case '-':
+        if (value.kind === 'number' || value.kind === 'duration') {
+          // `0 - x`, so that `-0` is `0`.
+          return { kind: value.kind, value: 0 - value.value };
+        }
+        break;
+      case 'isEmpty':
+        return { kind: 'boolean', value: value.kind === 'nothing' };
+      case 'ignore':
+        // An ignored error is dropped (docs/adr/0023-error-handling.md).
+        return value.kind === 'raised' ? NOTHING : value;
+    }
+    throw new Panic(`${operator} can't be applied to a ${value.kind}.`, position);
+  }
+
+  /** Whether a value is of a type, as `instanceOf` checks (docs/adr/0033-unknown-type.md). */
+  private isInstance(value: RuntimeValue, type: CompiledTypeRef, position: SourcePosition): boolean {
+    switch (type.kind) {
+      case 'base':
+        return value.kind === BASE_KINDS[type.name];
+      case 'unknown':
+        return value.kind !== 'nothing' && value.kind !== 'raised';
+      case 'anyError':
+        return value.kind === 'raised';
+      case 'optional':
+        return value.kind === 'nothing' || this.isInstance(value, type.inner, position);
+      case 'nothing':
+        return false;
+      case 'enum': {
+        const base = value.kind === 'enum' ? value.value : value;
+        return type.values.some((member) => equal(member, base));
+      }
+      case 'array':
+      case 'set':
+        return value.kind === type.kind && value.elements.every((element) => element === undefined || this.isInstance(element, type.element, position));
+      case 'map':
+        return value.kind === 'map' && value.members.every(([, member]) => this.isInstance(member, type.value, position));
+      case 'object':
+        return (
+          value.kind === 'object' &&
+          Object.entries(type.fields).every(([name, field]) => {
+            const member = value.members.find(([held]) => held === name);
+            return member === undefined ? field.kind === 'optional' : this.isInstance(member[1], field, position);
+          })
+        );
+      case 'named': {
+        const declared = this.program.types[type.symbol];
+        switch (declared?.kind) {
+          case 'error':
+            return value.kind === 'raised' && value.error === type.symbol;
+          case 'model':
+            return value.kind === 'object' && value.model === type.symbol;
+          case 'enum':
+            return value.kind === 'enum' && value.enum === type.symbol;
+          default:
+            break;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+    throw new Panic(`The interpreter can't check instanceOf ${type.kind === 'named' ? nameOf(type.symbol) : type.kind} yet.`, position);
   }
 
   /**
@@ -340,8 +441,16 @@ class Interpreter {
 
   /** A value converted to text, as an interpolation does (docs/adr/0011-converting-values-to-text.md). */
   private text(value: RuntimeValue, position: SourcePosition): string {
-    if (value.kind === 'stream' || value.kind === 'nothing' || value.kind === 'raised') {
-      throw new Panic(`This ${value.kind === 'raised' ? 'result' : value.kind} can't be converted to text.`, position);
+    if (value.kind === 'stream' || value.kind === 'nothing') {
+      throw new Panic(`This ${value.kind} can't be converted to text.`, position);
+    }
+    // An error, once it is narrowed, is its name, then its data as a model is (docs/adr/0011-converting-values-to-text.md#errors).
+    if (value.kind === 'raised') {
+      return value.data === undefined ? nameOf(value.error) : `${nameOf(value.error)}: ${this.text(value.data, position)}`;
+    }
+    // An array or a set is its elements, joined with ", ", skipping empty slots (docs/adr/0021-collections.md#converting-collections-to-text).
+    if (value.kind === 'array' || value.kind === 'set') {
+      return value.elements.flatMap((element) => (element === undefined ? [] : [this.text(element, position)])).join(', ');
     }
     // A map is its members, each as `name: value`, joined with ", " (docs/adr/0021-collections.md#converting-collections-to-text).
     if (value.kind === 'map') {
@@ -365,6 +474,18 @@ class Interpreter {
         return this.toNative(value.value, position);
       case 'object':
         return Object.fromEntries(value.members.map(([name, member]) => [name, this.toNative(member, position)]));
+      case 'array': {
+        // An empty slot is a hole (docs/adr/0036-native-modules.md#representing-values).
+        const elements: unknown[] = new Array(value.elements.length);
+        value.elements.forEach((element, index) => {
+          if (element !== undefined) {
+            elements[index] = this.toNative(element, position);
+          }
+        });
+        return elements;
+      }
+      case 'set':
+        return new Set(value.elements.map((element) => this.toNative(element, position)));
       case 'map':
         return new Map(value.members.map(([name, member]) => [name, this.toNative(member, position)]));
       case 'stream':
@@ -388,6 +509,26 @@ class Interpreter {
     if (base !== undefined) {
       return base;
     }
+    // A collection's elements are of its element type, or inferred where it has none (docs/adr/0036-native-modules.md#inferring-types).
+    if (Array.isArray(value)) {
+      const element = type?.kind === 'array' ? type.element : undefined;
+      const elements: (RuntimeValue | undefined)[] = [];
+      for (let index = 0; index < value.length; index++) {
+        elements.push(index in value ? this.fromNative(value[index], position, element) : undefined);
+      }
+      return { kind: 'array', elements };
+    }
+    if (value instanceof Set) {
+      const element = type?.kind === 'set' ? type.element : undefined;
+      return { kind: 'set', elements: [...value].map((member) => this.fromNative(member, position, element)) };
+    }
+    if (value instanceof Map) {
+      const member = type?.kind === 'map' ? type.value : undefined;
+      return {
+        kind: 'map',
+        members: [...(value as Map<unknown, unknown>)].map(([name, held]): [string, RuntimeValue] => [String(name), this.fromNative(held, position, member)]),
+      };
+    }
     if (typeof value === 'object' && value !== null && Object.getPrototypeOf(value) === Object.prototype) {
       return {
         kind: 'object',
@@ -404,11 +545,32 @@ class Interpreter {
     if (value.kind === 'stream' || value.kind === 'nothing' || value.kind === 'raised') {
       throw new Panic(`An object can't hold ${value.kind === 'raised' ? 'an error' : `a ${value.kind}`}.`, position);
     }
-    if (value.kind === 'map') {
-      throw new Panic("The interpreter can't hold a map in an object yet.", position);
+    if (value.kind === 'array' || value.kind === 'set' || value.kind === 'map') {
+      throw new Panic(`The interpreter can't hold a ${value.kind} in an object yet.`, position);
     }
     return value;
   }
+}
+
+/** The kind of value each base type's values have. `FILE` has none yet. */
+const BASE_KINDS: Record<Extract<CompiledTypeRef, { kind: 'base' }>['name'], RuntimeValue['kind'] | undefined> = {
+  TEXT: 'text',
+  NUMBER: 'number',
+  BOOLEAN: 'boolean',
+  DATE_TIME: 'dateTime',
+  DURATION: 'duration',
+  FILE: undefined,
+};
+
+/** Whether two values are equal, as `==` compares them (docs/adr/0019-operators.md). */
+function equal(left: RuntimeValue, right: RuntimeValue): boolean {
+  if (left.kind === 'enum' || right.kind === 'enum') {
+    return equal(left.kind === 'enum' ? left.value : left, right.kind === 'enum' ? right.value : right);
+  }
+  if ('value' in left && 'value' in right) {
+    return left.kind === right.kind && left.value === right.value;
+  }
+  return left === right;
 }
 
 /** A JavaScript value's base value, if it is one (docs/adr/0036-native-modules.md#inferring-types). */
