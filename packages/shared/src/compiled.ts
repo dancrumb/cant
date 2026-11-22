@@ -61,7 +61,9 @@ export type CompiledTypeRef =
   /** `ERROR`, any error, on the right of `instanceOf`. */
   | { kind: 'anyError' }
   /** The type of `@subject` before it is narrowed. */
-  | { kind: 'subject' };
+  | { kind: 'subject' }
+  /** The type of `@stdin`, or of `@stdout` and `@stderr` (docs/adr/0040-standard-streams.md). */
+  | { kind: 'stream'; direction: 'input' | 'output' };
 
 export type CompiledType = CompiledEnum | CompiledModel | CompiledError | CompiledEntity;
 

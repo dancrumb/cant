@@ -224,6 +224,23 @@ test('checks built-in values and where they are used', () => {
   );
 });
 
+test('lets the standard streams be used anywhere but in a constant expression', () => {
+  assert.deepEqual(
+    problems(
+      'const bad := @stdin',
+      'action Run(): VOID',
+      '    body',
+      '        a := @stdin',
+      '        b := @stdout',
+      '        c := @stderr',
+      'trigger Run on Start',
+      '    auth',
+      '        @stdout == @stderr',
+    ),
+    ['misplaced-built-in 1:14'],
+  );
+});
+
 test("checks a TestCase's subject and assertions", () => {
   assert.deepEqual(
     problems(

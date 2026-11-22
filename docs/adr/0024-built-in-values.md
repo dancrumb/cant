@@ -13,11 +13,12 @@ A **built-in value** is written `@<identifier>` ([ADR 0009](0009-triggers.md)). 
 
 ## Decision
 
-Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@entity`, `@all`, `@result`, `@error`, `@now`, `@request` and `@message`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
+Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@defined`, `@id`, `@entity`, `@all`, `@result`, `@error`, `@now`, `@request`, `@message`, `@stdin`, `@stdout` and `@stderr`. The list is closed: a program or module cannot define built-in values of its own. Later ADRs can add more, such as for the current time or a new trigger source, and a future ADR may let programs define custom built-ins, but that is not planned for now. Some of the rules below come from earlier ADRs:
 
 - The grammar is `BuiltIn = "@", Identifier`, with no space after the `@` ([ADR 0009](0009-triggers.md)). The `@` prefix is reserved, so built-in values cannot clash with anything a program declares ([ADR 0010](0010-security.md)).
 - A built-in value is a special identifier. A program can't assign it, and it never changes while a trigger runs, so it follows the rules for identifiers: it can hold an unchecked result ([ADR 0023](0023-error-handling.md)), and checking it with `isEmpty` or `instanceOf`, or with a predicate such as `@subject is User`, narrows it as it would an identifier ([ADR 0016](0016-handling-optional-values.md), [ADR 0033](0033-unknown-type.md), [ADR 0010](0010-security.md)).
 - `@now` is the `DATE_TIME` at which the current trigger fired, and has the same value throughout the trigger's run, in its settings, in its action and in every action that action calls ([ADR 0026](0026-dates-and-times.md)). A `TestCase` can set it with its `now` parameter ([ADR 0037](0037-test-case-trigger-source.md)). It is not a constant expression.
+- `@stdin`, `@stdout` and `@stderr` are the interpreter process's standard input, output and error ([ADR 0040](0040-standard-streams.md)). `@stdin` has an unnamed input stream type, and `@stdout` and `@stderr` an unnamed output stream type, which a program can't write. They are not constant expressions.
 - `@subject` is always defined: it is the subject that caused the trigger, or `@anonymous` when there is none ([ADR 0010](0010-security.md)).
 - `@subject` has an unnamed built-in type with the fields `entityName: TEXT` and `identityFields: [TEXT]`, and `@subject is <type>` narrows it to that subject entity ([ADR 0010](0010-security.md)).
 - `@anonymous` stands for no subject, and `@defined` is its opposite, for any subject that is not anonymous. So `@subject is @defined` is `true` exactly when `@subject is @anonymous` is `false` ([ADR 0010](0010-security.md)).
@@ -58,6 +59,7 @@ Cant's built-in values are the ones listed here: `@subject`, `@anonymous`, `@def
 | --- | --- |
 | `@subject` | Anywhere: in any trigger and any action ([ADR 0010](0010-security.md), [ADR 0025](0025-trigger-sources.md)) |
 | `@now` | Anywhere: in any trigger and any action, but not in a constant expression ([ADR 0026](0026-dates-and-times.md)) |
+| `@stdin`, `@stdout`, `@stderr` | Anywhere: in any trigger and any action, but not in a constant expression ([ADR 0040](0040-standard-streams.md)) |
 | `@anonymous`, `@defined` | Only in an `is` predicate about `@subject`, as its `SubjectType` ([ADR 0009](0009-triggers.md)) |
 | `@all` | Only in an entity's `expose` and `hide` blocks ([ADR 0022](0022-entities.md)), and in `passes @all` ([ADR 0023](0023-error-handling.md)) |
 | `@result` | Only in a trigger, whatever its source |
