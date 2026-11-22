@@ -15,7 +15,7 @@ import { error, type Diagnostic } from './diagnostic.ts';
 import type { Host } from './host.ts';
 import { findManifest, MANIFEST, type Manifest } from './manifest.ts';
 import type { Type } from './types.ts';
-import { isStandardFile, isStandardModule, isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
+import { EMBEDDED_STANDARD_LIBRARY, isStandardFile, isStandardPath, standardPath, type StandardLibrary } from './stdlib.ts';
 
 /** What a declared name is (docs/adr/0006-imports.md lists the constructs a module can export). */
 export type SymbolKind = 'type' | 'action' | 'const';
@@ -128,6 +128,7 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
   const entryPath = resolvePath(entry);
   const diagnostics: Diagnostic[] = [];
   const { manifest, diagnostics: manifestDiagnostics } = findManifest(entryPath, host);
+  const standard = host.standardLibrary?.(entryPath) ?? EMBEDDED_STANDARD_LIBRARY;
   diagnostics.push(...manifestDiagnostics);
 
   const modules = new Map<string, Module>();
@@ -142,10 +143,8 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
     if (next === undefined || modules.has(next.path)) {
 continue;
 }
-    // A standard library module's source is part of the compiler (../stdlib).
-    const source = isStandardPath(next.path)
-      ? STANDARD_SOURCES.get(next.path.slice('cant::'.length))
-      : host.readFile(next.path);
+    // A standard library module's source is part of the compiler (../stdlib), unless the host gives another.
+    const source = isStandardPath(next.path) ? standard.source(next.path.slice('cant::'.length)) : host.readFile(next.path);
     if (source === undefined) {
       if (next.from === undefined) {
         diagnostics.push({
@@ -179,7 +178,7 @@ report(module, diagnostic);
 }
 
     for (const { declaration } of module.symbols?.imports ?? []) {
-      const target = resolveImport(module, declaration, manifest, (diagnostic) => {
+      const target = resolveImport(module, declaration, manifest, standard, (diagnostic) => {
         report(module, diagnostic);
       });
       module.imports.set(declaration, target);
@@ -321,6 +320,7 @@ function resolveImport(
   module: Module,
   declaration: ImportDeclaration,
   manifest: Manifest | undefined,
+  standard: StandardLibrary,
   report: (diagnostic: Diagnostic) => void,
 ): ImportTarget {
   if (declaration.moduleType !== undefined) {
@@ -353,7 +353,7 @@ function resolveImport(
   const scope = identifier.scope?.value ?? 'cant';
   const name = identifier.name.value;
   if (scope === 'cant') {
-    if (isStandardModule(name)) {
+    if (standard.source(name) !== undefined) {
 return { kind: 'standard', name };
 }
     report(error('module-not-found', `The standard library has no module called cant::${name}.`, identifier.position));

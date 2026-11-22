@@ -134,3 +134,18 @@ test("doesn't give a location in a standard library module, which has no file", 
   assert.equal(workspace.definition(MAIN, { line: 3, character: 12 }), undefined);
   assert.deepEqual([...workspace.diagnostics().keys()].filter((uri) => !uri.startsWith('file:')), []);
 });
+
+test("checks imports of cant:: modules against the stdlib of the Cant that runs the program, with its unsaved changes", () => {
+  const io = ['export action write(message: TEXT): VOID', '    native "./IO.js"'].join('\n');
+  const disk: Record<string, string> = {
+    '/repo/packages/compiler/package.json': JSON.stringify({ name: '@dancrumb/cant-compiler' }),
+    '/repo/packages/compiler/stdlib/IO.cant': io,
+  };
+  const workspace = new Workspace({ readFile: (path) => disk[path] });
+  const example = 'file:///repo/examples/main.cant';
+  workspace.set(example, ['import IO', 'action Main(): VOID', '    body', '        IO::shout("hi")'].join('\n'));
+  assert.deepEqual(workspace.diagnostics().get(example)?.map(({ code }) => code), ['unknown-name']);
+  // Adding the action to the open, unsaved IO.cant makes the call valid.
+  workspace.set('file:///repo/packages/compiler/stdlib/IO.cant', `${io}\nexport action shout(message: TEXT): VOID\n    native "./IO.js"`);
+  assert.deepEqual(workspace.diagnostics().get(example), []);
+});

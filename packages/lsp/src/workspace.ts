@@ -2,6 +2,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   checkProgram,
   fileSystemHost,
+  findStandardLibrary,
   MAIN_NAMESPACE,
   type CheckedProgram,
   type Diagnostic as CantDiagnostic,
@@ -94,8 +95,12 @@ export class Workspace {
   private readonly host: Host;
 
   constructor(disk: Host = fileSystemHost) {
+    const readFile = (path: string): string | undefined => this.documents.get(path) ?? disk.readFile(path);
     this.host = {
-      readFile: (path) => this.documents.get(path) ?? disk.readFile(path),
+      readFile,
+      // The standard library of the Cant that will run the program, so that its declarations
+      // match the interpreter's, or the one this server embeds when there is none.
+      standardLibrary: (entry) => findStandardLibrary(entry, { readFile }),
     };
   }
 

@@ -22,6 +22,15 @@ The `cant` scope is built into the interpreter. Its modules, such as `cant::IO`,
 
 Since a symbolic identifier with no scope is in the `cant` scope ([ADR 0006](0006-imports.md)), `import Payments` means `import cant::Payments`, and is a compile-time error unless the interpreter has a `cant::Payments` module.
 
+#### In an editor
+
+An editor checks a program against the standard library of the interpreter that will run it, rather than one built into the editor, which can be from another version of Cant. The language server looks in the entry module's directory, then in each directory above it, and uses the nearest of these, in this order within each directory. Each is the `stdlib` folder of a `@dancrumb/cant-compiler` package:
+
+1. **The package being worked on.** The directory itself is that package, or holds it as `packages/compiler`, as in Cant's own repository. There, the editor checks against the standard library as it is being changed, including changes that aren't saved yet.
+2. **The installed interpreter's.** The one in `node_modules/@dancrumb/cant/node_modules/`, or else in `node_modules/`, where a package manager hoists it, which is the copy that the installed `cant` command checks and runs a program with.
+
+If there is none, the editor uses its own copy. A package too old to ship its `stdlib` sources is passed over. The `cant` command always uses its own copy, which is the one its interpreter implements.
+
 ### Other scopes
 
 Every other scope is mapped to a location by the program's **manifest**, a file called `cant.json`, which works like a browser's import map:
@@ -74,6 +83,7 @@ For now, `as` accepts no module types. Every module is Cant source, and any `as`
 ## Consequences
 
 - The standard library is always the one that comes with the interpreter, so `cant::` modules can't be replaced or drift from the interpreter that runs them.
+- An editor checks `cant::` imports against the standard library of the installed interpreter, so it accepts the same calls that `cant run` runs, and a new standard library action can be used without updating the editor. Until a package manager's install is noticed, which restarting the language server does, the editor may check against the version installed before.
 - Every other scope is mapped in one file, so a program's dependencies are listed in one place, and a program can name its own directories as scopes too.
 - Cant needs no package manager, registry or lock file of its own: libraries are installed by an existing one, such as npm or pnpm, which also provides the dependencies of native modules. The cost is that a Cant program depends on that ecosystem for versions, and two libraries can't each bring in different versions of a third under the same scope.
 - Every module is read from a local file, so compiling and running a program never touches the network, and there is nothing to cache or to check for integrity. The cost is that the remote URL imports [ADR 0006](0006-imports.md) shows are not allowed yet.

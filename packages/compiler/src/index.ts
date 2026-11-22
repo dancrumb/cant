@@ -51,7 +51,8 @@ export type { ResolvedProgram } from './typecheck.ts';
 export { createAssignable, describe as describeType, typeOf } from './types.ts';
 export type { Assignable, Type } from './types.ts';
 
-export { STANDARD_SOURCES } from './stdlib.ts';
+export { EMBEDDED_STANDARD_LIBRARY, findStandardLibrary, STANDARD_SOURCES, standardLibraryIn } from './stdlib.ts';
+export type { StandardLibrary } from './stdlib.ts';
 
 export { compile, rootOf } from './compile.ts';
 export type { CompileResult } from './compile.ts';

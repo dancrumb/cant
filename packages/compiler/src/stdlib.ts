@@ -15,8 +15,29 @@ import type { Type } from './types.ts';
 
 export { STANDARD_SOURCES };
 
-/** Whether the standard library has a module called `name`. */
-export const isStandardModule = (name: string): boolean => STANDARD_SOURCES.has(name);
+/**
+ * Where a program's standard library modules come from: the copy the compiler embeds, or the
+ * `stdlib` folder of a `@dancrumb/cant-compiler` package (see `findStandardLibrary`).
+ */
+export interface StandardLibrary {
+  /** The Cant source of the module called `name`, or `undefined` if there is no such module. */
+  source(name: string): string | undefined;
+  /** The `stdlib` folder it is read from, if it isn't the embedded copy. */
+  readonly directory?: string;
+}
+
+/** The standard library the compiler embeds, which matches the interpreter it ships with. */
+export const EMBEDDED_STANDARD_LIBRARY: StandardLibrary = { source: (name) => STANDARD_SOURCES.get(name) };
+
+/**
+ * The standard library in a `stdlib` folder, read through `host`, so that an editor's unsaved
+ * changes to its files are seen.
+ */
+export const standardLibraryIn = (directory: string, host: Host): StandardLibrary => ({
+  directory,
+  // A module name is an identifier, so it can't lead out of the folder.
+  source: (name) => host.readFile(join(directory, `${name}.cant`)),
+});
 
 /** The path a standard library module with Cant source is loaded as, such as `cant::IO`. */
 export const standardPath = (name: string): string => `cant::${name}`;
@@ -27,6 +48,55 @@ export const isStandardPath = (path: string): boolean => path.startsWith('cant::
 /** The package whose `stdlib` folder holds the standard library's Cant source. */
 const STANDARD_PACKAGE = '@dancrumb/cant-compiler';
 
+/** The package that holds the `cant` command, and the interpreter that runs a program. */
+const CLI_PACKAGE = '@dancrumb/cant';
+
+/** Whether `directory` holds the package called `name`. */
+const isPackage = (directory: string, name: string, host: Host): boolean => {
+  const manifest = host.readFile(join(directory, 'package.json'));
+  if (manifest === undefined) {
+    return false;
+  }
+  try {
+    return (JSON.parse(manifest) as { name?: unknown }).name === name;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * The standard library that goes with the version of Cant that will run the program at `entry`,
+ * so that an editor checks it against the same declarations. Each directory from the entry's up is
+ * looked in, and the nearest wins. In each, in order, it is the `stdlib` folder of:
+ *
+ * 1. the `@dancrumb/cant-compiler` package that is that directory, or its `packages/compiler`, as
+ *    in Cant's own repository, where the standard library is being changed;
+ * 2. the `@dancrumb/cant-compiler` that the installed `@dancrumb/cant` uses, whose interpreter runs
+ *    the program, in `node_modules/@dancrumb/cant/node_modules` or, hoisted, in `node_modules`.
+ *
+ * It is `undefined` when there is none, and the embedded copy is used. A `stdlib` folder that
+ * doesn't hold `IO.cant` is too old to have its Cant source, and is passed over.
+ */
+export function findStandardLibrary(entry: string, host: Host): StandardLibrary | undefined {
+  const usable = (directory: string): boolean =>
+    isPackage(directory, STANDARD_PACKAGE, host) && host.readFile(join(directory, 'stdlib', 'IO.cant')) !== undefined;
+  for (let directory = dirname(entry); ; directory = dirname(directory)) {
+    const candidates = [
+      directory,
+      join(directory, 'packages', 'compiler'),
+      join(directory, 'node_modules', ...CLI_PACKAGE.split('/'), 'node_modules', ...STANDARD_PACKAGE.split('/')),
+      join(directory, 'node_modules', ...STANDARD_PACKAGE.split('/')),
+    ];
+    const found = candidates.find(usable);
+    if (found !== undefined) {
+      return standardLibraryIn(join(found, 'stdlib'), host);
+    }
+    if (dirname(directory) === directory) {
+      return undefined;
+    }
+  }
+}
+
 /**
  * Whether a file is one of the standard library's own sources, such as `stdlib/IO.cant` in
  * `@dancrumb/cant-compiler`, so that it is checked as the standard library module it declares,
@@ -35,18 +105,8 @@ const STANDARD_PACKAGE = '@dancrumb/cant-compiler';
  * ordinary module.
  */
 export function isStandardFile(path: string, host: Host): boolean {
-  if (extname(path) !== '.cant' || basename(dirname(path)) !== 'stdlib' || !STANDARD_SOURCES.has(basename(path, '.cant'))) {
-return false;
-}
-  const manifest = host.readFile(join(dirname(dirname(path)), 'package.json'));
-  if (manifest === undefined) {
-return false;
-}
-  try {
-    return (JSON.parse(manifest) as { name?: unknown }).name === STANDARD_PACKAGE;
-  } catch {
-    return false;
-  }
+  // Any module in the folder, so that a new one can be written there.
+  return extname(path) === '.cant' && basename(dirname(path)) === 'stdlib' && isPackage(dirname(dirname(path)), STANDARD_PACKAGE, host);
 }
 
 /**
