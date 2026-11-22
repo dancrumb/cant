@@ -10,6 +10,10 @@
   dir: packages/compiler
   intents:
     - standard-streams
+"@dancrumb/cant-compiler@0.12.0":
+  dir: packages/compiler
+  intents:
+    - formatter
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -40,6 +44,10 @@
   dir: packages/lsp
   intents:
     - fair-chicken-warn
+"@dancrumb/cant-lsp@0.12.0":
+  dir: packages/lsp
+  intents:
+    - formatter
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -56,6 +64,10 @@
   dir: packages/shared
   intents:
     - standard-streams
+"@dancrumb/cant-shared@0.12.0":
+  dir: packages/shared
+  intents:
+    - formatter
 "@dancrumb/cant-shared@0.2.0":
   dir: packages/shared
   intents:
@@ -106,6 +118,11 @@ cant-vscode@0.10.3:
   dir: packages/vscode
   intents:
     - vscode-publisher
+cant-vscode@0.12.0:
+  dir: packages/vscode
+  intents:
+    - formatter
+    - restart-language-server
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:

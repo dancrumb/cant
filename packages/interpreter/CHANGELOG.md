@@ -1,5 +1,12 @@
 # @dancrumb/cant-interpreter
 
+## 0.12.0
+
+### Patch Changes
+
+- Updated dependencies:
+  - @dancrumb/cant-shared@0.12.0
+
 ## 0.11.0
 
 ### Patch Changes

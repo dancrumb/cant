@@ -1,7 +1,7 @@
 {
   "name": "cant-vscode",
   "displayName": "Cant",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "private": true,
   "description": "Language support for Cant: problems, go to definition, references, hover, outline and completion, and highlighting, including cant code blocks in Markdown",
   "license": "MIT",
