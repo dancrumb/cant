@@ -2,7 +2,7 @@ import type { Name, StringLiteral, TypeRef } from '@dancrumb/cant-shared';
 import type { Node } from 'unist';
 import { MAIN_NAMESPACE } from './declarations.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
-import { GENERIC_TYPES, INTERNAL_TYPES, isStandardPath } from './stdlib.ts';
+import { GENERIC_TYPES, INTERNAL_TYPES } from './stdlib.ts';
 import { typeOf, type Type } from './types.ts';
 import {
   describeName,
@@ -87,7 +87,7 @@ export function resolveNames(program: LoadedProgram): { references: References; 
 
 function resolveModule(module: Module, references: References, report: (diagnostic: Diagnostic) => void): void {
   if (module.program === undefined) return;
-  const standard = isStandardPath(module.path);
+  const { standard } = module;
 
   const resolve = (name: Name, namespace: string, expected: Expected): void => {
     const where = name.type === 'qualifiedIdentifier' ? name.namespace.value : namespace;

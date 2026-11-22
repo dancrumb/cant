@@ -1,4 +1,6 @@
+import { basename, dirname, extname, join } from 'node:path';
 import { STANDARD_SOURCES } from './generated/stdlib.ts';
+import type { Host } from './host.ts';
 import type { Type } from './types.ts';
 
 /**
@@ -21,6 +23,27 @@ export const standardPath = (name: string): string => `cant::${name}`;
 
 /** Whether a module's path is a standard library module's, rather than a file's. */
 export const isStandardPath = (path: string): boolean => path.startsWith('cant::');
+
+/** The package whose `stdlib` folder holds the standard library's Cant source. */
+const STANDARD_PACKAGE = '@dancrumb/cant-compiler';
+
+/**
+ * Whether a file is one of the standard library's own sources, such as `stdlib/IO.cant` in
+ * `@dancrumb/cant-compiler`, so that it is checked as the standard library module it declares,
+ * which can write internal types (docs/adr/0036-native-modules.md). This is how an editor checks
+ * the file while it is being changed. Any other file, even one called `stdlib/IO.cant`, is an
+ * ordinary module.
+ */
+export function isStandardFile(path: string, host: Host): boolean {
+  if (extname(path) !== '.cant' || basename(dirname(path)) !== 'stdlib' || !STANDARD_SOURCES.has(basename(path, '.cant'))) return false;
+  const manifest = host.readFile(join(dirname(dirname(path)), 'package.json'));
+  if (manifest === undefined) return false;
+  try {
+    return (JSON.parse(manifest) as { name?: unknown }).name === STANDARD_PACKAGE;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * The internal types that only standard library modules can write

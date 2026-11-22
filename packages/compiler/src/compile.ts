@@ -36,7 +36,7 @@ import { ConstantValues } from './evaluate.ts';
 import { fileSystemHost, type Host } from './host.ts';
 import { symbolOf, type Module, type ModuleSymbol } from './modules.ts';
 import { checkProgram, type CheckedProgram } from './program.ts';
-import { isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
+import { STANDARD_SOURCES, standardPath } from './stdlib.ts';
 import { typeOf, type Type } from './types.ts';
 
 export type CompileResult = { program: CompiledProgram; sourceMap: SourceMap; root: string } | { diagnostics: Diagnostic[] };
@@ -362,7 +362,7 @@ class Compiler {
     if (action.native === undefined) {
       const body = this.block(action.children, frame);
       implementation = { kind: 'body', locals: frame.slots.size, body };
-    } else if (isStandardPath(this.module.path)) {
+    } else if (this.module.standard) {
       // The interpreter provides the standard library's implementations itself.
       implementation = { kind: 'standard' };
     } else {

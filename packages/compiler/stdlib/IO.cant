@@ -4,8 +4,8 @@
 //
 // `WriteStream` and `ReadStream` are internal types that the compiler defines, and only standard
 // library modules can write (docs/adr/0040-standard-streams.md). A `WriteStream` is `@stdout` or
-// `@stderr`; a `ReadStream` is `@stdin` or a `FILE`. Checked as an ordinary file, this module
-// reports them as unknown names.
+// `@stderr`; a `ReadStream` is `@stdin` or a `FILE`. The compiler and the editor check this file as
+// the standard library module it declares, so they are known here.
 
 // A stream failed: it was closed or broken, or a file couldn't be read.
 export error StreamError

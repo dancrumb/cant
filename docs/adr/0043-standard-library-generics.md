@@ -86,4 +86,4 @@ A compiled program writes a type parameter as `{ "kind": "typeParameter", "name"
 - A hover in the editor shows each action's generic declaration.
 - The grammar is bigger, and every tool that handles declarations, such as the formatter, has to handle type parameters and generic types, though only the standard library uses them.
 - Each call works out its types from its arguments alone, so a call's type parameters never depend on what the call's result is given to.
-- `Collections.cant` uses type parameters and generic types, so, like `IO.cant`, it is valid only as a standard library module. Checked as an ordinary file, its generics are reported as errors.
+- `Collections.cant` uses type parameters and generic types, so, like `IO.cant`, it is valid only as a standard library module. The tools check it as one where it is, in `@dancrumb/cant-compiler`'s `stdlib` folder ([ADR 0042](0042-io.md)), so editing it shows no errors for them.

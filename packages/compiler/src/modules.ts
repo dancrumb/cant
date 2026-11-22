@@ -15,7 +15,7 @@ import { error, type Diagnostic } from './diagnostic.ts';
 import type { Host } from './host.ts';
 import { findManifest, MANIFEST, type Manifest } from './manifest.ts';
 import type { Type } from './types.ts';
-import { isStandardModule, isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
+import { isStandardFile, isStandardModule, isStandardPath, STANDARD_SOURCES, standardPath } from './stdlib.ts';
 
 /** What a declared name is (docs/adr/0006-imports.md lists the constructs a module can export). */
 export type SymbolKind = 'type' | 'action' | 'const';
@@ -59,6 +59,12 @@ export interface Module {
    * Cant source, its name, such as `cant::IO`.
    */
   path: string;
+  /**
+   * Whether it is a standard library module: one loaded from the compiler's own source, such as
+   * `cant::IO`, or a file that is one of those sources (see `isStandardFile`). Only these can
+   * write internal types and type parameters.
+   */
+  standard: boolean;
   source: string;
   /** Its syntax tree and declarations, unless it has a syntax error. */
   program?: Program;
@@ -157,6 +163,7 @@ export function loadProgram(entry: string, host: Host): LoadedProgram {
     const result = check(source);
     const module: Module = {
       path: next.path,
+      standard: isStandardPath(next.path) || isStandardFile(next.path, host),
       source,
       ...(result.program && { program: result.program }),
       ...(result.symbols && { symbols: result.symbols }),

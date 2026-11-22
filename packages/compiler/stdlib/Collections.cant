@@ -5,7 +5,8 @@
 //
 // Its actions are generic (docs/adr/0043-standard-library-generics.md). `Collection<T>` is an
 // array, a map or a set of `T`, and `<C: Collection>` stands for one kind of collection, the same
-// wherever `C` appears. Checked as an ordinary file, this module reports them as errors.
+// wherever `C` appears. The compiler and the editor check this file as the standard library
+// module it declares, so they are allowed here.
 
 // The length of an array, counting slots with no element, or the number of members in a map or a set.
 export action length<T>(coll: Collection<T>): NUMBER

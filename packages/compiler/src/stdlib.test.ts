@@ -17,3 +17,19 @@ for (const name of STANDARD_SOURCES.keys()) {
     assert.ok(program.modules.has(`cant::${name}`));
   });
 }
+
+// The standard library's own source files are checked as the modules they declare, as an editor
+// does when one is changed, but a file with the same name anywhere else is an ordinary module.
+test("checks the standard library's own files as standard library modules", () => {
+  const source = STANDARD_SOURCES.get('IO') ?? '';
+  const files: Record<string, string> = {
+    '/repo/packages/compiler/package.json': JSON.stringify({ name: '@dancrumb/cant-compiler' }),
+    '/repo/packages/compiler/stdlib/IO.cant': source,
+    '/app/package.json': JSON.stringify({ name: 'my-app' }),
+    '/app/stdlib/IO.cant': source,
+  };
+  const host = { readFile: (path: string) => files[path] };
+  const codes = (entry: string): string[] => checkProgram(entry, host).diagnostics.map(({ code }) => code);
+  assert.deepEqual(codes('/repo/packages/compiler/stdlib/IO.cant'), []);
+  assert.deepEqual(codes('/app/stdlib/IO.cant'), ['unknown-name', 'unknown-name']);
+});
