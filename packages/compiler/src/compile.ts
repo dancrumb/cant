@@ -732,6 +732,9 @@ return { type: 'construct', model: this.symbolId(target.symbol), value: node, po
     if (target.kind === 'map' && from.kind === 'anonymous') {
 return { type: 'toMap', value: node, position };
 }
+    if (target.kind === 'map' && from.kind === 'model') {
+return { type: 'copyToMap', value: node, position };
+}
     return node;
   }
 

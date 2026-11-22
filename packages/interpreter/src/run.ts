@@ -246,6 +246,14 @@ class Interpreter {
         }
         return this.call(expression.action, args, expression.position);
       }
+      case 'copyToMap': {
+        // A copy, so a change made through the map never reaches the object (docs/adr/0027-object-shapes.md).
+        const value = await this.evaluate(expression.value, frame);
+        if (value.kind !== 'object') {
+          throw new Panic(`Only an object can be copied to a map, not a ${value.kind}.`, expression.position);
+        }
+        return { kind: 'map', members: value.members.map(([name, member]): [string, RuntimeValue] => [name, member]) };
+      }
       case 'map': {
         const members: [string, RuntimeValue][] = [];
         for (const [name, member] of expression.members) {

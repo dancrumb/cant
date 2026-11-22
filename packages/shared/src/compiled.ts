@@ -207,6 +207,8 @@ export type CompiledExpression = At &
     | { type: 'construct'; model: SymbolId; value: CompiledExpression }
     /** Use an object value as a map. */
     | { type: 'toMap'; value: CompiledExpression }
+    /** A new map holding the fields of an object of a named model that have values, given for a {UNKNOWN}. */
+    | { type: 'copyToMap'; value: CompiledExpression }
     /** Check a value against an enum's values, raising InvalidEnumValue if it isn't one. */
     | { type: 'toEnum'; enum: CompiledTypeRef; value: CompiledExpression }
     /** Use the value of a result that may hold an error, panicking if it does. */

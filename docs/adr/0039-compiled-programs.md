@@ -256,6 +256,7 @@ An action's body, defaults, trigger arguments, `auth` rules and assertions are h
 - **Calls are resolved.** A call names the action's symbol, and gives one entry for each of its parameters, in order: the argument's expression, or a marker that the argument was left out, so the interpreter uses the default, or leaves the parameter empty ([ADR 0020](0020-action-parameters.md)).
 - **What the types decide is explicit.** The compiler adds nodes for what happens at runtime because of a type, rather than leaving the interpreter to work it out:
   - `construct`, which makes an object value into an object of a model, filling in defaults ([ADR 0027](0027-object-shapes.md));
+  - `copyToMap`, which makes a new map from the fields of an object of a named model, where one is given for a `{UNKNOWN}` ([ADR 0027](0027-object-shapes.md));
   - `toEnum`, which checks a value against an enum's values, where a value of its value type is given for an enum ([ADR 0013](0013-enums.md));
   - `unwrap`, where the value of a result that may hold an error is used without being checked, which panics if it holds one ([ADR 0023](0023-error-handling.md));
   - the element type of each array, map and set value, so an empty collection has the type it was given ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)).

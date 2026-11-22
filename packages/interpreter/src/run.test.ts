@@ -120,6 +120,22 @@ test('gives a map literal to native code, and lets cant::Console write to the pr
   });
 });
 
+test('copies an object of a named model into a map', async () => {
+  const show = body([{ name: 'customer', type: { kind: 'named', symbol: 'main.cant#Customer' }, optional: false }], 1, [
+    {
+      type: 'expression',
+      expression: write({ type: 'template', parts: [{ type: 'copyToMap', value: { type: 'local', slot: 0, position: at(1) }, position: at(1) }], position: at(1) }),
+      position: at(1),
+    },
+  ]);
+  const customer: CompiledExpression = {
+    type: 'value',
+    value: { kind: 'object', model: 'main.cant#Customer', members: [['name', { kind: 'text', value: 'Ada' }], ['age', { kind: 'number', value: 36 }]] },
+    position: at(1),
+  };
+  assert.deepEqual(await output(program({ 'main.cant#Main': show }, [{ arguments: { customer } }])), { stdout: 'name: Ada, age: 36', stderr: '' });
+});
+
 test('skips test cases, and runs Start triggers in order', async () => {
   const say = (word: string): CompiledAction => body([], 0, [{ type: 'expression', expression: write(text(word)), position: at(1) }]);
   const compiled = program({ 'main.cant#One': say('one '), 'main.cant#Two': say('two') }, [

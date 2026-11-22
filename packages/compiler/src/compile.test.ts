@@ -151,6 +151,23 @@ test('makes what types decide explicit: objects of models, enum values and unwra
   ]);
 });
 
+test('copies an object of a named model given for a {UNKNOWN}, and uses an object value as a map', () => {
+  const { program } = compiled({
+    '/app/main.cant': [
+      'model Customer',
+      '    name: TEXT',
+      '    age: NUMBER',
+      'action Log(data: {UNKNOWN}): VOID',
+      '    native "./log.js"',
+      'action A(customer: Customer): VOID',
+      '    body',
+      '        Log(data := customer)',
+    ],
+  });
+  const [call] = body(program, 'main.cant#A') as { expression: { arguments: unknown[] } }[];
+  assert.deepEqual(call?.expression.arguments, [{ type: 'copyToMap', value: { type: 'local', slot: 0 } }]);
+});
+
 test('compiles statements: raise, pass, if, while, assignment and delete', () => {
   const { program } = compiled({
     '/app/main.cant': [

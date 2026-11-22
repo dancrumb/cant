@@ -103,6 +103,21 @@ Register(customer := { name := "Ada", age := 36, shoeSize := 9 })  // compile-ti
 
 An anonymous model can also be used where a map `{T}` is expected, when all its members have values of type `T` ([ADR 0021](0021-collections.md)). Any value can be used where an `UNKNOWN` is expected ([ADR 0033](0033-unknown-type.md)), so an anonymous model whose members have values of different types, such as `{ name := "Ada", age := 36 }`, can be used where a `{UNKNOWN}` is expected.
 
+An object of a named model can be used where a `{UNKNOWN}` is expected too, but not where a map of any other type is, since a model's fields are typed by its declaration rather than by the values the object holds. It is given as a **copy**: a new map whose members are the object's fields that have values, each with its value. A field that is optional and empty isn't a member of the map. The copy is shallow, so a field that holds a collection or another object gives the map that same collection or object.
+
+It is a copy because a map can be changed in ways a model can't: a member can be given a value of any type, deleted or added ([ADR 0021](0021-collections.md)). If the map were the object itself, changing it could leave the object without a required field, with a field of the wrong type, or with a field its model doesn't have. So changing the map never changes the object, and changing the object after the copy is made never changes the map:
+
+```cant
+action Describe(data: {UNKNOWN}): VOID
+    body
+        data.age := "unknown"   // changes Describe's copy only
+
+action Register(customer: Customer): VOID
+    body
+        Describe(data := customer)
+        customer.age            // still a NUMBER
+```
+
 An anonymous model assigned to an identifier stays anonymous in the scope where it is made. Its type is fixed by the members it was written with, and it is checked against a named model, by its structure, each time it is used where that model is expected. Inside the action it is passed to, it has the named model's type, so the action can give a value to an optional field that the anonymous model left out. Objects are passed by reference ([ADR 0021](0021-collections.md)), so the object itself now has that field, but the field is not part of the anonymous model's type, so it cannot be read through the anonymous model in its own scope:
 
 ```cant
@@ -161,6 +176,7 @@ Earlier ADRs also apply to objects of a model's type:
 - Object literals are anonymous models, matched by structure, so a program can pass `{ … }` where a model is expected without naming it, and the compiler still checks every field. Extra members are an error, so a misspelled field is caught.
 - An anonymous model's type is fixed where it is made, so a field set on the object by an action it is passed to cannot be read through it by name in the caller's scope, even though the object has it.
 - Fields are mutable and objects are passed by reference, as collections are, so an action can change an object its caller holds.
+- An object of a named model can be given where a `{UNKNOWN}` is expected, such as to a logger, without listing its fields. It is the one place an object is copied rather than passed by reference, so a change made through the map isn't seen through the object, unlike every other way of passing an object.
 - `delete` clears an optional field, or resets it to its default, which is worked out once when the object is created. A program has to know that a field with a default can never be empty.
 - Reading a field by an expression that is not a literal gives an `UNKNOWN?` on a model whose fields have different types, which a program has to check with `instanceOf` before using it as a specific type ([ADR 0033](0033-unknown-type.md)).
 - `model` becomes a keyword reserved everywhere, models, enums, entities and errors share one set of type names in each namespace ([ADR 0013](0013-enums.md), [ADR 0023](0023-error-handling.md)), and top-level constants share it too ([ADR 0034](0034-top-level-constants.md)), and the parser needs model declarations and field access by name and by expression.

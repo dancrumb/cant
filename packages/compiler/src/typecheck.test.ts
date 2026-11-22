@@ -215,6 +215,29 @@ test('lets an object whose members have different types be a {UNKNOWN}, but no o
   );
 });
 
+test('lets an object of a named model be a {UNKNOWN}, but no other map', () => {
+  assert.deepEqual(
+    problems(
+      'model Customer',
+      '    name: TEXT',
+      '    age: NUMBER',
+      '    nickname?: TEXT',
+      'model Label',
+      '    text: TEXT',
+      'action Log(data: {UNKNOWN}): VOID',
+      '    native "./log.js"',
+      'action Send(headers: {TEXT}): VOID',
+      '    native "./send.js"',
+      'action A(customer: Customer, label: Label): VOID',
+      '    body',
+      '        Log(data := customer)',
+      '        Log(data := label)',
+      '        Send(headers := label)',
+    ),
+    ['type-mismatch 15:25'],
+  );
+});
+
 test('narrows optionals with isEmpty, through !, and, or, early returns and assert', () => {
   assert.deepEqual(
     problems(

@@ -73,7 +73,7 @@ Console::log(level := Console::LogLevel.Debug, message := "Retrying")
 
 ### Data
 
-`data` is a map of values of any type, `{UNKNOWN}` ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)), so a call attaches values by name, without building them into the message. An object written in the call, such as `{ free := 3, path := "/tmp" }`, can be given for it, even when its members have values of different types, since such an anonymous model can be a `{UNKNOWN}` ([ADR 0021](0021-collections.md)). An object of a named model can't, since only an anonymous model can be used as a map ([ADR 0027](0027-object-shapes.md)).
+`data` is a map of values of any type, `{UNKNOWN}` ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)), so a call attaches values by name, without building them into the message. An object written in the call, such as `{ free := 3, path := "/tmp" }`, can be given for it, even when its members have values of different types, since such an anonymous model can be a `{UNKNOWN}` ([ADR 0021](0021-collections.md)). So can an object of a named model, which is given as a copy of its fields ([ADR 0027](0027-object-shapes.md)).
 
 ### What a call writes
 
@@ -116,5 +116,4 @@ The interpreter gives each standard library action its streams in its context, a
 - Log calls never raise, so a program calls them as statements and never handles their results, unlike `IO::write` ([ADR 0042](0042-io.md)). The cost is that a lost log line is silent.
 - Every level is always written, so `Debug` and `Trace` lines show in every run until filtering is decided. Adding filtering later, with `Info` and above shown by default, would hide lines that programs show today.
 - `data` is a map, so a call can attach any values by name. The line writes them as text, so a value that is itself a collection is flattened, as interpolation flattens it ([ADR 0021](0021-collections.md)).
-- An object of a named model can't be given as `data` as it is, so logging one means listing the fields to log, as in `data := { free := disk.free, path := disk.path }`.
 - The interpreter gives standard library actions its streams, which other native modules don't get, so a native module can't yet write to the program's streams itself.

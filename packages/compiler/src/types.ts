@@ -302,7 +302,11 @@ return [...from.values].every((value) => to.values.has(value));
 return from.value.kind === 'nothing' || assignable(from.value, to.value);
 }
         // An object value can be a map when every member is of the map's type (docs/adr/0021-collections.md).
-        return from.kind === 'anonymous' && [...from.fields.values()].every((field) => assignable(field, to.value));
+        if (from.kind === 'anonymous') {
+          return [...from.fields.values()].every((field) => assignable(field, to.value));
+        }
+        // An object of a named model can be a {UNKNOWN}, as a copy (docs/adr/0027-object-shapes.md).
+        return from.kind === 'model' && to.value.kind === 'unknown' && [...modelFields(from.declaration).values()].every((field) => assignable(field.type, to.value));
       case 'model':
         if (from.kind === 'model') {
 return sameSymbol(from.symbol, to.symbol);
