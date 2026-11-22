@@ -1,5 +1,19 @@
 # @dancrumb/cant-lsp
 
+## 0.14.0
+
+### Minor Changes
+
+- The language server colours `.cant` files with semantic tokens that say what each name is: actions as functions, models and errors as types, enums, entities, type parameters, parameters, locals, constants (read-only), fields as properties, enum members, namespaces, and built-in values and types. Comments are coloured as comments, in `.cant` files and in Markdown's `cant` code blocks, which the extension still colours from the tokenizer. **Toggle Line Comment** now works in `.cant` files.
+
+### Patch Changes
+
+- The standard library's own source files, in `@dancrumb/cant-compiler`'s `stdlib` folder, are checked as the standard library modules they declare, so editing `IO.cant` or `Collections.cant` no longer reports `ReadStream`, `WriteStream`, type parameters or `Collection<T>` as errors, and `cant check` accepts them. A file with the same name anywhere else is still an ordinary module.
+
+- Updated dependencies:
+  - @dancrumb/cant-compiler@0.14.0
+  - @dancrumb/cant-shared@0.14.0
+
 ## 0.13.0
 
 ### Minor Changes

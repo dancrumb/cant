@@ -21,6 +21,10 @@
     - cant-errors
     - cant-io
     - cant-time
+"@dancrumb/cant-compiler@0.14.0":
+  dir: packages/compiler
+  intents:
+    - stdlib-files
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -62,6 +66,11 @@
     - cant-errors
     - cant-io
     - cant-time
+"@dancrumb/cant-lsp@0.14.0":
+  dir: packages/lsp
+  intents:
+    - semantic-tokens
+    - stdlib-files
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -149,6 +158,11 @@ cant-vscode@0.13.0:
     - cant-errors
     - cant-io
     - cant-time
+cant-vscode@0.14.0:
+  dir: packages/vscode
+  intents:
+    - semantic-tokens
+    - stdlib-files
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
