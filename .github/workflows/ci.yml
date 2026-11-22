@@ -15,7 +15,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # A release commit is pushed with its version tag, and the tag runs the publish workflow, which
+  # does everything CI does. So CI skips a pushed commit that has a version tag.
+  release:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      tagged: ${{ steps.tags.outputs.tagged }}
+    steps:
+      - name: Look for a version tag
+        id: tags
+        run: |
+          # An annotated tag's peeled line (`refs/tags/v1.2.3^{}`) names the commit it tags.
+          if git ls-remote --tags "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" | grep -qE "^$GITHUB_SHA\s+refs/tags/v[0-9]"; then
+            echo "tagged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "tagged=false" >> "$GITHUB_OUTPUT"
+          fi
+
   check:
+    needs: release
+    # Runs for pull requests, where `release` is skipped, and for pushes without a version tag.
+    if: ${{ !cancelled() && needs.release.outputs.tagged != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out
