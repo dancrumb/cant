@@ -41,3 +41,7 @@ Pushing a `v*` tag, as `pnpm release` makes, runs `.github/workflows/publish.yml
 ## Architecture decisions
 
 Significant design decisions are recorded in [`docs/adr`](docs/adr/README.md).
+
+## License
+
+Cant is released under the [MIT License](LICENSE).
