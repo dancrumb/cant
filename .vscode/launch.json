@@ -8,7 +8,7 @@
       "preLaunchTask": "Build",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder:root}/packages/vscode",
-        "${workspaceFolder:root}/packages/compiler/examples"
+        "${workspaceFolder:root}/examples"
       ]
     }
   ]
