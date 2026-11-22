@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { tokenize } from './tokenize.ts';
+import { comments, tokenize } from './tokenize.ts';
 
 const describeTokens = (source: string): string[] =>
   tokenize(source).map(
@@ -452,4 +452,22 @@ test('ends unfinished template strings and interpolations at the end of the line
     'punctuation:}',
     'identifier:c',
   ]);
+});
+
+test('finds comments, but not `//` inside a string', () => {
+  const source = 'x := "a // b" // one\n  // two\n';
+  assert.deepEqual(
+    comments(source).map(({ text, position }) => [text, position.start.line, position.start.column]),
+    [
+      ['// one', 1, 15],
+      ['// two', 2, 3],
+    ],
+  );
+});
+
+test('leaves comments out of the tokens', () => {
+  assert.deepEqual(
+    tokenize('a // b').map(({ position }) => position.start.offset),
+    [0],
+  );
 });

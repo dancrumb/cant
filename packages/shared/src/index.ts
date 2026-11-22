@@ -2,10 +2,11 @@ export function cant(): string {
   return 'cant';
 }
 
-export { KEYWORDS, tokenize } from './tokenize.ts';
-export type { Token, TokenKind } from './tokenize.ts';
+export { comments, KEYWORDS, tokenize } from './tokenize.ts';
+export type { Comment, Token, TokenKind } from './tokenize.ts';
 
 export { parse, ParseError } from './parse.ts';
+export { format } from './format.ts';
 export type * from './ast.ts';
 
 export { evaluate } from './evaluate.ts';

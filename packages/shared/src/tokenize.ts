@@ -122,6 +122,8 @@ const resetAtLineBreak = (ctx: { state(): string; pop(): string }) => {
 //   whose `}` closes the braces rather than the interpolation.
 // Rules are tried in order, and the first one that matches wins.
 const CODE = 'default, interpolation, braces';
+/** The lexer's kind for a comment, which is not a token. */
+const COMMENT = 'comment';
 const lexer = new Tokenizr()
   .rule(CODE, /[ \t]+/, (ctx) => {
     ctx.ignore();
@@ -131,9 +133,10 @@ const lexer = new Tokenizr()
     ctx.ignore();
   })
   // A comment runs from `//` to the end of the line (docs/adr/0007-actions.md). It comes before
-  // the operators so that `//` is not read as two `/` operators.
+  // the operators so that `//` is not read as two `/` operators. `tokenize` leaves comments out,
+  // and `comments` keeps only them.
   .rule(CODE, /\/\/[^\r\n]*/, (ctx) => {
-    ctx.ignore();
+    ctx.accept(COMMENT);
   })
   .rule(CODE, /[A-Za-z_][A-Za-z0-9_]*/, (ctx, match) => {
     ctx.accept(wordKind(match[0]));
@@ -315,11 +318,8 @@ const markContextualKeywords = (tokens: RawToken[]): void => {
  * there and identifiers elsewhere.
  */
 export function tokenize(source: string): Token[] {
-  const tokens: RawToken[] = lexer
-    .reset()
-    .input(source)
-    .tokens()
-    .filter((token) => token.type !== 'EOF')
+  const tokens: RawToken[] = lex(source)
+    .filter((token) => token.type !== COMMENT)
     .map((token) => ({
       kind: token.type as TokenKind,
       text: token.text,
@@ -332,10 +332,38 @@ export function tokenize(source: string): Token[] {
 
   return tokens.map(({ kind, text, line, column, offset }) => ({
     kind,
-    // No token spans a line break, so the token ends on the line it starts on.
-    position: {
-      start: { line, column, offset },
-      end: { line, column: column + text.length, offset: offset + text.length },
-    },
+    position: positionOf(line, column, offset, text),
   }));
 }
+
+/** A `//` comment in Cant source. */
+export interface Comment {
+  /** The comment, from `//` to the end of its line, without the line break. */
+  text: string;
+  /** Where the comment is, in the same terms as a token's position. */
+  position: Position;
+}
+
+/**
+ * Find the comments in Cant source, in order. A `//` inside a string is not a comment. The
+ * syntax tree has no comments, so this is how tools that rewrite source, such as the
+ * formatter, keep them.
+ */
+export function comments(source: string): Comment[] {
+  return lex(source)
+    .filter((token) => token.type === COMMENT)
+    .map((token) => ({ text: token.text, position: positionOf(token.line, token.column, token.pos, token.text) }));
+}
+
+const lex = (source: string) =>
+  lexer
+    .reset()
+    .input(source)
+    .tokens()
+    .filter((token) => token.type !== 'EOF');
+
+// No token or comment spans a line break, so each ends on the line it starts on.
+const positionOf = (line: number, column: number, offset: number, text: string): Position => ({
+  start: { line, column, offset },
+  end: { line, column: column + text.length, offset: offset + text.length },
+});

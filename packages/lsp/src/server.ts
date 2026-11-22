@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+import { format, ParseError } from '@dancrumb/cant-shared';
 import {
   createConnection,
   DidChangeWatchedFilesNotification,
   ProposedFeatures,
+  Range,
   TextDocuments,
   TextDocumentSyncKind,
+  TextEdit,
 } from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { Workspace, type Uri } from './workspace.ts';
@@ -45,6 +48,7 @@ connection.onInitialize(() => ({
     hoverProvider: true,
     documentSymbolProvider: true,
     completionProvider: { triggerCharacters: [':'] },
+    documentFormattingProvider: true,
   },
 }));
 
@@ -77,6 +81,25 @@ connection.onReferences(({ textDocument, position, context }) =>
 connection.onHover(({ textDocument, position }) => workspace.hover(textDocument.uri, position) ?? null);
 connection.onDocumentSymbol(({ textDocument }) => workspace.symbols(textDocument.uri));
 connection.onCompletion(({ textDocument, position }) => workspace.completions(textDocument.uri, position));
+
+/**
+ * Format the whole document (docs/adr/0041-formatting.md) as one edit. A document with a syntax
+ * error is left alone: the error is already among its problems.
+ */
+connection.onDocumentFormatting(({ textDocument }) => {
+  const document = documents.get(textDocument.uri);
+  if (document === undefined) return [];
+  const source = document.getText();
+  let formatted: string;
+  try {
+    formatted = format(source);
+  } catch (caught) {
+    if (!(caught instanceof ParseError)) connection.console.error(`Couldn't format ${textDocument.uri}: ${String(caught)}`);
+    return [];
+  }
+  if (formatted === source) return [];
+  return [TextEdit.replace(Range.create(document.positionAt(0), document.positionAt(source.length)), formatted)];
+});
 
 documents.listen(connection);
 connection.listen();

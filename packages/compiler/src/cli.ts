@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
-import { Command } from 'commander';
+import { format, ParseError } from '@dancrumb/cant-shared';
+import { Command, Option } from 'commander';
 import { compile } from './compile.ts';
-import { formatDiagnostic, type Diagnostic } from './diagnostic.ts';
+import { error, formatDiagnostic, type Diagnostic } from './diagnostic.ts';
 import { fileSystemHost } from './host.ts';
 import { findManifest } from './manifest.ts';
 import { checkProgram } from './program.ts';
@@ -85,6 +86,63 @@ const build = (file: string, options: BuildOptions): void => {
   console.log(`Wrote ${shown(output)}${options.sourceMap ? ` and ${shown(map)}` : ''}.`);
 };
 
+interface FormatOptions {
+  write?: true;
+  check?: true;
+}
+
+/**
+ * Format each file (docs/adr/0041-formatting.md): print the formatted source, or with `--write`
+ * rewrite the files that change, or with `--check` list the files that aren't formatted and
+ * change nothing. A file with a syntax error is reported and left alone. Exit with 1 if a file
+ * has a syntax error or, with `--check`, isn't formatted, or 2 if a file can't be read.
+ */
+const formatFiles = (files: string[], options: FormatOptions): void => {
+  const problems: Diagnostic[] = [];
+  const unformatted: string[] = [];
+  let missing = false;
+
+  for (const file of files) {
+    const path = resolve(file);
+    const source = fileSystemHost.readFile(path);
+    if (source === undefined) {
+      console.error(`${shown(path)}: error: can't read the file.`);
+      missing = true;
+      continue;
+    }
+
+    let formatted: string;
+    try {
+      formatted = format(source);
+    } catch (caught) {
+      if (!(caught instanceof ParseError)) throw caught;
+      problems.push({ ...error('syntax', caught.message, caught.location), file: path });
+      continue;
+    }
+
+    if (options.check === true) {
+      if (formatted !== source) unformatted.push(path);
+    } else if (options.write === true) {
+      if (formatted !== source) {
+        writeFileSync(path, formatted);
+        console.log(`Formatted ${shown(path)}.`);
+      }
+    } else {
+      process.stdout.write(formatted);
+    }
+  }
+
+  printProblems(problems);
+  for (const path of unformatted) console.error(`${shown(path)} isn't formatted.`);
+  if (unformatted.length > 0) {
+    const one = unformatted.length === 1;
+    console.error(
+      `${String(unformatted.length)} ${one ? 'file needs' : 'files need'} formatting. Run \`cant fmt --write\` to format ${one ? 'it' : 'them'}.`,
+    );
+  }
+  process.exitCode = missing ? 2 : problems.length > 0 || unformatted.length > 0 ? 1 : 0;
+};
+
 const program = new Command().name('cant').description('The Cant compiler');
 
 program
@@ -100,5 +158,17 @@ program
   .option('-o, --output <file>', 'where to write the compiled program (default: <entry>.compiled.json in the program\'s root)')
   .option('--no-source-map', "don't write a source map, so the interpreter reports positions without source")
   .action(build);
+
+program
+  .command('fmt')
+  .description('Format Cant files, and print the result')
+  .argument('<files...>', 'the .cant files to format')
+  .addOption(new Option('-w, --write', 'rewrite the files in place instead of printing them'))
+  .addOption(
+    new Option('--check', "list the files that aren't formatted, and exit with 1 if there are any, without changing them").conflicts(
+      'write',
+    ),
+  )
+  .action(formatFiles);
 
 program.parse();

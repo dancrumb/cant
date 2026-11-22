@@ -50,3 +50,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0038](0038-namespaces-from-imports.md) | Namespaces from imports | Accepted |
 | [0039](0039-compiled-programs.md) | Compiled programs | Accepted |
 | [0040](0040-standard-streams.md) | Standard streams | Accepted |
+| [0041](0041-formatting.md) | Formatting | Accepted |

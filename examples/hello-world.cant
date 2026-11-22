@@ -1,7 +1,7 @@
 import IO
 
-action SayHello():VOID
+action SayHello(): VOID
     body
-        IO::write(stream:=@stdout, message:="Hello World")
+        IO::write(stream := @stdout, message := "Hello World")
 
 trigger SayHello on Start

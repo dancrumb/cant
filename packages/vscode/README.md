@@ -12,6 +12,7 @@ In `.cant` files:
 - **Outline**: the file's declarations, with their parameters, fields and enum members.
 - **Completion**: keywords, the names the module can see, and locals declared earlier.
 - **Highlighting**.
+- **Formatting**: **Format Document**, and format on save if you turn on `editor.formatOnSave`, lay the file out as `cant fmt` does. A file with a syntax error is left as it is.
 
 In Markdown, `cant` and `cant-example` code blocks are highlighted.
 
