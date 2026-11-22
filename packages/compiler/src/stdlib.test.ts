@@ -31,5 +31,6 @@ test("checks the standard library's own files as standard library modules", () =
   const host = { readFile: (path: string) => files[path] };
   const codes = (entry: string): string[] => checkProgram(entry, host).diagnostics.map(({ code }) => code);
   assert.deepEqual(codes('/repo/packages/compiler/stdlib/IO.cant'), []);
-  assert.deepEqual(codes('/app/stdlib/IO.cant'), ['unknown-name', 'unknown-name']);
+  // One for each use of WriteStream or ReadStream.
+  assert.deepEqual(codes('/app/stdlib/IO.cant'), ['unknown-name', 'unknown-name', 'unknown-name']);
 });

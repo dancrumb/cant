@@ -19,3 +19,8 @@ export action write(message: TEXT, stream?: WriteStream := @stdout): VOID raises
 // Read everything left in `stream`, waiting until it ends, as bytes from 0 to 255.
 export action read(stream?: ReadStream := @stdin): [NUMBER] raises StreamError
     native "./IO.js"
+
+// Read the next line of `stream`, without its line break, decoded as UTF-8. It is `NOTHING` once
+// the stream has ended with nothing left.
+export action readline(stream?: ReadStream := @stdin): TEXT? raises StreamError
+    native "./IO.js"

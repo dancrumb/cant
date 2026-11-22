@@ -52,3 +52,37 @@ test('reads a FILE from the start each time, and raises StreamError for one that
   assert.deepEqual(await call('read', { stream: fromBlob }), [0x6f, 0x6b]);
   await assert.rejects(call('read', { stream: CantFile.fromUrl(pathToFileURL(join(directory, 'missing.txt'))) }), isStreamError);
 });
+
+test('reads a line at a time, without its line break, leaving the rest for later reads', async () => {
+  const stream = new PassThrough();
+  const first = call('readline', { stream });
+  const second = call('readline', { stream });
+  stream.write('héllo\r\nwor');
+  stream.write(Buffer.from([0x6c, 0x64, 0x0a, 0xc3]));
+  stream.end(Buffer.from([0xa9, 0x0a, 0x0a, 0x6c, 0x61, 0x73, 0x74]));
+  assert.equal(await first, 'héllo');
+  assert.equal(await second, 'world');
+  // A character split between chunks is decoded whole, and an empty line is "".
+  assert.equal(await call('readline', { stream }), 'é');
+  assert.equal(await call('readline', { stream }), '');
+  // The last line needs no line break, and then the stream has ended.
+  assert.equal(await call('readline', { stream }), 'last');
+  assert.equal(await call('readline', { stream }), undefined);
+});
+
+test('leaves what follows a line for read', async () => {
+  const stream = new PassThrough();
+  stream.end('name\nrest');
+  assert.equal(await call('readline', { stream }), 'name');
+  assert.deepEqual(await call('read', { stream }), [0x72, 0x65, 0x73, 0x74]);
+});
+
+test("reads a FILE's first line, and raises StreamError for a stream that fails", async () => {
+  assert.equal(await call('readline', { stream: await CantFile.fromBlob(new Blob(['one\ntwo'])) }), 'one');
+  assert.equal(await call('readline', { stream: await CantFile.fromBlob(new Blob([])) }), undefined);
+  const stream = new PassThrough();
+  const reading = call('readline', { stream });
+  // It fails while the read waits for a line.
+  setImmediate(() => stream.destroy(new Error('broken')));
+  await assert.rejects(reading, isStreamError);
+});
