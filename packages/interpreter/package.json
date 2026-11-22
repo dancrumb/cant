@@ -16,23 +16,31 @@
     }
   },
   "files": [
-    "dist",
+    "dist/index.js",
+    "dist/**/*.d.ts",
     "!dist/**/*.test.*"
   ],
   "engines": {
     "node": ">=22"
   },
   "dependencies": {
-    "@dancrumb/cant-shared": "workspace:^"
+    "@dancrumb/cant-shared": "workspace:^",
+    "@date-fns/tz": "^1.5.0",
+    "date-fns": "^4.4.0"
   },
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && esbuild src/index.ts --bundle --platform=node --format=esm --outfile=dist/index.js --external:@dancrumb/cant-shared --external:date-fns --external:@date-fns/tz --log-level=warning",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "test": "node --test \"dist/**/*.test.js\""
+  },
+  "devDependencies": {
+    "@dancrumb/cant-native": "workspace:^",
+    "esbuild": "^0.28.2"
   }
 }

@@ -43,6 +43,36 @@ export const boolean = (value: boolean): BaseValue => ({ kind: 'boolean', value 
 /** The range of a `DATE_TIME`, in milliseconds either side of 1970, which JavaScript's `Date` can hold. */
 export const DATE_TIME_LIMIT = 8.64e15;
 
+/** A `DATE_TIME` literal's string: an ISO 8601 date and time with a `Z` or an offset (docs/adr/0026-dates-and-times.md). */
+const DATE_TIME_TEXT = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-](\d{2}):(\d{2}))$/;
+
+const isLeapYear = (year: number): boolean => (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+/**
+ * Whether text is written as a `DATE_TIME` literal's string is, and names a real instant
+ * (docs/adr/0026-dates-and-times.md). The parser checks literals with it, and `Time::parse` text.
+ */
+export function isDateTimeText(text: string): boolean {
+  const match = DATE_TIME_TEXT.exec(text);
+  if (match === null) {
+return false;
+}
+  // Unmatched groups are `undefined`, so they take these defaults.
+  const [year = '0', month = '0', day = '0', hour = '0', minute = '0', second = '0', offsetHours = '0', offsetMinutes = '0'] = match.slice(1);
+  const daysInMonth = [31, isLeapYear(Number(year)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  return (
+    Number(month) >= 1 &&
+    Number(month) <= 12 &&
+    Number(day) >= 1 &&
+    Number(day) <= (daysInMonth[Number(month) - 1] ?? 0) &&
+    Number(hour) <= 23 &&
+    Number(minute) <= 59 &&
+    Number(second) <= 59 &&
+    Number(offsetHours) <= 23 &&
+    Number(offsetMinutes) <= 59
+  );
+}
+
 /** The instant a `DATE_TIME` literal's string names (docs/adr/0026-dates-and-times.md). */
 export const dateTimeMilliseconds = (text: string): number => Date.parse(text);
 

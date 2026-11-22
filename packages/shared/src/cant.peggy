@@ -7,6 +7,7 @@
 
 {{
   import { u } from 'unist-builder';
+  import { isDateTimeText } from '../values.js';
 
   // Peggy's locations are unist positions plus a `source` field, which we leave out.
   function toPosition({ start, end }) {
@@ -49,28 +50,8 @@
     );
   }
 
-  // A `DATE_TIME` literal's string: an ISO 8601 date and time with a `Z` or an offset
-  // (docs/adr/0026-dates-and-times.md).
-  const DATE_TIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(?:Z|[+-](\d{2}):(\d{2}))$/;
-
-  function isLeapYear(year) {
-    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
-  }
-
-  // Whether a `DATE_TIME` literal's string names a real instant.
-  function isDateTime(text) {
-    const match = DATE_TIME.exec(text);
-    if (match === null) return false;
-    // Unmatched groups are `undefined`, so they take these defaults.
-    const [year, month, day, hour, minute, second = '0', offsetHours = '0', offsetMinutes = '0'] = match.slice(1);
-    const daysInMonth = [31, isLeapYear(Number(year)) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-    return (
-      Number(month) >= 1 && Number(month) <= 12 &&
-      Number(day) >= 1 && Number(day) <= daysInMonth[Number(month) - 1] &&
-      Number(hour) <= 23 && Number(minute) <= 59 && Number(second) <= 59 &&
-      Number(offsetHours) <= 23 && Number(offsetMinutes) <= 59
-    );
-  }
+  // Whether a `DATE_TIME` literal's string names a real instant (docs/adr/0026-dates-and-times.md).
+  const isDateTime = isDateTimeText;
 
   // A `DURATION` literal's string: days, then optionally `T` and hours, minutes and seconds,
   // with at least one part (docs/adr/0026-dates-and-times.md).

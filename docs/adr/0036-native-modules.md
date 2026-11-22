@@ -187,11 +187,13 @@ The native API represents a `FILE` as a `CantFile`, with one method for each fac
 
 A `FILE` always has its URL ([ADR 0017](0017-faceted-types.md)), so `url()` never fails. Deriving the stream or blob facet can fail, such as when the file the URL points to no longer exists. Then `stream()` throws, and `blob()` rejects, with an ordinary JavaScript error. Native code can catch it and handle it. If it escapes, it panics, like any other exception that isn't a `CantError` (see [Errors](#errors)), as a facet that can't be derived does in Cant code ([ADR 0029](0029-accessing-facets.md)).
 
-Native code can create a `CantFile` from any one facet, with `CantFile.fromUrl`, `CantFile.fromStream` or `CantFile.fromBlob`, and the interpreter derives the others ([ADR 0017](0017-faceted-types.md)). This is how built-in keywords and `cant::IO` can return new `FILE`s. A program still can't create one itself ([ADR 0015](0015-files.md)). How a Cant program reads a facet is still decided by [ADR 0029](0029-accessing-facets.md).
+Native code can create a `CantFile` from any one facet, with `CantFile.fromUrl`, `CantFile.fromStream` or `CantFile.fromBlob`, and the interpreter derives the others ([ADR 0017](0017-faceted-types.md)). `fromStream` and `fromBlob` give a `Promise` of the `CantFile`, since they read its contents to make its `data:` URL. This is how built-in keywords and `cant::IO` can return new `FILE`s. A program still can't create one itself ([ADR 0015](0015-files.md)). How a Cant program reads a facet is still decided by [ADR 0029](0029-accessing-facets.md).
 
 ### The native API
 
-The types and helpers that native code uses, such as `CantError` and `CantFile`, are published in a package of their own, `@dancrumb/cant-native`. Native modules depend on it, but not on the interpreter, the compiler or `@dancrumb/cant-shared` ([ADR 0002](0002-share-language-code-in-cant-shared.md)). The interpreter depends on it too, so it recognises the same `CantError` and `CantFile`.
+The types and helpers that native code uses, such as `CantError` and `CantFile`, are in a package of their own, `@dancrumb/cant-native`. Native modules depend on it, but not on the interpreter, the compiler or `@dancrumb/cant-shared` ([ADR 0002](0002-share-language-code-in-cant-shared.md)). The interpreter depends on it too, so it recognises the same `CantError` and `CantFile`. Each of its classes marks its values with a brand, a `Symbol.for` key, and recognises them by it, not by `instanceof`, so a value made by one installed copy of the package is recognised by another.
+
+For now, the standard library is the only native code, so `@dancrumb/cant-native` isn't published: the interpreter bundles it into its own code, and the published interpreter doesn't depend on it. It will be published when native modules outside the standard library need it.
 
 ### Trust
 

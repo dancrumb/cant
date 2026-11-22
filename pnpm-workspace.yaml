@@ -10,6 +10,7 @@ versioning:
       - '@dancrumb/cant-compiler'
       - '@dancrumb/cant-interpreter'
       - '@dancrumb/cant-lsp'
+      - '@dancrumb/cant-native'
       - '@dancrumb/cant-shared'
       - 'cant-vscode'
   # Commit a CHANGELOG.md in each package.

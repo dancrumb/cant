@@ -16,6 +16,7 @@ export {
   compare,
   DATE_TIME_LIMIT,
   dateTimeMilliseconds,
+  isDateTimeText,
   durationMilliseconds,
   durationToText,
   equal,

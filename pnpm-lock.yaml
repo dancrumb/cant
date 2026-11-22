@@ -63,6 +63,19 @@ importers:
       '@dancrumb/cant-shared':
         specifier: workspace:^
         version: link:../shared
+      '@date-fns/tz':
+        specifier: ^1.5.0
+        version: 1.5.0
+      date-fns:
+        specifier: ^4.4.0
+        version: 4.4.0
+    devDependencies:
+      '@dancrumb/cant-native':
+        specifier: workspace:^
+        version: link:../native
+      esbuild:
+        specifier: ^0.28.2
+        version: 0.28.2
 
   packages/lsp:
     dependencies:
@@ -82,6 +95,8 @@ importers:
       '@types/unist':
         specifier: ^3.0.3
         version: 3.0.3
+
+  packages/native: {}
 
   packages/shared:
     dependencies:
@@ -184,6 +199,9 @@ packages:
 
   '@cacheable/utils@2.5.0':
     resolution: {integrity: sha512-buipgOVDkkPXNR5+xBpDw7Zk2n1EvU7qBJCNUcL7rhQ//kfpOXPAvQ511Os0vpLYJ1pZnvudNytkQt2hst3wqA==}
+
+  '@date-fns/tz@1.5.0':
+    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@esbuild/aix-ppc64@0.28.2':
     resolution: {integrity: sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==}
@@ -908,6 +926,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -1697,6 +1718,8 @@ snapshots:
       hashery: 1.5.1
       keyv: 5.6.0
 
+  '@date-fns/tz@1.5.0': {}
+
   '@esbuild/aix-ppc64@0.28.2':
     optional: true
 
@@ -2272,6 +2295,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  date-fns@4.4.0: {}
 
   debug@4.4.3:
     dependencies:
