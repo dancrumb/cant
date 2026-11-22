@@ -87,6 +87,39 @@ test('gives arguments, defaults and locals, interpolates, and leaves write to de
   assert.deepEqual(await output(program({ 'main.cant#Main': greet }, [{ arguments: { name: text('Ada') } }])), { stdout: 'Hello, Ada!', stderr: 'oops' });
 });
 
+test('gives a map literal to native code, and lets cant::Console write to the program\'s @stderr', async () => {
+  const info: CompiledAction = {
+    parameters: [
+      { name: 'message', type: { kind: 'base', name: 'TEXT' }, optional: false },
+      { name: 'data', type: { kind: 'map', value: { kind: 'unknown' } }, optional: true },
+    ],
+    returns: { kind: 'void' },
+    optional: false,
+    raises: [],
+    passes: [],
+    defaultOrder: [],
+    implementation: { kind: 'standard' },
+    position: at(1),
+  };
+  const data: CompiledExpression = {
+    type: 'map',
+    value: { kind: 'unknown' },
+    members: [
+      ['user', text('ada')],
+      ['tries', { type: 'value', value: { kind: 'number', value: 2 }, position: at(1) }],
+    ],
+    position: at(1),
+  };
+  const main = body([], 0, [
+    { type: 'expression', expression: { type: 'call', action: 'cant::Console#info', arguments: [text('Signed in'), data], position: at(1) }, position: at(1) },
+    { type: 'expression', expression: write({ type: 'template', parts: ['Saw ', data], position: at(1) }), position: at(1) },
+  ]);
+  assert.deepEqual(await output(program({ 'cant::Console#info': info, 'main.cant#Main': main }, [{}])), {
+    stdout: 'Saw user: ada, tries: 2',
+    stderr: 'INFO  Signed in  user: ada, tries: 2\n',
+  });
+});
+
 test('skips test cases, and runs Start triggers in order', async () => {
   const say = (word: string): CompiledAction => body([], 0, [{ type: 'expression', expression: write(text(word)), position: at(1) }]);
   const compiled = program({ 'main.cant#One': say('one '), 'main.cant#Two': say('two') }, [

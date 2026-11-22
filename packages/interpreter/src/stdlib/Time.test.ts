@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PassThrough } from 'node:stream';
 import { test } from 'node:test';
 import { CantError } from '@dancrumb/cant-native';
 import { STANDARD_ACTIONS } from './index.ts';
@@ -6,7 +7,7 @@ import { STANDARD_ACTIONS } from './index.ts';
 const call = (name: string, args: Record<string, unknown>): unknown => {
   const action = STANDARD_ACTIONS.get(`cant::Time#${name}`);
   assert.ok(action, `cant::Time#${name} is implemented`);
-  return action(args, { signal: new AbortController().signal });
+  return action(args, { signal: new AbortController().signal, streams: { stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough() } });
 };
 const at = (iso: string): Date => new Date(iso);
 const iso = (value: unknown): string => (value as Date).toISOString();

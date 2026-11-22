@@ -60,6 +60,8 @@ type StreamName = keyof Streams;
 type RuntimeValue =
   | Value
   | { kind: 'stream'; name: StreamName }
+  /** A map (docs/adr/0021-collections.md#maps): its members, by name, in their stable order. */
+  | { kind: 'map'; members: [name: string, value: RuntimeValue][] }
   /** `NOTHING`, or a parameter or result with no value. */
   | { kind: 'nothing' }
   /** A result that holds an error, rather than a value (docs/adr/0023-error-handling.md). */
@@ -170,7 +172,7 @@ class Interpreter {
     });
     let result: unknown;
     try {
-      result = await implementation(args, { signal: this.signal });
+      result = await implementation(args, { signal: this.signal, streams: this.streams });
     } catch (caught) {
       // A declared error is the call's result; anything else is a bug in the native code.
       if (CantError.is(caught)) {
@@ -244,6 +246,13 @@ class Interpreter {
         }
         return this.call(expression.action, args, expression.position);
       }
+      case 'map': {
+        const members: [string, RuntimeValue][] = [];
+        for (const [name, member] of expression.members) {
+          members.push([name, await this.evaluate(member, frame)]);
+        }
+        return { kind: 'map', members };
+      }
       default:
         throw new Panic(`The interpreter can't evaluate ${expression.type} expressions yet.`, expression.position);
     }
@@ -268,6 +277,10 @@ class Interpreter {
     if (value.kind === 'stream' || value.kind === 'nothing' || value.kind === 'raised') {
       throw new Panic(`This ${value.kind === 'raised' ? 'result' : value.kind} can't be converted to text.`, position);
     }
+    // A map is its members, each as `name: value`, joined with ", " (docs/adr/0021-collections.md#converting-collections-to-text).
+    if (value.kind === 'map') {
+      return value.members.map(([name, member]) => `${name}: ${this.text(member, position)}`).join(', ');
+    }
     return toText(value);
   }
 
@@ -286,6 +299,8 @@ class Interpreter {
         return this.toNative(value.value, position);
       case 'object':
         return Object.fromEntries(value.members.map(([name, member]) => [name, this.toNative(member, position)]));
+      case 'map':
+        return new Map(value.members.map(([name, member]) => [name, this.toNative(member, position)]));
       case 'stream':
         return this.streams[value.name];
       case 'nothing':
@@ -322,6 +337,9 @@ class Interpreter {
   private valueOf(value: RuntimeValue, position: SourcePosition): Value {
     if (value.kind === 'stream' || value.kind === 'nothing' || value.kind === 'raised') {
       throw new Panic(`An object can't hold ${value.kind === 'raised' ? 'an error' : `a ${value.kind}`}.`, position);
+    }
+    if (value.kind === 'map') {
+      throw new Panic("The interpreter can't hold a map in an object yet.", position);
     }
     return value;
   }

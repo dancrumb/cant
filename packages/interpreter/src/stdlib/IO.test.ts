@@ -11,7 +11,7 @@ import { STANDARD_ACTIONS } from './index.ts';
 const call = (name: string, args: Record<string, unknown>): Promise<unknown> => {
   const action = STANDARD_ACTIONS.get(`cant::IO#${name}`);
   assert.ok(action, `cant::IO#${name} is implemented`);
-  return Promise.resolve(action(args, { signal: new AbortController().signal }));
+  return Promise.resolve(action(args, { signal: new AbortController().signal, streams: { stdin: new PassThrough(), stdout: new PassThrough(), stderr: new PassThrough() } }));
 };
 const isStreamError = (caught: unknown): boolean => CantError.is(caught) && caught.error === 'StreamError' && typeof (caught.data as { reason?: unknown }).reason === 'string';
 

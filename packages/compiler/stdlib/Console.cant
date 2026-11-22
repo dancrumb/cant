@@ -1,6 +1,12 @@
-// cant::Console provides logging actions that provide the ability to write
-// messages to the system console
+// cant::Console, the standard library module that logs messages for people to read
+// (docs/adr/0044-console.md). It is a native module (docs/adr/0036-native-modules.md), whose
+// actions the interpreter implements. The compiler embeds this file, and checks calls to
+// cant::Console against it.
+//
+// Each call writes one line to `@stderr`: the level, the message and, when there is any, the
+// data. Logging never fails: a line that can't be written is dropped.
 
+// How serious a message is, from the most serious to the least.
 export enum LogLevel
     Error
     Warn
@@ -8,20 +14,26 @@ export enum LogLevel
     Debug
     Trace
 
+// Log `message`, and any `data`, as an error.
 export action error(message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
 
+// Log `message`, and any `data`, as a warning.
 export action warn(message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
 
+// Log `message`, and any `data`, as information.
 export action info(message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
 
+// Log `message`, and any `data`, as a detail for debugging.
 export action debug(message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
 
+// Log `message`, and any `data`, as a trace of what the program is doing.
 export action trace(message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
 
+// Log `message`, and any `data`, at `level`, which is `Info` when it is left out.
 export action log(level?: LogLevel := LogLevel.Info, message: TEXT, data?: {UNKNOWN}): VOID
     native "./Console.js"
