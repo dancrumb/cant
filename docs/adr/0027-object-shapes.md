@@ -101,7 +101,7 @@ Register(customer := { name := "Ada", age := "thirty-six" })   // compile-time e
 Register(customer := { name := "Ada", age := 36, shoeSize := 9 })  // compile-time error: Customer has no shoeSize
 ```
 
-An anonymous model can also be used where a map `{T}` is expected, when all its members have values of type `T` ([ADR 0021](0021-collections.md)).
+An anonymous model can also be used where a map `{T}` is expected, when all its members have values of type `T` ([ADR 0021](0021-collections.md)). Any value can be used where an `UNKNOWN` is expected ([ADR 0033](0033-unknown-type.md)), so an anonymous model whose members have values of different types, such as `{ name := "Ada", age := 36 }`, can be used where a `{UNKNOWN}` is expected.
 
 An anonymous model assigned to an identifier stays anonymous in the scope where it is made. Its type is fixed by the members it was written with, and it is checked against a named model, by its structure, each time it is used where that model is expected. Inside the action it is passed to, it has the named model's type, so the action can give a value to an optional field that the anonymous model left out. Objects are passed by reference ([ADR 0021](0021-collections.md)), so the object itself now has that field, but the field is not part of the anonymous model's type, so it cannot be read through the anonymous model in its own scope:
 

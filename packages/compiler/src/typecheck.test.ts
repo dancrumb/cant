@@ -199,6 +199,22 @@ test('checks fields of models, entities, maps and object values', () => {
   );
 });
 
+test('lets an object whose members have different types be a {UNKNOWN}, but no other map', () => {
+  assert.deepEqual(
+    problems(
+      'action Log(data: {UNKNOWN}): VOID',
+      '    native "./log.js"',
+      'action Send(headers: {TEXT}): VOID',
+      '    native "./send.js"',
+      'action A(): VOID',
+      '    body',
+      '        Log(data := { name := "Ada", age := 36 })',
+      '        Send(headers := { name := "Ada", age := 36 })',
+    ),
+    ['type-mismatch 8:25'],
+  );
+});
+
 test('narrows optionals with isEmpty, through !, and, or, early returns and assert', () => {
   assert.deepEqual(
     problems(

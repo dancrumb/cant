@@ -73,7 +73,7 @@ Console::log(level := Console::LogLevel.Debug, message := "Retrying")
 
 ### Data
 
-`data` is a map of values of any type, `{UNKNOWN}` ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)), so a call attaches values by name, without building them into the message. An object written in the call, such as `{ free := 3, path := "/tmp" }`, can be given for it, since an anonymous model can be used where a map is expected. An object of a named model can't, since only an anonymous model can be used as a map ([ADR 0027](0027-object-shapes.md)).
+`data` is a map of values of any type, `{UNKNOWN}` ([ADR 0021](0021-collections.md), [ADR 0033](0033-unknown-type.md)), so a call attaches values by name, without building them into the message. An object written in the call, such as `{ free := 3, path := "/tmp" }`, can be given for it, even when its members have values of different types, since such an anonymous model can be a `{UNKNOWN}` ([ADR 0021](0021-collections.md)). An object of a named model can't, since only an anonymous model can be used as a map ([ADR 0027](0027-object-shapes.md)).
 
 ### What a call writes
 
