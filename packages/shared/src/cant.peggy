@@ -971,7 +971,6 @@ Keyword
   / EnumKeyword
   / SetKeyword
   / DeleteKeyword
-  / ErrorKeyword
   / ErrorTypeKeyword
   / RaiseKeyword
   / PassKeyword

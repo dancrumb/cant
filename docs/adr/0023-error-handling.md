@@ -110,7 +110,7 @@ An error's name is a type name, so it must be unique among the type names in its
 
 The `data` model can be a named model, written after `data` on the same line, or an anonymous one. An anonymous `data` model lists its fields in an indented block under `data`, written as a model's fields are (`Field`, [ADR 0027](0027-object-shapes.md)), and is matched by structure like other anonymous models ([ADR 0027](0027-object-shapes.md)).
 
-`error` starts a top-level declaration, so, like `model`, it is a keyword reserved everywhere. `data` is only special inside an error's declaration, and can be used as an identifier elsewhere.
+`error` is a keyword only where it starts a top-level declaration, followed by the error's name. Nothing else at the top level starts with a bare name, so this is never ambiguous, and `error` can be used as an identifier everywhere else: for example, as the name of an action or a variable. `data` is likewise only special inside an error's declaration.
 
 ### `ERROR`
 

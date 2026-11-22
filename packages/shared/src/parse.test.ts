@@ -1243,17 +1243,32 @@ test('rejects a keyword used as an identifier, reporting where', () => {
 });
 
 test('reserves keywords from every ADR', () => {
-  for (const keyword of ['TEXT', 'DURATION', 'SET', 'ERROR', 'error', 'raise', 'pass', 'model', 'const', 'relation', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
+  for (const keyword of ['TEXT', 'DURATION', 'SET', 'ERROR', 'raise', 'pass', 'model', 'const', 'relation', 'export', 'delete', 'true', 'orElse', 'isEmpty']) {
     assert.throws(() => parseBody(`${keyword} := 1`), ParseError, keyword);
   }
 });
 
 test('lets contextual keywords be identifiers elsewhere', () => {
-  const names = ['into', 'as', 'raises', 'passes', 'with', 'data', 'auth', 'arguments', 'parameters', 'assertions', 'has', 'can', 'is', 'within', 'subject', 'identity', 'group', 'role', 'membership', 'models', 'expose', 'hide', 'native'];
+  const names = ['into', 'as', 'raises', 'passes', 'with', 'data', 'auth', 'arguments', 'parameters', 'assertions', 'has', 'can', 'is', 'within', 'subject', 'identity', 'group', 'role', 'membership', 'models', 'expose', 'hide', 'native', 'error'];
   assert.deepEqual(
     parseBody(...names.map((name) => `${name} := 1`)),
     names.map((name) => ({ type: 'assignment', target: identifier(name), value: number(1) })),
   );
+});
+
+test('lets `error` name an action, alongside error declarations', () => {
+  const program = parse(
+    ['export error Oops', 'export action error (message: TEXT): VOID', '    native "./Console.js"', 'action A(): VOID', '    body', '        error("boom")', '        Console::error("boom")'].join('\n'),
+  ).children;
+  assert.deepEqual(program.map((child) => child.type), ['errorDeclaration', 'action', 'action']);
+  const [, exported, caller] = program;
+  assert.ok(exported?.type === 'action');
+  assert.deepEqual(withoutPositions(exported.name), identifier('error'));
+  assert.ok(caller?.type === 'action');
+  assert.deepEqual(withoutPositions(caller.children), [
+    statement(call(identifier('error'), argument(string('boom')))),
+    statement(call({ type: 'qualifiedIdentifier', namespace: identifier('Console'), name: identifier('error') }, argument(string('boom')))),
+  ]);
 });
 
 // ----- Imports and namespaces -----

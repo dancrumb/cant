@@ -62,8 +62,7 @@ export const KEYWORDS: ReadonlySet<string> = new Set([
   // 0021
   'SET',
   'delete',
-  // 0023
-  'error',
+  // 0023 (`error` is contextual: it starts a declaration only)
   'ERROR',
   'raise',
   'pass',
@@ -258,7 +257,12 @@ continue;
 }
 
     if (first.column === 1) {
-      const head = first.text === 'export' ? line[1] : first;
+      const headIndex = first.text === 'export' ? 1 : 0;
+      const head = line[headIndex];
+      // 0023: `error` starts an error declaration, `error Name` or `export error Name`.
+      if (isWord(head, 'error') && line[headIndex + 1]?.kind === 'identifier') {
+        markKeyword(head);
+      }
       declaration = head?.kind === 'keyword' ? head.text : '';
       blockColumn = undefined;
     } else {

@@ -155,13 +155,29 @@ test('tokenizes the keywords reserved by the ADRs', () => {
   const keywords = [
     'import', 'namespace', 'export', 'action', 'body', 'return', 'break', 'continue', 'for', 'in',
     'while', 'if', 'else', 'trigger', 'on', 'entity', 'permissions', 'TEXT', 'NUMBER', 'BOOLEAN',
-    'DATE_TIME', 'FILE', 'VOID', 'NOTHING', 'true', 'false', 'enum', 'SET', 'delete', 'error',
+    'DATE_TIME', 'FILE', 'VOID', 'NOTHING', 'true', 'false', 'enum', 'SET', 'delete',
     'ERROR', 'raise', 'pass', 'assert', 'model', 'UNKNOWN', 'const', 'relation', 'DURATION',
   ];
   assert.deepEqual(
     describeTokens(keywords.join(' ')),
     keywords.map((keyword) => `keyword:${keyword}`),
   );
+});
+
+test('treats `error` as a keyword only where it starts a declaration', () => {
+  const source = [
+    'error E',
+    'export error F',
+    'export action error (message: TEXT): VOID',
+    '    body',
+    '        error("x")',
+  ].join('\n');
+  assert.deepEqual(describeTokens(source).filter((token) => token.endsWith(':error')), [
+    'keyword:error',
+    'keyword:error',
+    'identifier:error',
+    'identifier:error',
+  ]);
 });
 
 test('tokenizes word operators', () => {
