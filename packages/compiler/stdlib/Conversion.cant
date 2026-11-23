@@ -1,0 +1,21 @@
+// cant::Conversion, the standard library module that converts between NUMBERs and TEXT in a
+// number base (docs/adr/0045-conversion.md). It is a native module
+// (docs/adr/0036-native-modules.md), whose actions the interpreter implements. The compiler embeds
+// this file, and checks calls to cant::Conversion against it.
+//
+// A number is written as an optional `-`, then digits, then optionally `.` and more digits. A digit
+// is `0` to `9`, then `a` to `z`, in either case, for 10 to 35, and must be less than the base.
+
+// Text that isn't a number written in the base, or is one too large for a NUMBER.
+export error NotANumber
+
+// A base that isn't a whole number from 2 to 36.
+export error InvalidBase
+
+// The NUMBER that `text` writes in `base`, which is 10 when it is left out.
+export action textToNumber(text: TEXT, base?: NUMBER := 10): NUMBER raises NotANumber, InvalidBase
+    native "./Conversion.js"
+
+// `number` written as TEXT in `base`, which is 10 when it is left out.
+export action numberToText(number: NUMBER, base?: NUMBER := 10): TEXT raises InvalidBase
+    native "./Conversion.js"

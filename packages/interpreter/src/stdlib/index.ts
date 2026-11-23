@@ -1,6 +1,7 @@
 import type { Streams } from '../run.ts';
 import * as Collections from './Collections.ts';
 import * as Console from './Console.ts';
+import * as Conversion from './Conversion.ts';
 import * as IO from './IO.ts';
 import * as Time from './Time.ts';
 
@@ -19,7 +20,7 @@ export type StandardAction = (args: Record<string, unknown>, context: { signal: 
  * actions: the interpreter raises its errors itself.
  */
 export const STANDARD_ACTIONS: ReadonlyMap<string, StandardAction> = new Map(
-  Object.entries({ Collections, Console, IO, Time }).flatMap(([module, actions]) =>
+  Object.entries({ Collections, Console, Conversion, IO, Time }).flatMap(([module, actions]) =>
     Object.entries(actions).map(([name, action]): [string, StandardAction] => [`cant::${module}#${name}`, action]),
   ),
 );
