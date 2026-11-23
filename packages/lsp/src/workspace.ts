@@ -443,7 +443,11 @@ add({ label: prefix(namespace) + name, kind: CompletionItemKind.Constant });
 }
     }
     for (const [namespace, imported] of module.imported) {
-      for (const [name, { symbol }] of imported) {
+      for (const [name, { symbol, clashing }] of imported) {
+        // A name that several imports share can't be used here (docs/adr/0038-namespaces-from-imports.md).
+        if (clashing !== undefined) {
+          continue;
+        }
         add({
           label: prefix(namespace) + name,
           kind:

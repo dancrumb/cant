@@ -129,6 +129,15 @@ assert.ok(labels.includes(label), label);
   assert.ok(!broken.includes('user'));
 });
 
+test('offers a name that two imports share only by its modules', () => {
+  const workspace = open('import Text', 'import Collections', 'action A(): VOID', '    body', '        return');
+  const labels = workspace.completions(MAIN, { line: 4, character: 14 }).map(({ label }) => label);
+  assert.ok(labels.includes('Text::length'));
+  assert.ok(labels.includes('Collections::length'));
+  assert.ok(labels.includes('trim'));
+  assert.ok(!labels.includes('length'));
+});
+
 test("doesn't give a location in a standard library module, which has no file", () => {
   const workspace = open('import IO', 'action A(): VOID', '    body', '        IO::write("hi")');
   assert.equal(workspace.definition(MAIN, { line: 3, character: 12 }), undefined);

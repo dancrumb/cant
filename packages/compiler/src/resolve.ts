@@ -5,6 +5,7 @@ import { error, type Diagnostic } from './diagnostic.ts';
 import { GENERIC_TYPES, INTERNAL_TYPES } from './stdlib.ts';
 import { typeOf, type Type } from './types.ts';
 import {
+  ambiguous,
   describeName,
   fileFromUrl,
   hasNamespace,
@@ -110,7 +111,10 @@ return;
       return;
     }
     const other = candidates[0];
-    if (other === undefined) {
+    const ambiguity = other === undefined ? ambiguous(module, namespace, name) : undefined;
+    if (ambiguity !== undefined) {
+      report(ambiguity);
+    } else if (other === undefined) {
       report(
         error(
           'unknown-name',

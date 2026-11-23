@@ -51,6 +51,12 @@ export type ImportTarget =
 export interface ImportedSymbol {
   symbol: ModuleSymbol;
   via: ImportDeclaration;
+  /**
+   * Different symbols that later imports placed under the same name, in the same namespace, which
+   * make the name ambiguous there. Using it there is an error; importing them isn't
+   * (docs/adr/0038-namespaces-from-imports.md).
+   */
+  clashing?: ImportedSymbol[];
 }
 
 export interface Module {
@@ -208,7 +214,10 @@ module.exports.set(name, symbolOf(module.path, declaration));
     placeImports(module);
     for (const { namespace, declaration } of module.symbols?.reExports ?? []) {
       const symbol = findSymbol(module, namespace, declaration.name);
-      if (symbol === undefined) {
+      const ambiguity = ambiguous(module, namespace, declaration.name);
+      if (ambiguity !== undefined) {
+        report(module, ambiguity);
+      } else if (symbol === undefined) {
         report(
           module,
           error(
@@ -273,20 +282,15 @@ return;
             continue;
           }
           const earlier = names.get(name);
-          if (earlier !== undefined && clashes(earlier.symbol.kind, symbol.kind) && !sameSymbol(earlier.symbol, symbol)) {
-            report(
-              module,
-              error(
-                'import-collision',
-                `This import brings ${name} into namespace ${into}, but the import on line ${String(earlier.via.position.start.line)} already brought in a different ${name}. Import one of them into a namespace of its own with \`into\`.`,
-                declaration.module.position,
-              ),
-            );
-            continue;
-          }
           if (earlier === undefined) {
-names.set(name, { symbol, via: declaration });
-}
+            names.set(name, { symbol, via: declaration });
+          } else if (
+            clashes(earlier.symbol.kind, symbol.kind) &&
+            ![earlier, ...(earlier.clashing ?? [])].some((other) => sameSymbol(other.symbol, symbol))
+          ) {
+            // Two imports share the name here. That's only a problem where it is used.
+            (earlier.clashing ??= []).push({ symbol, via: declaration });
+          }
         }
       }
     }
@@ -409,11 +413,45 @@ export function symbolsNamed(module: Module, namespace: string, name: string): M
 found.push(symbolOf(module.path, declaration));
 }
   }
-  const imported = module.imported.get(namespace)?.get(name)?.symbol;
+  const entry = module.imported.get(namespace)?.get(name);
+  const imported = entry?.clashing === undefined ? entry?.symbol : undefined;
   if (imported !== undefined && !found.some((symbol) => clashes(symbol.kind, imported.kind))) {
 found.push(imported);
 }
   return found;
+}
+
+/**
+ * The error for a name that several imports place in the namespace it is used in, each meaning a
+ * different symbol, or `undefined` if it isn't one (docs/adr/0038-namespaces-from-imports.md).
+ * `namespace` is the current namespace, for a name without one.
+ */
+export function ambiguous(module: Module, namespace: string, name: Name): Diagnostic | undefined {
+  const where = name.type === 'qualifiedIdentifier' ? name.namespace.value : namespace;
+  const bare = nameOf(name).value;
+  const entry = module.imported.get(where)?.get(bare);
+  if (entry?.clashing === undefined) {
+    return undefined;
+  }
+  const imports = [entry, ...entry.clashing];
+  const lines = imports.map(({ via }) => String(via.position.start.line));
+  // An import without `into` also places its symbols in a namespace named after its module, where
+  // the name means only that module's symbol.
+  const qualified = imports.flatMap(({ via }) =>
+    via.namespace === undefined && via.module.type === 'moduleName' && via.module.name.value !== where
+      ? [`${via.module.name.value}::${bare}`]
+      : [],
+  );
+  const lastLine = lines.pop() ?? '';
+  const advice =
+    qualified.length === imports.length
+      ? `Name the one you mean by its module, as ${qualified.join(' or ')}.`
+      : 'Import one of them into a namespace of its own with `into`, and name it by that namespace.';
+  return error(
+    'ambiguous-name',
+    `${describeName(name)} could mean different symbols here, from the imports on lines ${lines.join(', ')} and ${lastLine}. ${advice}`,
+    name.position,
+  );
 }
 
 /** Whether `namespace` exists in `module`: it declares something there, or imports into it. */

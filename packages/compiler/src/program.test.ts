@@ -147,25 +147,47 @@ test('gives the standard library its names', () => {
   );
 });
 
-test('reports names that clash when an import places them', () => {
+test("reports names that clash with a module's own declarations when an import places them", () => {
+  assert.deepEqual(
+    problems({
+      '/app/main.cant': ['import "./a.cant"', 'import "./a.cant" into again', 'model Thing', '    x: TEXT'],
+      '/app/a.cant': ['export model Thing', '    x: TEXT', 'export const limit := 1'],
+    }),
+    // `Thing` clashes with the model main.cant declares, but not in `again`.
+    ['/app/main.cant import-collision 1:8'],
+  );
+});
+
+test('reports a name that two imports share only where it is used without its module', () => {
   assert.deepEqual(
     problems({
       '/app/main.cant': [
-        'import "./a.cant"',
-        'import "./b.cant"',
-        'import "./a.cant" into again',
-        'import "./a.cant"',
-        'model Thing',
-        '    x: TEXT',
+        'import acme::A',
+        'import acme::B',
+        'import "./c.cant"',
+        'import acme::A',
+        'export Thing',
+        'action Use(x: Thing, y: A::Thing, z: B::Thing): NUMBER',
+        '    body',
+        '        unused := A::limit()',
+        '        return limit',
+        'action Again(x: Thing): VOID',
+        '    body',
+        '        limit()',
+        '        return',
       ],
-      '/app/a.cant': ['export model Thing', '    x: TEXT', 'export const limit := 1'],
-      '/app/b.cant': ['export action limit(): VOID', '    native "./limit.js"'],
+      '/app/cant.json': '{ "scopes": { "acme": "./acme/" } }',
+      '/app/acme/A.cant': ['export model Thing', '    x: TEXT', 'export action limit(): NUMBER', '    native "./limit.js"'],
+      '/app/acme/B.cant': ['export model Thing', '    x: TEXT', 'export const limit := 1'],
+      '/app/c.cant': ['export model Thing', '    x: TEXT'],
     }),
     [
-      // `Thing` clashes with the model main.cant declares, and `limit`, a constant, with b's action.
-      '/app/main.cant import-collision 1:8',
-      '/app/main.cant import-collision 2:8',
-      '/app/main.cant import-collision 4:8',
+      // Importing A twice brings the same symbols in twice, which isn't a clash.
+      '/app/main.cant ambiguous-name 5:8',
+      '/app/main.cant ambiguous-name 6:15',
+      '/app/main.cant ambiguous-name 10:17',
+      '/app/main.cant ambiguous-name 9:16',
+      '/app/main.cant ambiguous-name 12:9',
     ],
   );
 });

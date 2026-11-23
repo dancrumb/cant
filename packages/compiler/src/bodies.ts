@@ -13,7 +13,7 @@ import type {
 } from '@dancrumb/cant-shared';
 import { MAIN_NAMESPACE } from './declarations.ts';
 import { error, type Diagnostic } from './diagnostic.ts';
-import { describeName, hasNamespace, symbolsNamed, type LoadedProgram, type Module, type ModuleSymbol } from './modules.ts';
+import { ambiguous, describeName, hasNamespace, symbolsNamed, type LoadedProgram, type Module, type ModuleSymbol } from './modules.ts';
 import type { References } from './resolve.ts';
 
 /** A name given a value inside a declaration: a parameter, an assigned identifier or a loop variable. */
@@ -460,7 +460,7 @@ this.expression(expression.group, scope);
     }
     const symbol = this.topLevel(value).find((candidate) => candidate.kind === 'type');
     if (symbol === undefined) {
-      this.report(error('unknown-name', `There is no entity called ${describeName(value)}.`, value.position));
+      this.report(this.ambiguous(value) ?? error('unknown-name', `There is no entity called ${describeName(value)}.`, value.position));
     } else if (symbol.typeKind !== 'entity') {
       this.report(error('wrong-kind', `${describeName(value)} isn't an entity, so it can't be a test case's subject.`, value.position));
     } else {
@@ -476,6 +476,11 @@ this.expression(expression.group, scope);
         : [];
     }
     return symbolsNamed(this.module, this.namespace, name.value);
+  }
+
+  /** The error for a name that imports make ambiguous where it appears, if it is one. */
+  private ambiguous(name: Name): Diagnostic | undefined {
+    return ambiguous(this.module, this.namespace, name);
   }
 
   /** A name used as a value: a local, or a top-level constant. */
@@ -501,7 +506,7 @@ this.expression(expression.group, scope);
     }
     const other = candidates[0];
     if (other === undefined) {
-      this.report(error('unknown-name', `There is nothing called ${describeName(name)} here.`, name.position));
+      this.report(this.ambiguous(name) ?? error('unknown-name', `There is nothing called ${describeName(name)} here.`, name.position));
     } else if (other.kind === 'action') {
       this.report(
         error('action-as-value', `${describeName(name)} is an action, so it can only be called, as in ${describeName(name)}(…).`, name.position),
@@ -577,7 +582,7 @@ this.expression(argument.value, scope);
     if (action === undefined) {
       this.report(
         candidates.length === 0
-          ? error('unknown-name', `There is no action called ${describeName(callee)} here.`, callee.position)
+          ? (this.ambiguous(callee) ?? error('unknown-name', `There is no action called ${describeName(callee)} here.`, callee.position))
           : error('not-callable', `${describeName(callee)} isn't an action, so it can't be called.`, callee.position),
       );
       return;
