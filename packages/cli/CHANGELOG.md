@@ -1,5 +1,20 @@
 # @dancrumb/cant
 
+## 0.19.0
+
+### Minor Changes
+
+- Run arrays, sets, `if`, `instanceOf` and prefix operators (ADR 0021, ADR 0033, ADR 0019). The interpreter holds arrays, with their empty slots, and sets, makes them from literals, passes them to native code as an `Array` and a `Set`, and takes an `Array`, a `Set` or a `Map` back, so `IO::read()` gives its bytes. It runs `if` and `else`, checks a value with `instanceOf` against a base type, `UNKNOWN`, `ERROR`, a declared error, model or enum, an optional or a collection, and applies `-`, `!`, `isEmpty` and `ignore`. A collection is converted to text as its elements joined with `", "`, and an error, once narrowed, as its name and its data, so `"OOPS: ${problem}"` writes `OOPS: StreamError: reason: …`.
+
+- Add `IO::readline(stream?: ReadStream := @stdin): TEXT? raises StreamError` (ADR 0042). It reads the next line of a stream, decoded as UTF-8, without its `\n` or `\r\n`, and returns as soon as the line ends, so an interactive program can read answers as they are typed. It takes only the line from the stream, leaving the rest for later reads, and gives `NOTHING` once the stream has ended. A `FILE` gives its first line.
+
+### Patch Changes
+
+- Updated dependencies:
+  - @dancrumb/cant-compiler@0.19.0
+  - @dancrumb/cant-interpreter@0.19.0
+  - @dancrumb/cant-shared@0.19.0
+
 ## 0.18.0
 
 ### Minor Changes

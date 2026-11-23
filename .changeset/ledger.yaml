@@ -38,6 +38,11 @@
   intents:
     - cant-console
     - named-models-as-maps
+"@dancrumb/cant-compiler@0.19.0":
+  dir: packages/compiler
+  intents:
+    - editor-stdlib
+    - io-readline
 "@dancrumb/cant-compiler@0.2.0":
   dir: packages/compiler
   intents:
@@ -79,6 +84,11 @@
     - cant-console
     - interpreter-construct
     - named-models-as-maps
+"@dancrumb/cant-interpreter@0.19.0":
+  dir: packages/interpreter
+  intents:
+    - interpreter-arrays-if
+    - io-readline
 "@dancrumb/cant-lsp@0.10.1":
   dir: packages/lsp
   intents:
@@ -108,6 +118,10 @@
   intents:
     - cant-console
     - named-models-as-maps
+"@dancrumb/cant-lsp@0.19.0":
+  dir: packages/lsp
+  intents:
+    - editor-stdlib
 "@dancrumb/cant-lsp@0.8.0":
   dir: packages/lsp
   intents:
@@ -202,6 +216,11 @@
     - cant-console
     - interpreter-construct
     - named-models-as-maps
+"@dancrumb/cant@0.19.0":
+  dir: packages/cli
+  intents:
+    - interpreter-arrays-if
+    - io-readline
 cant-vscode@0.10.3:
   dir: packages/vscode
   intents:
@@ -232,6 +251,10 @@ cant-vscode@0.18.0:
   intents:
     - cant-console
     - named-models-as-maps
+cant-vscode@0.19.0:
+  dir: packages/vscode
+  intents:
+    - editor-stdlib
 cant-vscode@0.2.0:
   dir: packages/vscode
   intents:
