@@ -1,6 +1,7 @@
 import type { Readable, Writable } from 'node:stream';
 import { CantDuration, CantError } from '@dancrumb/cant-native';
 import {
+  arithmetic,
   COMPILED_FORMAT,
   toText,
   type BaseValue,
@@ -20,8 +21,8 @@ import { STANDARD_ACTIONS } from './stdlib/index.ts';
  * The interpreter (docs/adr/0039-compiled-programs.md): it runs a compiled program by walking its
  * code. For now it runs a program's `Start` triggers (docs/adr/0025-trigger-sources.md), and
  * covers enough of the language for them to call actions, with arguments, defaults, locals,
- * strings with interpolations, collections, objects, `if`, `instanceOf`, prefix operators and the
- * standard library. Anything else panics, saying the interpreter can't run it yet.
+ * strings with interpolations, collections, objects and their fields, `if`, `instanceOf`, the
+ * operators and the standard library. Anything else panics, saying the interpreter can't run it yet.
  */
 
 /** The process's standard streams, which `@stdin`, `@stdout` and `@stderr` stand for (docs/adr/0040-standard-streams.md). */
@@ -212,11 +213,7 @@ class Interpreter {
       case 'return':
         return statement.value === undefined || statement.value.type === 'nothing' ? NOTHING : this.evaluate(statement.value, frame);
       case 'if': {
-        const test = await this.evaluate(statement.test, frame);
-        if (test.kind !== 'boolean') {
-          throw new Panic(`An if needs a BOOLEAN, not a ${test.kind}.`, statement.test.position);
-        }
-        const branch = test.value ? statement.then : statement.else;
+        const branch = this.truth(await this.evaluate(statement.test, frame), statement.test.position) ? statement.then : statement.else;
         return branch === undefined ? undefined : this.block(branch, frame);
       }
       default:
@@ -303,6 +300,10 @@ class Interpreter {
         }
         return { kind: 'object', members };
       }
+      case 'binary':
+        return this.binary(expression, frame, fields);
+      case 'member':
+        return this.member(await this.evaluate(expression.object, frame, fields), expression.name, expression.position);
       case 'unary':
         return this.unary(expression.operator, await this.evaluate(expression.argument, frame, fields), expression.position);
       case 'instanceOf':
@@ -317,6 +318,104 @@ class Interpreter {
       default:
         throw new Panic(`The interpreter can't evaluate ${expression.type} expressions yet.`, expression.position);
     }
+  }
+
+  /** A binary operator's value (docs/adr/0019-operators.md). */
+  private async binary(
+    expression: Extract<CompiledExpression, { type: 'binary' }>,
+    frame: (RuntimeValue | undefined)[],
+    fields?: ReadonlyMap<string, RuntimeValue>,
+  ): Promise<RuntimeValue> {
+    const { operator, position } = expression;
+    const boolean = (value: boolean): RuntimeValue => ({ kind: 'boolean', value });
+    const left = await this.evaluate(expression.left, frame, fields);
+    // `and` and `or` only evaluate their right when it decides the result, and `orElse` only when its left is empty.
+    if (operator === 'and' || operator === 'or') {
+      const decided = this.truth(left, expression.left.position);
+      return decided === (operator === 'or') ? boolean(decided) : boolean(this.truth(await this.evaluate(expression.right, frame, fields), expression.right.position));
+    }
+    if (operator === 'orElse') {
+      return left.kind === 'nothing' ? this.evaluate(expression.right, frame, fields) : left;
+    }
+    const right = await this.evaluate(expression.right, frame, fields);
+    switch (operator) {
+      case '==':
+        return boolean(equal(left, right));
+      case '!=':
+        return boolean(!equal(left, right));
+      case 'in':
+        return boolean(this.contains(right, left, position));
+      case '<':
+      case '<=':
+      case '>':
+      case '>=': {
+        const order = compare(left, right);
+        if (order === undefined) {
+          throw new Panic(`A ${left.kind} and a ${right.kind} can't be compared with ${operator}.`, position);
+        }
+        return boolean(operator === '<' ? order < 0 : operator === '<=' ? order <= 0 : operator === '>' ? order > 0 : order >= 0);
+      }
+      default: {
+        // Arithmetic acts on enum members' values.
+        const a = operandOf(left);
+        const b = operandOf(right);
+        const result = a === undefined || b === undefined ? ({ kind: 'invalid' } as const) : arithmetic(operator, a, b);
+        switch (result.kind) {
+          case 'value':
+            return result.value;
+          case 'error':
+            // A built-in error, from cant::Errors (docs/adr/0023-error-handling.md).
+            return { kind: 'raised', error: `cant::Errors#${result.error}` };
+          case 'panic':
+            throw new Panic(result.message, position);
+          case 'invalid':
+            throw new Panic(`${operator} can't be applied to a ${left.kind} and a ${right.kind}.`, position);
+        }
+      }
+    }
+  }
+
+  /** A `BOOLEAN`'s value, for `and`, `or` and `if`. */
+  private truth(value: RuntimeValue, position: SourcePosition): boolean {
+    if (value.kind !== 'boolean') {
+      throw new Panic(`This needs a BOOLEAN, not a ${value.kind}.`, position);
+    }
+    return value.value;
+  }
+
+  /** Whether `value` is in `collection`, as `in` checks (docs/adr/0021-collections.md): an element, or a map's member's name. */
+  private contains(collection: RuntimeValue, value: RuntimeValue, position: SourcePosition): boolean {
+    switch (collection.kind) {
+      case 'array':
+      case 'set':
+        return collection.elements.some((element) => element !== undefined && equal(element, value));
+      case 'map': {
+        const name = this.text(value, position);
+        return collection.members.some(([member]) => member === name);
+      }
+      default:
+        throw new Panic(`in needs a collection, not a ${collection.kind}.`, position);
+    }
+  }
+
+  /**
+   * A member of a value (docs/adr/0027-object-shapes.md, 0023): an object's field, a map's member,
+   * or an error's `data`. A field or member with no value is `NOTHING`.
+   */
+  private member(value: RuntimeValue, name: string, position: SourcePosition): RuntimeValue {
+    switch (value.kind) {
+      case 'object':
+      case 'map':
+        return value.members.find(([member]) => member === name)?.[1] ?? NOTHING;
+      case 'raised':
+        if (name === 'data') {
+          return value.data ?? NOTHING;
+        }
+        break;
+      default:
+        break;
+    }
+    throw new Panic(`A ${value.kind} has no member ${name}.`, position);
   }
 
   /** A prefix operator's value (docs/adr/0019-operators.md). */
@@ -562,7 +661,39 @@ const BASE_KINDS: Record<Extract<CompiledTypeRef, { kind: 'base' }>['name'], Run
   FILE: undefined,
 };
 
-/** Whether two values are equal, as `==` compares them (docs/adr/0019-operators.md). */
+/** A base value, or an enum member's value, which arithmetic acts on. */
+function operandOf(value: RuntimeValue): BaseValue | undefined {
+  const base = value.kind === 'enum' ? value.value : value;
+  switch (base.kind) {
+    case 'text':
+    case 'number':
+    case 'boolean':
+    case 'dateTime':
+    case 'duration':
+      return base;
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * How two values are ordered, for `<`, `<=`, `>` and `>=` (docs/adr/0019-operators.md): numbers,
+ * text by UTF-16 code unit, instants and durations, and enum values by their members' values. It
+ * is `undefined` for values that can't be ordered.
+ */
+function compare(left: RuntimeValue, right: RuntimeValue): number | undefined {
+  const a = operandOf(left);
+  const b = operandOf(right);
+  if (a === undefined || a.kind !== b?.kind || a.kind === 'boolean') {
+    return undefined;
+  }
+  return a.value < b.value ? -1 : a.value > b.value ? 1 : 0;
+}
+
+/**
+ * Whether two values are equal, as `==` compares them (docs/adr/0019-operators.md): by value,
+ * except objects and collections, which are equal only when they are the same one.
+ */
 function equal(left: RuntimeValue, right: RuntimeValue): boolean {
   if (left.kind === 'enum' || right.kind === 'enum') {
     return equal(left.kind === 'enum' ? left.value : left, right.kind === 'enum' ? right.value : right);

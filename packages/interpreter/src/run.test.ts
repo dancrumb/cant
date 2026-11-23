@@ -242,6 +242,73 @@ test('makes arrays and sets, applies prefix operators, and checks base types wit
   assert.deepEqual(await output(compiled), { stdout: '1, 2, 1;1, 2;-1;false;true;false;false;', stderr: '' });
 });
 
+test('applies binary operators, short-circuiting and, or and orElse', async () => {
+  const value = (held: Extract<CompiledExpression, { type: 'value' }>['value']): CompiledExpression => ({ type: 'value', value: held, position: at(1) });
+  const n = (held: number): CompiledExpression => value({ kind: 'number', value: held });
+  const yes = value({ kind: 'boolean', value: true });
+  const no = value({ kind: 'boolean', value: false });
+  // A local with no value, which panics if it is evaluated.
+  const unset: CompiledExpression = { type: 'local', slot: 0, position: at(1) };
+  const binary = (operator: Extract<CompiledExpression, { type: 'binary' }>['operator'], left: CompiledExpression, right: CompiledExpression): CompiledExpression => ({
+    type: 'binary',
+    operator,
+    left,
+    right,
+    position: at(1),
+  });
+  const show = (expression: CompiledExpression): CompiledStatement => ({ type: 'expression', expression: write({ type: 'template', parts: [expression, ';'], position: at(1) }), position: at(1) });
+  const empty: CompiledExpression = { type: 'unwrap', value: { type: 'call', action: 'main.cant#Nothing', arguments: [], position: at(1) }, position: at(1) };
+  const compiled = program(
+    {
+      'main.cant#Nothing': { ...body([], 0, [{ type: 'return', value: { type: 'nothing' }, position: at(1) }]), returns: { kind: 'base', name: 'TEXT' }, optional: true },
+      'main.cant#Main': body([], 1, [
+        show(binary('+', n(2), binary('*', n(3), n(4)))),
+        show(binary('%', n(-7), n(3))),
+        show(binary('==', value({ kind: 'text', value: 'a' }), value({ kind: 'text', value: 'a' }))),
+        show(binary('!=', n(1), n(1))),
+        show(binary('<', value({ kind: 'text', value: 'a' }), value({ kind: 'text', value: 'b' }))),
+        show(binary('>=', n(1), n(2))),
+        show(binary('or', yes, unset)),
+        show(binary('and', no, unset)),
+        show(binary('and', yes, no)),
+        show(binary('orElse', empty, value({ kind: 'text', value: 'fallback' }))),
+        show(binary('orElse', value({ kind: 'text', value: 'held' }), unset)),
+        show(binary('in', n(2), { type: 'array', element: { kind: 'base', name: 'NUMBER' }, elements: [n(1), n(2)], position: at(1) })),
+        show(binary('in', value({ kind: 'text', value: 'b' }), { type: 'map', value: { kind: 'base', name: 'NUMBER' }, members: [['a', n(1)]], position: at(1) })),
+        show({ type: 'instanceOf', value: binary('/', n(1), n(0)), target: { kind: 'named', symbol: 'cant::Errors#DivisionByZero' }, position: at(1) }),
+      ]),
+    },
+    [{}],
+  );
+  compiled.types['cant::Errors#DivisionByZero'] = { kind: 'error' };
+  assert.deepEqual(await output(compiled), { stdout: '14;2;true;false;true;false;true;false;false;fallback;held;true;false;true;', stderr: '' });
+});
+
+test("reads an object's fields, and an error's data", async () => {
+  const bytes: CompiledExpression = { type: 'local', slot: 0, position: at(1) };
+  const compiled = readOrOops();
+  const main = compiled.actions['main.cant#Main'];
+  assert.ok(main?.implementation.kind === 'body');
+  const check = main.implementation.body[1];
+  assert.ok(check?.type === 'if');
+  // `IO::write("OOPS: ${bytes.data.reason}")`
+  check.then[0] = {
+    type: 'expression',
+    expression: write({
+      type: 'template',
+      parts: ['OOPS: ', { type: 'member', object: { type: 'member', object: bytes, name: 'data', position: at(1) }, name: 'reason', position: at(1) }],
+      position: at(1),
+    }),
+    position: at(1),
+  };
+  const broken = new Readable({
+    read() {
+      this.destroy(new Error('broken'));
+    },
+  });
+  assert.deepEqual(await output(compiled, broken), { stdout: 'OOPS: broken', stderr: '' });
+});
+
 test('skips test cases, and runs Start triggers in order', async () => {
   const say = (word: string): CompiledAction => body([], 0, [{ type: 'expression', expression: write(text(word)), position: at(1) }]);
   const compiled = program({ 'main.cant#One': say('one '), 'main.cant#Two': say('two') }, [

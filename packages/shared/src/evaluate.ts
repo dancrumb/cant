@@ -1,5 +1,5 @@
 import type { Position } from 'unist';
-import type { BinaryExpression, Expression, Identifier, Name, UnaryExpression } from './ast.ts';
+import type { BinaryExpression, BinaryOperator, Expression, Identifier, Name, UnaryExpression } from './ast.ts';
 import {
   boolean,
   compare,
@@ -197,82 +197,17 @@ return notConstant(expression);
 
   /** The arithmetic operators, on numbers, and on dates and durations (docs/adr/0019-operators.md, 0026). */
   private arithmetic(expression: BinaryExpression, left: BaseValue, right: BaseValue): Value {
-    const { operator } = expression;
-    if (left.kind === 'number' && right.kind === 'number') {
-      switch (operator) {
-        case '+':
-          return this.finite(left.value + right.value, expression);
-        case '-':
-          return this.finite(left.value - right.value, expression);
-        case '*':
-          return this.finite(left.value * right.value, expression);
-        case '**':
-          return this.finite(left.value ** right.value, expression);
-        case '/':
-          if (right.value === 0) {
-return raise('DivisionByZero', expression);
-}
-          return this.finite(left.value / right.value, expression);
-        case '%':
-          if (right.value === 0) {
-return raise('DivisionByZero', expression);
-}
-          if (!Number.isInteger(left.value) || !Number.isInteger(right.value)) {
-return raise('FractionalModulo', expression);
-}
-          // A mathematical modulo: the result has the sign of the right operand.
-          return number((((left.value % right.value) + right.value) % right.value) + 0);
-        default:
-          return notConstant(expression);
-      }
-    }
-
-    const duration = (milliseconds: number): Value => ({ kind: 'duration', value: Math.trunc(milliseconds) + 0 });
-    const dateTime = (milliseconds: number): Value => {
-      if (Math.abs(milliseconds) > DATE_TIME_LIMIT) {
-        panic('The result is outside the range of instants a DATE_TIME can hold.', expression);
-      }
-      return { kind: 'dateTime', value: milliseconds };
-    };
-
-    switch (`${left.kind} ${operator} ${right.kind}`) {
-      case 'dateTime + duration':
-        return dateTime(left.value as number + (right.value as number));
-      case 'duration + dateTime':
-        return dateTime(left.value as number + (right.value as number));
-      case 'dateTime - duration':
-        return dateTime(left.value as number - (right.value as number));
-      case 'dateTime - dateTime':
-        return duration(left.value as number - (right.value as number));
-      case 'duration + duration':
-        return duration(left.value as number + (right.value as number));
-      case 'duration - duration':
-        return duration(left.value as number - (right.value as number));
-      case 'duration * number':
-        return duration(left.value as number * (right.value as number));
-      case 'number * duration':
-        return duration(left.value as number * (right.value as number));
-      case 'duration / number':
-        if (right.value === 0) {
-return raise('DivisionByZero', expression);
-}
-        return duration(left.value as number / (right.value as number));
-      case 'duration / duration':
-        if (right.value === 0) {
-return raise('DivisionByZero', expression);
-}
-        return number(left.value as number / (right.value as number));
-      default:
+    const result = arithmetic(expression.operator, left, right);
+    switch (result.kind) {
+      case 'value':
+        return result.value;
+      case 'error':
+        return raise(result.error, expression);
+      case 'panic':
+        return panic(result.message, expression);
+      case 'invalid':
         return notConstant(expression);
     }
-  }
-
-  /** Cant has no `Infinity` or `NaN` (docs/adr/0019-operators.md), so a result that would be one panics. */
-  private finite(value: number, expression: Expression): Value {
-    if (!Number.isFinite(value)) {
-panic('The result is not a number Cant can hold: it is too large, or not a real number.', expression);
-}
-    return number(value + 0);
   }
 
   private base(expression: Expression): BaseValue {
@@ -282,6 +217,85 @@ panic('The result is not a number Cant can hold: it is too large, or not a real 
   private boolean(expression: Expression): boolean {
     const value = this.base(expression);
     return value.kind === 'boolean' ? value.value : notConstant(expression);
+  }
+}
+
+/** What an arithmetic operator gives: a value, a built-in error, a panic, or nothing, for operands it doesn't take. */
+export type ArithmeticResult =
+  | { kind: 'value'; value: Value }
+  | { kind: 'error'; error: RaisedError }
+  | { kind: 'panic'; message: string }
+  | { kind: 'invalid' };
+
+/**
+ * An arithmetic operator applied to two base values (docs/adr/0019-operators.md, 0026): on
+ * numbers, and on dates and durations. The compiler uses it for constant expressions, and the
+ * interpreter at runtime, so both give the same results.
+ */
+export function arithmetic(operator: BinaryOperator, left: BaseValue, right: BaseValue): ArithmeticResult {
+  const value = (held: Value): ArithmeticResult => ({ kind: 'value', value: held });
+  const error = (raised: RaisedError): ArithmeticResult => ({ kind: 'error', error: raised });
+  const invalid: ArithmeticResult = { kind: 'invalid' };
+  // Cant has no `Infinity` or `NaN` (docs/adr/0019-operators.md), so a result that would be one panics.
+  const finite = (result: number): ArithmeticResult =>
+    Number.isFinite(result)
+      ? value(number(result + 0))
+      : { kind: 'panic', message: 'The result is not a number Cant can hold: it is too large, or not a real number.' };
+
+  if (left.kind === 'number' && right.kind === 'number') {
+    switch (operator) {
+      case '+':
+        return finite(left.value + right.value);
+      case '-':
+        return finite(left.value - right.value);
+      case '*':
+        return finite(left.value * right.value);
+      case '**':
+        return finite(left.value ** right.value);
+      case '/':
+        return right.value === 0 ? error('DivisionByZero') : finite(left.value / right.value);
+      case '%':
+        if (right.value === 0) {
+          return error('DivisionByZero');
+        }
+        if (!Number.isInteger(left.value) || !Number.isInteger(right.value)) {
+          return error('FractionalModulo');
+        }
+        // A mathematical modulo: the result has the sign of the right operand.
+        return value(number((((left.value % right.value) + right.value) % right.value) + 0));
+      default:
+        return invalid;
+    }
+  }
+
+  const duration = (milliseconds: number): ArithmeticResult => value({ kind: 'duration', value: Math.trunc(milliseconds) + 0 });
+  const dateTime = (milliseconds: number): ArithmeticResult =>
+    Math.abs(milliseconds) > DATE_TIME_LIMIT
+      ? { kind: 'panic', message: 'The result is outside the range of instants a DATE_TIME can hold.' }
+      : value({ kind: 'dateTime', value: milliseconds });
+
+  const a = left.value as number;
+  const b = right.value as number;
+  switch (`${left.kind} ${operator} ${right.kind}`) {
+    case 'dateTime + duration':
+    case 'duration + dateTime':
+      return dateTime(a + b);
+    case 'dateTime - duration':
+      return dateTime(a - b);
+    case 'dateTime - dateTime':
+    case 'duration - duration':
+      return duration(a - b);
+    case 'duration + duration':
+      return duration(a + b);
+    case 'duration * number':
+    case 'number * duration':
+      return duration(a * b);
+    case 'duration / number':
+      return b === 0 ? error('DivisionByZero') : duration(a / b);
+    case 'duration / duration':
+      return b === 0 ? error('DivisionByZero') : value(number(a / b));
+    default:
+      return invalid;
   }
 }
 

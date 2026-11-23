@@ -9,8 +9,8 @@ export { parse, ParseError } from './parse.ts';
 export { format } from './format.ts';
 export type * from './ast.ts';
 
-export { evaluate } from './evaluate.ts';
-export type { Evaluation, EvaluationScope, RaisedError } from './evaluate.ts';
+export { arithmetic, evaluate } from './evaluate.ts';
+export type { ArithmeticResult, Evaluation, EvaluationScope, RaisedError } from './evaluate.ts';
 
 export {
   compare,
