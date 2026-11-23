@@ -1,0 +1,40 @@
+// cant::Text, the standard library module of operations on TEXT (docs/adr/0046-text.md). It is a
+// native module (docs/adr/0036-native-modules.md), whose actions the interpreter implements. The
+// compiler embeds this file, and checks calls to cant::Text against it.
+//
+// A character is a Unicode code point, so an emoji such as "😀" is one character. Indexes work as
+// an array's do (docs/adr/0021-collections.md): they start at 0, a negative index counts from the
+// end, and a fractional one is truncated towards zero.
+
+// The number of characters in `text`.
+export action length(text: TEXT): NUMBER
+    native "./Text.js"
+
+// The pieces of `text` between each `delim`, or each of its characters when `delim` is "".
+export action split(text: TEXT, delim?: TEXT := " "): [TEXT]
+    native "./Text.js"
+
+// `text` without the white space at its start.
+export action trimLeft(text: TEXT): TEXT
+    native "./Text.js"
+
+// `text` without the white space at its end.
+export action trimRight(text: TEXT): TEXT
+    native "./Text.js"
+
+// `text` without the white space at its start and end.
+export action trim(text: TEXT): TEXT
+    native "./Text.js"
+
+// The characters of `text` from `start` up to, but not including, `end`, which is the end of the
+// text when it is left out. A position past either end of the text is taken as that end.
+export action slice(text: TEXT, start?: NUMBER := 0, end?: NUMBER): TEXT
+    native "./Text.js"
+
+// The character of `text` at `index`, or NOTHING when the index is past either end of the text.
+export action charAt(text: TEXT, index: NUMBER): TEXT?
+    native "./Text.js"
+
+// `text` written `times` times, one after another, or "" when `times` is 0 or less.
+export action repeat(text: TEXT, times: NUMBER): TEXT
+    native "./Text.js"

@@ -55,3 +55,4 @@ Once the major version is released, records are immutable. If a decision changes
 | [0043](0043-standard-library-generics.md) | Generics in the standard library | Accepted |
 | [0044](0044-console.md) | The `cant::Console` module | Accepted |
 | [0045](0045-conversion.md) | The `cant::Conversion` module | Accepted |
+| [0046](0046-text.md) | The `cant::Text` module | Accepted |
